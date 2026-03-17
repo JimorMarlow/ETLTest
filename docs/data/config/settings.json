@@ -1,0 +1,6 @@
+{
+    "device_name": "ESP Web Server",
+    "version": "1.0.0",
+    "wifi_mode": "AP+STA",
+    "default_brightness": 100
+}

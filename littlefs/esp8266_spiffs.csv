@@ -1,0 +1,10 @@
+# Name,   Type, SubType, Offset,  Size, Flags
+# ESP8266 (WemosD1Mini / NodeMCUv3) - 4MB flash
+# EEPROM, 0x00000000, 0x1000 (4KB) - зарезервировано
+# RF cal,  0x00001000, 0x1000 (4KB) - зарезервировано
+# System params, 0x00002000, 0x2000 (8KB) - зарезервировано
+# WiFi config, 0x00004000, 0x1000 (4KB) - зарезервировано
+# RF cal data, 0x00005000, 0x1000 (4KB) - зарезервировано
+# Sketch starts at 0x00010000 (64KB)
+# LittleFS/spiffs после скетча
+spiffs,   data, spiffs,  0x300000, 0xCF0000,
