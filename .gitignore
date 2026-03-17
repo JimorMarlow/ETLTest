@@ -1,0 +1,29 @@
+# PlatformIO
+.pio/
+.pioenvs/
+libdeps/
+
+# Build artifacts
+.build/
+build/
+*.o
+*.d
+*.a
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Serial monitor logs
+*.log
+
+# Temporary files
+tmp/
+temp/
