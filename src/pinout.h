@@ -7,7 +7,7 @@
 // параметрах компиляции для этой секции и по ней разделить несопадающие конфигурации
 // BOARD_xxx 
 
-#ifdef BOARD_WEMOS_D1_MINI  // #ifdef ESP8266
+#ifdef BOARD_WEMOS_D1_MINI  // ESP8266
    #pragma message("Компилируется под WEMOS D1 MINI")
   bool INVERSE_BUILTING_LED = true;
   const int LED_MORSE = LED_BUILTIN;
@@ -15,7 +15,15 @@
   // #define LED_BUILTIN D4
   const int SERIAL_INIT_DELAY = 0;
   
-#elif BOARD_ESP32_C3_SUPER_MINI // #elif ESP32
+#elif BOARD_NODEMCU  // ESP8266
+   #pragma message("Компилируется под NODEMCU v3")
+  bool INVERSE_BUILTING_LED = true;
+  const int LED_MORSE = LED_BUILTIN;
+  // NODEMCU V3  встроенный синий светодиод, подключённый к пину D4 (GPIO2)
+  // #define LED_BUILTIN D4
+  const int SERIAL_INIT_DELAY = 0;
+
+#elif BOARD_ESP32_C3_SUPER_MINI // ESP32
   // Код только для ESP32-C3
   #pragma message("Компилируется под ESP32-C3 super mini")
   // НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
@@ -26,7 +34,7 @@
   const int LED_MORSE = LED_BUILTIN; //8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
   const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
   
-#elif BOARD_ESP32_WROOM_32U
+#elif BOARD_ESP32_WROOM_32U // ESP32
   // Код только для ESP32-WROOM-32U
   #pragma message("Компилируется под ESP32-WROOM-32U")
   #undef LED_BUILTIN
