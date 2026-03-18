@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "version.h"
+#include "pinout.h"
 
 //////////////////////////////////////////////////////////////
 // ETL library headers
@@ -42,12 +43,8 @@ bool start_wifi_server() { // WiFi setup
 
 void setup() {
     Serial.begin(115200);
-    
-    // Задержка для ESP32 C3 Super Mini для корректного вывода в терминал
-    #ifdef ESP32
-        delay(1000);
-    #endif
-    
+    if(SERIAL_INIT_DELAY > 0) delay(SERIAL_INIT_DELAY);  // Задержка для ESP32 C3 Super Mini для корректного вывода в терминал
+        
     Serial.println();
     Serial.println("=================================");
     Serial.println("  ETL Test Project");
