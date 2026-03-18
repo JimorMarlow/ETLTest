@@ -9,15 +9,21 @@
 //////////////////////////////////////////////////////////////
 // WEB-UI
 #ifndef ESP32
-#define USE_WIFI_UI_SERVER
+// #define USE_WIFI_UI_SERVER
 #include "etl_wifi_setup.h"
+#include "etl/etl_littlefs.h"
 etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
+
+struct simulation_t {
+    bool reset_wifi_on_start = false;    // Не считывать настройки, а заменить на значения по умолчанию
+};
+simulation_t simulation_data;   // Настройки тестирования
 
 bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
 
-    wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config);
+    wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config/*, simulation_data.reset_wifi_on_start*/);
     if(wifi_server && wifi_server->begin()) {
         // Вывод информации о подключении
         Serial.println(F("\n=== WiFi Server Info ==="));
@@ -64,7 +70,13 @@ void setup() {
     Serial.println("=================================");
 
 #ifdef USE_WIFI_UI_SERVER
-    start_wifi_server();
+    if(etl::little_fs::begin()) {
+        Serial.println("[OK] etl::little_fs::begin()");
+        start_wifi_server();
+    }
+    else{
+        Serial.println("[ERROR] etl::little_fs::begin()");
+    }
 #endif// USE_WIFI_UI_SERVER
 }
 
