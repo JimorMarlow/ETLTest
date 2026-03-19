@@ -9,13 +9,13 @@
 //////////////////////////////////////////////////////////////
 // WEB-UI
 #ifndef ESP32
-// #define USE_WIFI_UI_SERVER
+#define USE_WIFI_UI_SERVER
 #include "etl_wifi_setup.h"
 #include "etl/etl_littlefs.h"
 etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
 
 struct simulation_t {
-    bool reset_wifi_on_start = false;    // Не считывать настройки, а заменить на значения по умолчанию
+    bool reset_wifi_on_start = true;    // Не считывать настройки, а заменить на значения по умолчанию
 };
 simulation_t simulation_data;   // Настройки тестирования
 

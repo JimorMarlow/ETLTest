@@ -13,6 +13,9 @@
 #include "etl/etl_littlefs.h"
 #include "etl/etl_settings.h"
 
+// :DEBUG: Для отладки падений исключаю запись на карту памяти
+#define EXCLUDE_SETTINGS_DATA
+
 namespace etl
 {
     namespace wifi
@@ -26,12 +29,21 @@ namespace etl
             const uint16_t  data_update_delay = 0;  // 0ms - Immiaditly update
             server_config_t default_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
 
+            #ifdef EXCLUDE_SETTINGS_DATA
+            server_config_t temp_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
+            #endif//EXCLUDE_SETTINGS_DATA
+
             /**
              * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
              * @param cfg Конфигурация WiFi сервера по умолчанию
              */
             bool init_config(const etl::wifi::server_config_t& default_cfg)
             {
+                #ifdef EXCLUDE_SETTINGS_DATA
+                temp_wifi_cfg = default_cfg;
+                return true;
+                #endif//#ifdef EXCLUDE_SETTINGS_DATA 
+
                 if(etl::little_fs::begin())
                 {
                     // Создание директории для файла настроек
@@ -49,6 +61,11 @@ namespace etl
              */
             bool save_config(const server_config_t& cfg)
             {
+                #ifdef EXCLUDE_SETTINGS_DATA
+                temp_wifi_cfg = cfg;
+                return true;
+                #endif//#ifdef EXCLUDE_SETTINGS_DATA 
+
                 etl::settings::data<etl::wifi::server_config_t> data (settings::data_path, settings::data_update_delay, default_wifi_cfg);
                 data.init();
                 data.set(cfg);
@@ -60,6 +77,9 @@ namespace etl
              */
             server_config_t load_config()
             {
+            #ifdef EXCLUDE_SETTINGS_DATA
+                return temp_wifi_cfg;
+            #endif//#ifdef EXCLUDE_SETTINGS_DATA 
                 server_config_t cfg = default_wifi_cfg; 
                 etl::settings::data<etl::wifi::server_config_t> data (settings::data_path, settings::data_update_delay, default_wifi_cfg);
                 if(data.init())
@@ -400,7 +420,17 @@ namespace etl
 
             // Возврат в режим AP при ошибке подключения
             WiFi.mode(WIFI_AP);
-            WiFi.softAP(m_config.ap_ssid.c_str(), m_config.ap_password.c_str());
+            if (!WiFi.softAP(m_config.ap_ssid.c_str(), m_config.ap_password.c_str())) {
+                Serial.println(F("[WiFiSetup] Failed to restart AP"));
+            } else {
+                Serial.println(F("[WiFiSetup] AP restarted"));
+                // Перезапуск HTTP сервера после смены режима
+                if (m_server) {
+                    m_server->stop();
+                    m_server.reset();
+                }
+                start_http_server();
+            }
 
             return false;
         }
@@ -459,8 +489,9 @@ namespace etl
 
         void server_setup::handle_root()
         {
-            String html = get_wifi_setup_html();
-            m_server->send(200, "text/html", html);
+            Serial.println(F("[WiFiSetup] Serving root page..."));
+            m_server->send_P(200, "text/html", HTML_TEMPLATE);
+            Serial.println(F("[WiFiSetup] Page sent"));
         }
 
         void server_setup::handle_api_scan()
@@ -658,18 +689,41 @@ namespace etl
             Serial.println(F("[WiFiSetup] Setting up HTTP routes..."));
 
             // Главная страница
-            m_server->on("/", HTTP_GET, [this]() { handle_root(); });
+            m_server->on("/", HTTP_GET, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /"));
+                handle_root();
+            });
 
             // API endpoints
-            m_server->on("/api/scan", HTTP_GET, [this]() { handle_api_scan(); });
-            m_server->on("/api/connect", HTTP_POST, [this]() { handle_api_connect(); });
-            m_server->on("/api/status", HTTP_GET, [this]() { handle_api_status(); });
-            m_server->on("/api/save", HTTP_POST, [this]() { handle_api_save(); });
-            m_server->on("/api/reset", HTTP_POST, [this]() { handle_api_reset(); });
-            m_server->on("/api/ap_settings", HTTP_POST, [this]() { handle_api_ap_settings(); });
+            m_server->on("/api/scan", HTTP_GET, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/scan"));
+                handle_api_scan();
+            });
+            m_server->on("/api/connect", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/connect"));
+                handle_api_connect();
+            });
+            m_server->on("/api/status", HTTP_GET, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/status"));
+                handle_api_status();
+            });
+            m_server->on("/api/save", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/save"));
+                handle_api_save();
+            });
+            m_server->on("/api/reset", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/reset"));
+                handle_api_reset();
+            });
+            m_server->on("/api/ap_settings", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/ap_settings"));
+                handle_api_ap_settings();
+            });
 
             // Обработчик для остальных путей - 404
             m_server->onNotFound([this]() {
+                Serial.print(F("[WiFiSetup] Request 404: "));
+                Serial.println(m_server->uri());
                 m_server->send(404, "text/plain", "Not Found");
             });
         }
