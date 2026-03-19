@@ -317,6 +317,11 @@ namespace etl
             virtual void handle_api_status();
 
             /**
+             * @brief Обработчик API конфигурации устройства
+             */
+            virtual void handle_api_config();
+
+            /**
              * @brief Обработчик API сохранения настроек
              */
             virtual void handle_api_save();
@@ -354,12 +359,6 @@ namespace etl
              * @param message Сообщение об ошибке
              */
             virtual void send_error_response(const String& message);
-
-            /**
-             * @brief Получить HTML страницу настройки WiFi
-             * @return HTML строка
-             */
-            virtual String get_wifi_setup_html() const;
 
             server_config_t m_config;                   ///< Конфигурация
             bool m_initialized = false;                 ///< Флаг инициализации

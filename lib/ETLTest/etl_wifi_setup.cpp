@@ -490,7 +490,11 @@ namespace etl
         void server_setup::handle_root()
         {
             Serial.println(F("[WiFiSetup] Serving root page..."));
+            
+            // Отправка HTML напрямую из PROGMEM
+            m_server->sendHeader("Cache-Control", "no-cache");
             m_server->send_P(200, "text/html", HTML_TEMPLATE);
+            
             Serial.println(F("[WiFiSetup] Page sent"));
         }
 
@@ -575,6 +579,21 @@ namespace etl
             doc["ip"] = get_ip_address();
             doc["rssi"] = WiFi.RSSI();
             doc["mode"] = get_mode();
+
+            String response;
+            serializeJson(doc, response);
+            m_server->send(200, "application/json", response);
+        }
+
+        void server_setup::handle_api_config()
+        {
+            JsonDocument doc;
+            doc["device_name"] = m_config.device_name;
+            doc["device_description"] = m_config.device_description;
+            doc["device_icon_svg"] = m_config.device_icon_svg;
+            doc["hostname"] = m_config.hostname;
+            doc["ap_ssid"] = m_config.ap_ssid;
+            doc["port"] = m_config.port;
 
             String response;
             serializeJson(doc, response);
@@ -675,15 +694,6 @@ namespace etl
             m_server->send(200, "application/json", response);
         }
 
-        String server_setup::get_wifi_setup_html() const
-        {
-            return get_wifi_setup_html_content(
-                m_config.device_name,
-                m_config.device_description,
-                m_config.device_icon_svg
-            );
-        }
-
         void server_setup::setup_http_routes()
         {
             Serial.println(F("[WiFiSetup] Setting up HTTP routes..."));
@@ -706,6 +716,10 @@ namespace etl
             m_server->on("/api/status", HTTP_GET, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/status"));
                 handle_api_status();
+            });
+            m_server->on("/api/config", HTTP_GET, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/config"));
+                handle_api_config();
             });
             m_server->on("/api/save", HTTP_POST, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/save"));

@@ -217,7 +217,7 @@ namespace etl
         let isConnected = false;
         let connectionError = false;
         let largeFont = localStorage.getItem('wifiSetupLargeFont') === 'true';
-        window.deviceConfig = { version: 'DEVICE_NAME_PLACEHOLDER', description: 'DEVICE_DESC_PLACEHOLDER', iconSvg: null };
+        window.deviceConfig = { version: '', description: '', iconSvg: null };
         const deviceName = document.getElementById('deviceName');
         const deviceDescription = document.getElementById('deviceDescription');
         const deviceIcon = document.getElementById('deviceIcon');
@@ -246,7 +246,29 @@ namespace etl
         const modalMessage = document.getElementById('modalMessage');
         const modalCancelBtn = document.getElementById('modalCancelBtn');
         const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-        function init() { applyDeviceConfig(); setLanguage(currentLang); updateStatusUI(); applyLargeFont(); scanNetworks(); }
+        function init() {
+            loadDeviceConfig().then(() => {
+                applyDeviceConfig();
+                setLanguage(currentLang);
+                updateStatusUI();
+                applyLargeFont();
+                scanNetworks();
+            });
+        }
+
+        async function loadDeviceConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                window.deviceConfig = {
+                    version: config.device_name || 'ESP Device',
+                    description: config.device_description || '',
+                    iconSvg: config.device_icon_svg || null
+                };
+            } catch (error) {
+                console.error('Failed to load device config:', error);
+            }
+        }
         function applyDeviceConfig() { const config = window.deviceConfig || {}; if (config.version) deviceName.textContent = config.version; if (config.description) deviceDescription.textContent = config.description; if (config.iconSvg && config.iconSvg.trim()) { deviceIcon.innerHTML = config.iconSvg; } else { deviceIcon.innerHTML = DEFAULT_DEVICE_ICON; } }
         function applyLargeFont() { if (largeFont) { document.body.classList.add('large-font'); fontToggleBtn.classList.add('active'); } else { document.body.classList.remove('large-font'); fontToggleBtn.classList.remove('active'); } }
         function toggleLargeFont() { largeFont = !largeFont; localStorage.setItem('wifiSetupLargeFont', largeFont); applyLargeFont(); }
@@ -275,29 +297,6 @@ namespace etl
 </body>
 </html>
 )rawliteral";
-
-        inline String get_wifi_setup_html_content(
-            const String& device_name = "ESP Device v1.0.0",
-            const String& device_description = "Smart home device based on ESP8266/ESP32",
-            const String& device_icon_svg = "")
-        {
-            String html;
-            html.reserve(sizeof(HTML_TEMPLATE) + 64);
-            html = FPSTR(HTML_TEMPLATE);
-            html.replace("DEVICE_NAME_PLACEHOLDER", device_name);
-            html.replace("DEVICE_DESC_PLACEHOLDER", device_description);
-            if (device_icon_svg.length() > 0) {
-                html.replace("DEVICE_ICON_PLACEHOLDER", device_icon_svg);
-            } else {
-                html.replace("DEVICE_ICON_PLACEHOLDER", "");
-            }
-            return html;
-        }
-
-        inline String get_wifi_setup_html()
-        {
-            return get_wifi_setup_html_content();
-        }
 
     } // namespace wifi
 } // namespace etl
