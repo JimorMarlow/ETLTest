@@ -26,14 +26,14 @@ namespace etl
         .header-title { font-size: 17px; font-weight: 600; color: #1C1C1E; }
         .accessibility-controls { display: flex; gap: 8px; align-items: center; }
         .lang-switch { display: flex; gap: 8px; }
-        .lang-btn, .font-btn { padding: 6px 12px; border: 1px solid #C6C6C8; border-radius: 6px; background: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .font-btn { font-weight: 700; line-height: 1; }
+        .lang-btn, .font-btn { padding: 6px 12px; border: 1px solid #C6C6C8; border-radius: 6px; background: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; }
+        .font-btn { font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; }
         .lang-btn.active, .font-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
         .lang-btn:hover, .font-btn:hover { border-color: #007AFF; }
         .device-info-container { background: #F2F2F7; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
-        .device-icon { width: 48px; height: 48px; flex-shrink: 0; }
+        .device-icon { width: 80px; height: 80px; flex-shrink: 0; }
         .device-icon svg { width: 100%; height: 100%; }
-        .device-info-content { flex: 1; min-width: 0; }
+        .device-info-content { flex: 1; min-width: 0; padding-left: 8px; }
         .device-name { font-size: 20px; font-weight: 700; color: #1C1C1E; margin-bottom: 4px; }
         .device-description { font-size: 15px; font-weight: 400; color: #8E8E93; line-height: 1.4; }
         body.large-font .device-name { font-size: 24px; }
@@ -49,9 +49,31 @@ namespace etl
         .status-details { font-size: 13px; color: #8E8E93; margin-top: 4px; }
         body.large-font .status-text { font-size: 18px; }
         body.large-font .status-details { font-size: 15px; }
-        .refresh-btn { padding: 8px 16px; border: 1px solid #007AFF; border-radius: 8px; background: #FFFFFF; color: #007AFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .refresh-btn { padding: 6px 16px; border: 1px solid #007AFF; border-radius: 8px; background: #FFFFFF; color: #007AFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; }
         .refresh-btn:hover { background: #007AFF; color: #FFFFFF; }
         .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .refresh-spinner {
+            width: 16px; height: 16px;
+            border: 2px solid #007AFF;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        .btn-spinner {
+            width: 18px; height: 18px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        .btn-with-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
         .section-title { font-size: 17px; font-weight: 600; color: #1C1C1E; margin-bottom: 12px; }
         body.large-font .section-title { font-size: 20px; }
         .networks-list { background: #F2F2F7; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
@@ -122,7 +144,7 @@ namespace etl
         .modal-btn-cancel { background: #F2F2F7; color: #1C1C1E; }
         .modal-btn-confirm { background: #FF3B30; color: #FFFFFF; }
         .hidden { display: none !important; }
-        @media (max-width: 480px) { body { padding: 12px; } .device-info-container { padding: 12px; } .device-icon { width: 40px; height: 40px; } .device-name { font-size: 18px; } .device-description { font-size: 14px; } }
+        @media (max-width: 480px) { body { padding: 12px; } .device-info-container { padding: 12px; } .device-icon { width: 60px; height: 60px; } .device-info-content { padding-left: 4px; } .device-name { font-size: 18px; } .device-description { font-size: 14px; } }
     </style>
 </head>
 <body>
@@ -150,7 +172,10 @@ namespace etl
                 <div id="statusText" data-i18n="status_disconnected">Disconnected</div>
                 <div class="status-details" id="statusDetails"></div>
             </div>
-            <button class="refresh-btn" id="refreshBtn" data-i18n="refresh_btn">Refresh</button>
+            <button class="refresh-btn" id="refreshBtn" data-i18n="refresh_btn">
+                <span class="refresh-btn-text">Refresh</span>
+                <span class="refresh-spinner hidden" id="refreshSpinner"></span>
+            </button>
         </div>
         <div class="section-title" data-i18n="select_network">Select Network</div>
         <div class="networks-list" id="networksList">
@@ -225,6 +250,8 @@ namespace etl
         const statusText = document.getElementById('statusText');
         const statusDetails = document.getElementById('statusDetails');
         const refreshBtn = document.getElementById('refreshBtn');
+        const refreshSpinner = document.getElementById('refreshSpinner');
+        const refreshBtnText = refreshBtn.querySelector('.refresh-btn-text');
         const networksList = document.getElementById('networksList');
         const passwordSection = document.getElementById('passwordSection');
         const selectedNetworkTitle = document.getElementById('selectedNetworkTitle');
@@ -275,7 +302,21 @@ namespace etl
         function setLanguage(lang) { currentLang = lang; localStorage.setItem('wifiSetupLang', lang); document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (translations[lang][key]) el.textContent = translations[lang][key]; }); document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const key = el.getAttribute('data-i18n-placeholder'); if (translations[lang][key]) el.placeholder = translations[lang][key]; }); deviceName.textContent = translations[lang].device_name; deviceDescription.textContent = translations[lang].device_description; const config = window.deviceConfig || {}; if (config.version) deviceName.textContent = config.version; if (config.description) deviceDescription.textContent = config.description; document.querySelectorAll('.lang-btn').forEach(btn => { btn.classList.toggle('active', btn.getAttribute('data-lang') === lang); }); updateConnectButtonText(); if (connectionError) showConnectionError(); }
         function updateStatusUI() { statusIndicator.className = 'status-indicator disconnected'; statusText.textContent = translations[currentLang].status_disconnected; statusDetails.textContent = ''; }
         function setStatus(status, details = '') { statusIndicator.className = `status-indicator ${status}`; statusText.textContent = translations[currentLang][`status_${status}`] || status; statusDetails.textContent = details; }
-        async function scanNetworks() { refreshBtn.disabled = true; networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>'; try { const response = await fetch('/api/scan'); const data = await response.json(); networks = data.networks || []; renderNetworks(); } catch (error) { networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`; } refreshBtn.disabled = false; }
+        async function scanNetworks() {
+            refreshBtn.disabled = true;
+            refreshSpinner.classList.remove('hidden');
+            networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>';
+            try {
+                const response = await fetch('/api/scan');
+                const data = await response.json();
+                networks = data.networks || [];
+                renderNetworks();
+            } catch (error) {
+                networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`;
+            }
+            refreshBtn.disabled = false;
+            refreshSpinner.classList.add('hidden');
+        }
         function renderNetworks() { if (networks.length === 0) { networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #8E8E93;">${translations[currentLang].no_networks}</div>`; return; } networksList.innerHTML = networks.map((network, index) => { const signalStrength = getSignalStrength(network.rssi); const signalText = translations[currentLang][`signal_${signalStrength}`] || signalStrength; const lockIcon = network.encryption === 'none' ? '🔓' : '🔒'; const checkmark = network.connected ? '✅' : ''; return `<div class="network-item ${selectedNetwork === index ? 'selected' : ''}" data-index="${index}"><span class="network-icon">📶</span><div class="network-info"><div class="network-name">${escapeHtml(network.ssid)}</div><div class="network-signal">${signalText} • ${network.encryption === 'none' ? 'Open' : network.encryption}</div></div><div class="network-lock-wrapper">${checkmark ? `<span class="network-checkmark">${checkmark}</span>` : ''}<span class="network-lock">${lockIcon}</span></div></div>`; }).join(''); networksList.querySelectorAll('.network-item').forEach(item => { item.addEventListener('click', () => selectNetwork(parseInt(item.dataset.index))); }); }
         function getSignalStrength(rssi) { if (rssi >= -50) return 'excellent'; if (rssi >= -60) return 'good'; if (rssi >= -70) return 'weak'; return 'very_weak'; }
         function selectNetwork(index) { if (selectedNetwork !== null && networks[selectedNetwork]) networks[selectedNetwork].connected = false; if (selectedNetwork === index && networks[index].connected) { selectedNetwork = index; renderNetworks(); showPasswordSection(networks[index].ssid, true); return; } selectedNetwork = index; renderNetworks(); showPasswordSection(networks[index].ssid, false); }
@@ -286,8 +327,55 @@ namespace etl
         async function connectToNetwork() { if (selectedNetwork === null) { alert(translations[currentLang].error_no_network); return; } const network = networks[selectedNetwork]; if (network.connected || isConnected) { network.connected = false; isConnected = false; setStatus('disconnected'); passwordInputGroup.classList.remove('hidden'); connectBtn.textContent = translations[currentLang].join_btn; connectBtn.className = 'btn btn-primary'; renderNetworks(); return; } const password = passwordInput.value; if (password.length < 8) { alert('Password must be at least 8 characters'); return; } connectBtn.disabled = true; connectBtn.innerHTML = '<span class="spinner"></span>' + translations[currentLang].connecting; setStatus('connecting'); hideConnectionError(); try { const response = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: network.ssid, password }) }); const data = await response.json(); if (data.success) { network.connected = true; isConnected = true; setStatus('connected', `${network.ssid} • ${data.ip}`); renderNetworks(); passwordInputGroup.classList.add('hidden'); connectBtn.textContent = translations[currentLang].disconnect_btn; connectBtn.className = 'btn btn-secondary'; } else { connectionError = true; showConnectionError(); setStatus('error', translations[currentLang].error_connection); } } catch (error) { connectionError = true; showConnectionError(); setStatus('error', translations[currentLang].error_timeout); } connectBtn.disabled = false; connectBtn.textContent = isConnected ? translations[currentLang].disconnect_btn : translations[currentLang].join_btn; }
         function retryConnection() { hideConnectionError(); passwordInput.focus(); connectToNetwork(); }
         function togglePassword(input, btn) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; btn.textContent = isPassword ? translations[currentLang].hide_password : translations[currentLang].show_password; }
-        async function saveAndReboot() { showModal(translations[currentLang].success_saved, async () => { await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: networks[selectedNetwork]?.ssid, password: passwordInput.value }) }); document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">Rebooting...</p><p style="margin-top: 10px; font-size: 15px; color: #8E8E93;">Redirecting in 10 seconds...</p></div>`; await new Promise(resolve => setTimeout(resolve, 10000)); window.location.reload(); }); }
-        function factoryReset() { showModal(translations[currentLang].confirm_reset, async () => { await fetch('/api/reset', { method: 'POST' }); document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">Resetting...</p></div>`; await new Promise(resolve => setTimeout(resolve, 2000)); window.location.reload(); }); }
+        async function saveAndReboot() {
+            saveRebootBtn.disabled = true;
+            const originalText = saveRebootBtn.textContent;
+            saveRebootBtn.innerHTML = '<span class="btn-spinner"></span><span>Saving...</span>';
+            saveRebootBtn.classList.add('btn-with-spinner');
+            
+            showModal(translations[currentLang].success_saved, async () => {
+                try {
+                    await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: networks[selectedNetwork]?.ssid, password: passwordInput.value }) });
+                    
+                    // Показываем экран перезагрузки с анимированным индикатором
+                    document.body.innerHTML = `
+                        <div class="container" style="text-align: center; padding-top: 100px;">
+                            <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+                            <p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">Rebooting...</p>
+                            <p style="margin-top: 10px; font-size: 15px; color: #8E8E93;">Redirecting in 10 seconds...</p>
+                        </div>
+                    `;
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    window.location.reload();
+                } catch (error) {
+                    saveRebootBtn.disabled = false;
+                    saveRebootBtn.textContent = originalText;
+                    saveRebootBtn.classList.remove('btn-with-spinner');
+                    alert('Error: ' + error.message);
+                }
+            });
+        }
+        
+        function factoryReset() {
+            factoryResetBtn.disabled = true;
+            const originalText = factoryResetBtn.textContent;
+            factoryResetBtn.innerHTML = '<span class="btn-spinner"></span><span>Resetting...</span>';
+            factoryResetBtn.classList.add('btn-with-spinner');
+            
+            showModal(translations[currentLang].confirm_reset, async () => {
+                try {
+                    await fetch('/api/reset', { method: 'POST' });
+                    document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">Resetting...</p></div>`;
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    window.location.reload();
+                } catch (error) {
+                    factoryResetBtn.disabled = false;
+                    factoryResetBtn.textContent = originalText;
+                    factoryResetBtn.classList.remove('btn-with-spinner');
+                    alert('Error: ' + error.message);
+                }
+            });
+        }
         async function applyApSettings() { const apSsid = apSsidInput.value; const apPassword = apPasswordInput.value; if (apSsid.length === 0) { alert('AP SSID is required'); return; } if (apPassword.length > 0 && apPassword.length < 8) { alert('AP password must be at least 8 characters'); return; } try { const response = await fetch('/api/ap_settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ap_ssid: apSsid, ap_password: apPassword }) }); const data = await response.json(); if (data.success) showModal(translations[currentLang].success_ap_applied, () => {}); else alert('Error: ' + data.message); } catch (error) { alert('Error: ' + error.message); } }
         function showModal(message, onConfirm) { modalMessage.textContent = message; modalOverlay.classList.add('active'); modalConfirmBtn.onclick = () => { modalOverlay.classList.remove('active'); onConfirm(); }; modalCancelBtn.onclick = () => { modalOverlay.classList.remove('active'); }; }
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }

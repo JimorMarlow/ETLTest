@@ -64,11 +64,16 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            height: 32px;
+            box-sizing: border-box;
         }
 
         .font-btn {
             font-weight: 700;
             line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .lang-btn.active, .font-btn.active {
@@ -93,8 +98,8 @@
         }
 
         .device-icon {
-            width: 48px;
-            height: 48px;
+            width: 80px;
+            height: 80px;
             flex-shrink: 0;
         }
 
@@ -106,6 +111,7 @@
         .device-info-content {
             flex: 1;
             min-width: 0;
+            padding-left: 8px;
         }
 
         .device-name {
@@ -192,7 +198,7 @@
         }
 
         .refresh-btn {
-            padding: 8px 16px;
+            padding: 6px 16px;
             border: 1px solid #007AFF;
             border-radius: 8px;
             background: #FFFFFF;
@@ -201,6 +207,11 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            height: 32px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .refresh-btn:hover {
@@ -211,6 +222,33 @@
         .refresh-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .refresh-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #007AFF;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .btn-with-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         /* Networks section */
@@ -650,8 +688,12 @@
             }
 
             .device-icon {
-                width: 40px;
-                height: 40px;
+                width: 60px;
+                height: 60px;
+            }
+
+            .device-info-content {
+                padding-left: 4px;
             }
 
             .device-name {
@@ -696,7 +738,10 @@
                 <div id="statusText" data-i18n="status_disconnected">Disconnected</div>
                 <div class="status-details" id="statusDetails"></div>
             </div>
-            <button class="refresh-btn" id="refreshBtn" data-i18n="refresh_btn">Refresh</button>
+            <button class="refresh-btn" id="refreshBtn" data-i18n="refresh_btn">
+                <span class="refresh-btn-text">Refresh</span>
+                <span class="refresh-spinner hidden" id="refreshSpinner"></span>
+            </button>
         </div>
 
         <!-- Networks Section -->
@@ -902,6 +947,8 @@
         const statusText = document.getElementById('statusText');
         const statusDetails = document.getElementById('statusDetails');
         const refreshBtn = document.getElementById('refreshBtn');
+        const refreshSpinner = document.getElementById('refreshSpinner');
+        const refreshBtnText = refreshBtn.querySelector('.refresh-btn-text');
         const networksList = document.getElementById('networksList');
         const passwordSection = document.getElementById('passwordSection');
         const selectedNetworkTitle = document.getElementById('selectedNetworkTitle');
@@ -1031,6 +1078,7 @@
         // Scan networks
         async function scanNetworks() {
             refreshBtn.disabled = true;
+            refreshSpinner.classList.remove('hidden');
             networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>';
 
             if (SIMULATION_MODE) {
@@ -1047,8 +1095,8 @@
                     networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`;
                 }
             }
-
             refreshBtn.disabled = false;
+            refreshSpinner.classList.add('hidden');
         }
 
         // Generate simulated networks
@@ -1284,28 +1332,38 @@
 
         // Save and reboot
         async function saveAndReboot() {
+            saveRebootBtn.disabled = true;
+            const originalText = saveRebootBtn.textContent;
+            saveRebootBtn.innerHTML = '<span class="btn-spinner"></span><span>Saving...</span>';
+            saveRebootBtn.classList.add('btn-with-spinner');
+            
             showModal(
                 translations[currentLang].success_saved,
                 async () => {
                     if (SIMULATION_MODE) {
                         document.body.innerHTML = `
                             <div class="container" style="text-align: center; padding-top: 100px;">
-                                <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; margin: 0 auto 20px;"></div>
+                                <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
                                 <p style="font-size: 16px; color: #1C1C1E;">Rebooting...</p>
+                                <p style="font-size: 14px; color: #8E8E93; margin-top: 10px;">Redirecting in 10 seconds...</p>
                             </div>
                         `;
                     } else {
                         try {
                             await fetch('/api/save', { method: 'POST' });
                             await fetch('/api/reset', { method: 'POST' });
-                            
+
                             document.body.innerHTML = `
                                 <div class="container" style="text-align: center; padding-top: 100px;">
-                                    <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; margin: 0 auto 20px;"></div>
+                                    <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
                                     <p style="font-size: 16px; color: #1C1C1E;">Rebooting...</p>
+                                    <p style="font-size: 14px; color: #8E8E93; margin-top: 10px;">Redirecting in 10 seconds...</p>
                                 </div>
                             `;
                         } catch (error) {
+                            saveRebootBtn.disabled = false;
+                            saveRebootBtn.textContent = originalText;
+                            saveRebootBtn.classList.remove('btn-with-spinner');
                             alert('Error: ' + error.message);
                         }
                     }
@@ -1315,6 +1373,11 @@
 
         // Factory reset
         function factoryReset() {
+            factoryResetBtn.disabled = true;
+            const originalText = factoryResetBtn.textContent;
+            factoryResetBtn.innerHTML = '<span class="btn-spinner"></span><span>Resetting...</span>';
+            factoryResetBtn.classList.add('btn-with-spinner');
+            
             showModal(
                 translations[currentLang].confirm_reset,
                 async () => {
@@ -1328,7 +1391,7 @@
                     } else {
                         try {
                             await fetch('/api/reset', { method: 'POST' });
-                            
+
                             document.body.innerHTML = `
                                 <div class="container" style="text-align: center; padding-top: 100px;">
                                     <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; margin: 0 auto 20px;"></div>
@@ -1336,6 +1399,9 @@
                                 </div>
                             `;
                         } catch (error) {
+                            factoryResetBtn.disabled = false;
+                            factoryResetBtn.textContent = originalText;
+                            factoryResetBtn.classList.remove('btn-with-spinner');
                             alert('Error: ' + error.message);
                         }
                     }
