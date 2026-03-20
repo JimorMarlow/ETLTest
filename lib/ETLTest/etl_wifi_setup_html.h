@@ -74,8 +74,9 @@ namespace etl
             justify-content: center;
             gap: 8px;
         }
-        .section-title { font-size: 17px; font-weight: 600; color: #1C1C1E; margin-bottom: 12px; }
+        .section-title { font-size: 17px; font-weight: 600; color: #1C1C1E; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
         body.large-font .section-title { font-size: 20px; }
+        .section-title-spinner { width: 16px; height: 16px; border: 2px solid #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
         .networks-list { background: #F2F2F7; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
         .network-item { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid #C6C6C8; cursor: pointer; transition: background 0.2s; }
         .network-item:last-child { border-bottom: none; }
@@ -177,7 +178,10 @@ namespace etl
                 <span class="refresh-spinner hidden" id="refreshSpinner"></span>
             </button>
         </div>
-        <div class="section-title" data-i18n="select_network">Select Network</div>
+        <div class="section-title" id="sectionTitle">
+            <span data-i18n="select_network">Select Network</span>
+            <span class="section-title-spinner hidden" id="sectionTitleSpinner"></span>
+        </div>
         <div class="networks-list" id="networksList">
             <div class="network-item" style="justify-content: center; color: #8E8E93;">
                 <span data-i18n="scan_networks">Scan networks to see available networks</span>
@@ -232,9 +236,14 @@ namespace etl
     </div>
     <script>
         const translations = {
-            en: { title: 'WiFi Setup', device_name: 'ESP Device v1.0.0', device_description: 'Smart home device based on ESP8266/ESP32', refresh_btn: 'Refresh', select_network: 'Select Network', scan_networks: 'Scan networks to see available networks', selected_network: 'Selected Network', password_label: 'Password', password_placeholder: 'Enter password', show_password: 'Show', hide_password: 'Hide', join_btn: 'Join', disconnect_btn: 'Disconnect', connect_btn: 'Connect', connecting: 'Connecting...', ap_settings_title: 'Access Point Settings', ap_ssid_label: 'AP SSID', ap_password_label: 'AP Password', apply_ap_settings_btn: 'Apply AP Settings', save_reboot_btn: 'Save & Reboot', factory_reset_btn: 'Factory Reset', status_disconnected: 'Disconnected', status_connecting: 'Connecting...', status_connected: 'Connected', status_error: 'Connection Error', confirm_reset: 'Are you sure you want to reset to factory settings?', cancel: 'Cancel', confirm: 'Confirm', success_saved: 'Settings saved! Rebooting...', success_ap_applied: 'AP settings applied! Reconnecting...', error_connection: 'Connection failed. Check password.', error_no_network: 'Please select a network first.', error_timeout: 'Connection timeout. Try again.', no_networks: 'No networks found', signal_excellent: 'Excellent', signal_good: 'Good', signal_weak: 'Weak', signal_very_weak: 'Very Weak', retry_btn: 'Retry', connection_failed: 'Connection failed. Check password.' },
-            ru: { title: 'Настройка WiFi', device_name: 'ESP Device v1.0.0', device_description: 'Устройство для умного дома на базе ESP8266/ESP32', refresh_btn: 'Обновить', select_network: 'Выберите сеть', scan_networks: 'Нажмите "Обновить" для поиска сетей', selected_network: 'Выбранная сеть', password_label: 'Пароль', password_placeholder: 'Введите пароль', show_password: 'Show', hide_password: 'Hide', join_btn: 'Join', disconnect_btn: 'Disconnect', connect_btn: 'Подключиться', connecting: 'Подключение...', ap_settings_title: 'Настройки точки доступа', ap_ssid_label: 'SSID точки доступа', ap_password_label: 'Пароль точки доступа', apply_ap_settings_btn: 'Применить настройки AP', save_reboot_btn: 'Запомнить и перезапустить', factory_reset_btn: 'Сброс настроек', status_disconnected: 'Не подключено', status_connecting: 'Подключение...', status_connected: 'Подключено', status_error: 'Ошибка подключения', confirm_reset: 'Вы уверены, что хотите сбросить настройки к заводским?', cancel: 'Отмена', confirm: 'Подтвердить', success_saved: 'Настройки сохранены! Перезагрузка...', success_ap_applied: 'Настройки AP применены! Переподключение...', error_connection: 'Ошибка подключения. Проверьте пароль.', error_no_network: 'Пожалуйста, выберите сеть.', error_timeout: 'Превышено время подключения. Попробуйте снова.', no_networks: 'Сети не найдены', signal_excellent: 'Отличный', signal_good: 'Хороший', signal_weak: 'Слабый', signal_very_weak: 'Очень слабый', retry_btn: 'Повторить', connection_failed: 'Ошибка подключения. Проверьте пароль.' }
+            en: { title: 'WiFi Setup', device_name: 'ESP Device v1.0.0', device_description: 'Smart home device based on ESP8266/ESP32', refresh_btn: 'Refresh', select_network: 'Select Network', scan_networks: 'Scan networks to see available networks', selected_network: 'Selected Network', password_label: 'Password', password_placeholder: 'Enter password', show_password: 'Show', hide_password: 'Hide', join_btn: 'Join', disconnect_btn: 'Disconnect', connect_btn: 'Connect', connecting: 'Connecting...', ap_settings_title: 'Access Point Settings', ap_ssid_label: 'AP SSID', ap_password_label: 'AP Password', apply_ap_settings_btn: 'Apply AP Settings', save_reboot_btn: 'Save & Reboot', factory_reset_btn: 'Factory Reset', status_disconnected: 'Disconnected', status_connecting: 'Connecting...', status_connected: 'Connected', status_error: 'Connection Error', confirm_reset: 'Are you sure you want to reset to factory settings?', cancel: 'Cancel', confirm: 'Confirm', success_saved: 'Settings saved! Rebooting...', success_ap_applied: 'AP settings applied! Reconnecting...', error_connection: 'Connection failed. Check password.', error_no_network: 'Please select a network first.', error_timeout: 'Connection timeout. Try again.', no_networks: 'No networks found', signal_excellent: 'Excellent', signal_good: 'Good', signal_weak: 'Weak', signal_very_weak: 'Very Weak', retry_btn: 'Retry', connection_failed: 'Connection failed. Check password.', saving: 'Saving...', resetting: 'Resetting...', rebooting: 'Rebooting...' },
+            ru: { title: 'Настройка WiFi', device_name: 'ESP Device v1.0.0', device_description: 'Устройство для умного дома на базе ESP8266/ESP32', refresh_btn: 'Обновить', select_network: 'Выберите сеть', scan_networks: 'Нажмите "Обновить" для поиска сетей', selected_network: 'Выбранная сеть', password_label: 'Пароль', password_placeholder: 'Введите пароль', show_password: 'Show', hide_password: 'Hide', join_btn: 'Join', disconnect_btn: 'Disconnect', connect_btn: 'Подключиться', connecting: 'Подключение...', ap_settings_title: 'Настройки точки доступа', ap_ssid_label: 'SSID точки доступа', ap_password_label: 'Пароль точки доступа', apply_ap_settings_btn: 'Применить настройки AP', save_reboot_btn: 'Запомнить и перезапустить', factory_reset_btn: 'Сброс настроек', status_disconnected: 'Не подключено', status_connecting: 'Подключение...', status_connected: 'Подключено', status_error: 'Ошибка подключения', confirm_reset: 'Вы уверены, что хотите сбросить настройки к заводским?', cancel: 'Отмена', confirm: 'Подтвердить', success_saved: 'Настройки сохранены! Перезагрузка...', success_ap_applied: 'Настройки AP применены! Переподключение...', error_connection: 'Ошибка подключения. Проверьте пароль.', error_no_network: 'Пожалуйста, выберите сеть.', error_timeout: 'Превышено время подключения. Попробуйте снова.', no_networks: 'Сети не найдены', signal_excellent: 'Отличный', signal_good: 'Хороший', signal_weak: 'Слабый', signal_very_weak: 'Очень слабый', retry_btn: 'Повторить', connection_failed: 'Ошибка подключения. Проверьте пароль.', saving: 'Сохранение...', resetting: 'Сброс...', rebooting: 'Перезагрузка...' }
         };
+        // State
+        let emptyScanRetryCount = 0;
+        const MAX_EMPTY_SCAN_RETRIES = 5;
+        const INITIAL_SCAN_DELAY = 2000;  // Delay before first scan after page load (ms)
+        const EMPTY_SCAN_RETRY_DELAY = 1500;  // Delay between empty scan retries (ms)
         const DEFAULT_DEVICE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="512pt" height="512pt" viewBox="0 0 512 512"><path fill="transparent" stroke="transparent" stroke-width=".25" d="M0 0h512v512H0z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M400.39 15.33c1.97-1.22 4.39-.79 6.59-.92 5.97.16 12.03-.45 17.9.9 6 1.34 12.06 2.62 17.81 4.87 11.87 4.48 22.16 12.22 31.74 20.38 7.56 7.66 14.22 16.41 18.69 26.25 3.11 7.53 5.44 15.37 7.03 23.36.74 2.99-1.46 6.12-4.17 7.22-2.69.23-5.91.78-7.99-1.38-1.99-2.28-1.97-5.53-2.64-8.34-4.61-21.64-19.85-40.25-39.23-50.56-8.36-4.59-17.7-6.92-27.07-8.24-6.43-.7-12.95.13-19.35-.81-4.54-2.58-4.23-10.78.69-12.73ZM234.49 33.47c4.89-4.27 10.85-7.87 17.5-8.12 5.4-.21 11.04-.43 16.11 1.75 7.42 2.94 12.79 9.06 18.95 13.88 26.2 21.08 52.47 42.09 78.35 63.58 12.61 10.39 25.62 20.31 38.02 30.95 27.11 21.17 53.23 43.56 80.19 64.91 3.34 2.97 7.24 5.32 10.25 8.65 2.4 2.61 1.99 6.89-.44 9.33-6.59 7.16-12.08 15.22-18.37 22.63-4.62 5.41-8.21 11.74-13.64 16.42-3.01 2.68-7.79 2.69-10.81.02-9.37-7.45-18.09-15.75-27.98-22.54-.03 78.37 0 156.74-.06 235.11-.02 7.45-2.89 15.01-8.34 20.19-5.44 5.68-13.47 8.28-21.19 8.3-91.36-.04-182.71.01-274.06-.02-8.62-.17-17.46-3.67-22.93-10.53-4.52-5.2-6.48-12.17-6.46-18.97-.04-78.06.12-156.13-.11-234.19-6.86 4.97-13.2 10.59-19.82 15.87-3.24 2.56-6.08 5.67-9.67 7.78-3.27.34-7.39 1.13-9.92-1.53-2.6-2.41-4.58-5.39-6.67-8.23-6.23-8.42-13-16.43-19.49-24.65-2.38-3.06-5.39-5.7-7.14-9.2-.95-2.87.78-5.49 2.93-7.23 26.74-21.62 53.47-43.25 80.36-64.69 3.45-2.94 7.32-5.48 10.22-8.99.38-24.61-.03-49.25.1-73.86-.06-2.26 1.74-4.09 3.51-5.23 5.2-1.63 10.77-1.16 16.12-.71 10.27.32 20.57-.19 30.84.2 2.98-.06 4.42 2.95 4.4 5.56.34 10.12-.16 20.26.26 30.38 10.08-7.83 19.5-16.47 29.64-24.23 13-11 26.42-21.5 39.35-32.59Z"/><path fill="#fff" stroke="#fff" stroke-width=".25" d="M237.28 49.41c4.71-3.55 8.9-8.25 14.76-9.86 5.01-.55 10.9-1.23 14.81 2.68 29.46 23.84 58.96 47.64 88.23 71.71 25.47 20.53 50.93 41.09 76.19 61.87 15.5 13.12 31.67 25.41 47.36 38.29-3.02 4.41-6.98 8.04-10.22 12.26-4.32 5.05-7.83 10.88-13.05 15.1-1.41.81-2.56-.48-3.63-1.22-15.61-13.11-31.74-25.57-47.37-38.66-29.9-23.66-59.15-48.11-88.8-72.08-18.24-14.36-36.05-29.26-53.93-44.06-2.78-2.83-7.45-2.79-10.16.13-31.93 26.73-64.57 52.62-96.76 79.03-14.87 11.49-29.08 23.78-43.99 35.2-15.57 12.74-31.56 24.97-46.78 38.13-2.08 1.85-4.45 3.33-6.9 4.62C49.33 233 41 223.91 33.86 213.92c17.11-13.61 34.06-27.42 51.24-40.93 8.89-7.43 17.78-14.85 26.88-22.01 14.91-12.07 29.52-24.5 44.54-36.43 14.31-11.32 28.44-22.86 42.71-34.22 12.89-10.06 25.22-20.79 38.05-30.92Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M404.48 52.66c2.59-1.49 5.67-1.09 8.52-.96 4.56.62 9.23.9 13.61 2.41 16.52 5.81 30.27 19.45 35.38 36.31.95 3.52 2.56 7.6.38 10.98-1.68 3.06-5.6 3.64-8.71 2.86-4.98-2.56-4.24-8.92-6.19-13.41-4.54-10.45-13.35-19.01-23.98-23.17-6.11-1.98-12.65-1.69-18.97-2.33-5.95-1.37-5.72-11.05-.04-12.69Z"/><path fill="#a2d6fd" stroke="#a2d6fd" stroke-width=".25" d="M123.51 67.48c9.94-.11 19.89-.16 29.84-.01-.02 8.85 0 17.71.04 26.56-.12 2.12.21 4.49-1.07 6.35-1.42 1.6-3.22 2.78-4.89 4.09-7.77 5.75-14.93 12.29-22.97 17.69-.55-2.35-.94-4.73-.9-7.14.04-15.85-.1-31.69-.05-47.54Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M406.28 85.09c11.58-3.45 25.64 6.33 24.45 18.88.84 6.67-2.43 13.1-7.76 16.99-4.74 4.28-11.6 4.33-17.55 3.31-12.19-3.33-17.64-19.51-11.27-30.05 2.92-4.23 7.12-7.74 12.13-9.13Z"/><path fill="#fff" stroke="#fff" stroke-width=".25" d="M407.51 99.39c4.24-3.22 11.11 1.27 10.09 6.42-.41 3.01-3.71 5.07-6.61 4.85-3.87.32-7.93-4.53-5.86-8.2.54-1.2 1.39-2.23 2.38-3.07Z"/><path fill="#a2d6fd" stroke="#a2d6fd" stroke-width=".25" d="M256.35 100.26c1.18-.12 2.13.72 3.02 1.36 19.78 16.93 40.4 32.84 60.31 49.63 10.54 8.11 20.77 16.63 31.05 25.08C367.34 189.33 383.4 203 400 216c2.84 2.28 5.85 4.42 8.3 7.15.82 3.88.25 7.91.38 11.85-.03 78.68-.05 157.37.08 236.05-.76 8.04-8.6 14.72-16.67 14.38-90.72-.02-181.44-.06-272.16.02-9.09.31-17.12-8.36-16.41-17.38-.08-78.02-.1-156.04-.06-234.07.08-3.48-.28-7.01.33-10.45 1.58-2.02 3.77-3.43 5.73-5.06 33-26.31 65.7-53.02 98.64-79.4 13.5-11.54 27.64-22.29 41.2-33.76 2.22-1.81 4.37-3.82 6.99-5.07Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M215.46 222.71c2.88-.7 5.38 1.57 6.79 3.84 1.29 7.61-.5 15.46 1.13 23.05 8.67-.24 17.35.04 26.03-.16.1-6.82-.15-13.64.06-20.46-.08-5.43 7.68-8.89 11.53-4.99 2.03 1.68 2.32 4.48 2.37 6.94.07 6.2-.07 12.41.02 18.61 8.65-.06 17.29-.16 25.94 0 .28-6.81-.16-13.62.2-20.42.43-4.83 6.52-7.33 10.54-5.1 2.25 1.54 3.29 4.27 3.29 6.93.16 6.19-.04 12.4.05 18.6 8.22-.04 16.44-.12 24.66-.11 3.61-.14 7.66 2.73 7.45 6.62.28 9.22-.1 18.44.2 27.66 7.69.25 15.48-.67 23.1.58 6.28.99 6.75 11.37.79 13.14-3.11 1.01-6.42.87-9.61.53-4.77-.56-9.52.27-14.28.38-.1 8.42-.07 16.84-.02 25.26 7.06.25 14.12-.08 21.18.19 4.85.23 8.03 6.01 6.02 10.34-1.03 2.68-4.21 3.61-6.84 3.55-6.75.12-13.51-.12-20.26.04-.03 8.87-.07 16.84-.02 25.26 7.06.25 14.12-.08 21.18.19 4.85.23 8.03 6.01 6.02 10.34-1.03 2.68-4.21 3.61-6.84 3.55-6.75.12-13.51-.12-20.26.04-.64 8.39.02 16.81-.41 25.21-.1 3.66-4.09 5.74-7.37 5.71-8.23.17-16.47.09-24.69-.04-.12 6.86.07 13.74-.13 20.6.01 3.15-1.46 6.22-4.24 7.8-4.13 2.45-9.63-1.25-9.53-5.86-.26-7.52.16-15.05-.16-22.57-8.65.14-17.31.1-25.95-.01-.08 6.87.13 13.74-.1 20.6-.02 3.16-1.38 6.36-4.2 7.98-4.11 2.18-9.68-1.4-9.6-6-.22-7.5.08-15 0-22.5-8.94 0-17.87-.13-26.8.02-.12 7.49.13 14.99-.11 22.49.1 2.92-2.3 5.49-4.9 6.43-4.96 1.23-8.95-3.85-8.92-8.42-.17-6.79-.03-13.59.04-20.38-8.57-.22-17.15.1-25.73-.13-3.5.18-6.37-3.05-6.36-6.44-.25-7.96-.03-15.94 0-23.9-7.21-.97-14.48-.21-21.71-.52-2.46.07-4.8-1.41-6.04-3.49-1.18-3.39-.15-8.18 3.48-9.57 8.11-.64 16.27.02 24.4-.36l-.12-26.47c-7.54-.32-15.09.11-22.62-.26-2.58-.03-4.36-2.45-5.31-4.6-.76-4.28 2.58-9.35 7.22-9.17 6.88-.16 13.76 0 20.65-.12.13-8.46.08-16.91.07-25.37-6.91-.15-13.82.09-20.72-.07-4.07-.04-8.35-3.91-7.52-8.17.16-3.76 3.98-6.32 7.53-6.28 6.87-.16 13.75.06 20.62-.09.19-9.19-.15-18.39.03-27.57-.07-3.77 3.56-6.94 7.26-6.6 8.2-.07 16.41.04 24.61.03.07-6.53-.22-13.07.09-19.6.06-3.73 3.49-6.37 6.85-7.2Z"/><path fill="#fff" stroke="#fff" stroke-width=".25" d="M191.35 263.55c43.63.03 87.25-.06 130.88.09.2 38.78.01 77.57.07 116.36-.04 4.88.3 9.8-.61 14.62-43.52.06-87.03.04-130.55.03-.66-4.86-.37-9.77-.41-14.65-.04-36.34.01-72.68.01-109.02-.01-2.5.31-4.96.61-7.43Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M248.38 294.58c8.02-.45 16.67-1.24 23.9 3.03 7.47 4.44 14.12 11.25 16.5 19.81 2.48 7.73 2.87 16.44-.24 24.05-4.19 11.79-15.43 20.53-27.72 22.4-6.88 1.46-13.82-.82-20.02-3.66-9.23-4.29-15.48-13.31-18.27-22.89-2.38-8.7-.61-18.1 3.48-26.01 4.78-8.3 12.98-14.64 22.37-16.73Z"/><path fill="#a2d6fd" stroke="#a2d6fd" stroke-width=".25" d="M249.5 308.88c6.63-2.53 14.53-.95 19.68 3.92 2.88 2.77 5.93 5.82 6.84 9.85 1.3 6.92 1.05 14.93-4.11 20.31-6.37 7.68-18.38 8.78-26.62 3.57-9.9-5.46-12.98-19.69-6.73-28.96 2.8-3.76 6.44-7.15 10.94-8.69Z"/></svg>`;
         let currentLang = localStorage.getItem('wifiSetupLang') || 'en';
         let selectedNetwork = null;
@@ -273,14 +282,25 @@ namespace etl
         const modalMessage = document.getElementById('modalMessage');
         const modalCancelBtn = document.getElementById('modalCancelBtn');
         const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-        function init() {
-            loadDeviceConfig().then(() => {
-                applyDeviceConfig();
-                setLanguage(currentLang);
-                updateStatusUI();
-                applyLargeFont();
+        const sectionTitleSpinner = document.getElementById('sectionTitleSpinner');
+        async function init() {
+            applyDeviceConfig();
+            setLanguage(currentLang);
+            updateStatusUI();
+            applyLargeFont();
+
+            // Fix #3 & #4: Load device config first, then scan after delay
+            // This prevents race condition between /api/config and /api/scan
+            try {
+                await loadDeviceConfig();
+            } catch (error) {
+                console.error('[WiFiSetup] Failed to load device config:', error);
+            }
+
+            // Delay before first scan to allow server to recover after reboot
+            setTimeout(() => {
                 scanNetworks();
-            });
+            }, INITIAL_SCAN_DELAY);
         }
 
         async function loadDeviceConfig() {
@@ -290,7 +310,8 @@ namespace etl
                 window.deviceConfig = {
                     version: config.device_name || 'ESP Device',
                     description: config.device_description || '',
-                    iconSvg: config.device_icon_svg || null
+                    iconSvg: config.device_icon_svg || null,
+                    hostname: config.hostname || 'espdevice'
                 };
             } catch (error) {
                 console.error('Failed to load device config:', error);
@@ -305,17 +326,29 @@ namespace etl
         async function scanNetworks() {
             refreshBtn.disabled = true;
             refreshSpinner.classList.remove('hidden');
+            sectionTitleSpinner.classList.remove('hidden');
             networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>';
             try {
                 const response = await fetch('/api/scan');
                 const data = await response.json();
                 networks = data.networks || [];
                 renderNetworks();
+
+                // Fix #1 & #3: Retry if empty network list (after reboot)
+                if (networks.length === 0 && emptyScanRetryCount < MAX_EMPTY_SCAN_RETRIES) {
+                    emptyScanRetryCount++;
+                    console.log(`[WiFiSetup] Empty scan result, retry ${emptyScanRetryCount}/${MAX_EMPTY_SCAN_RETRIES}`);
+                    await new Promise(resolve => setTimeout(resolve, EMPTY_SCAN_RETRY_DELAY));
+                    await scanNetworks();
+                    return;
+                }
             } catch (error) {
                 networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`;
             }
             refreshBtn.disabled = false;
             refreshSpinner.classList.add('hidden');
+            sectionTitleSpinner.classList.add('hidden');
+            emptyScanRetryCount = 0;  // Reset counter on success
         }
         function renderNetworks() { if (networks.length === 0) { networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #8E8E93;">${translations[currentLang].no_networks}</div>`; return; } networksList.innerHTML = networks.map((network, index) => { const signalStrength = getSignalStrength(network.rssi); const signalText = translations[currentLang][`signal_${signalStrength}`] || signalStrength; const lockIcon = network.encryption === 'none' ? '🔓' : '🔒'; const checkmark = network.connected ? '✅' : ''; return `<div class="network-item ${selectedNetwork === index ? 'selected' : ''}" data-index="${index}"><span class="network-icon">📶</span><div class="network-info"><div class="network-name">${escapeHtml(network.ssid)}</div><div class="network-signal">${signalText} • ${network.encryption === 'none' ? 'Open' : network.encryption}</div></div><div class="network-lock-wrapper">${checkmark ? `<span class="network-checkmark">${checkmark}</span>` : ''}<span class="network-lock">${lockIcon}</span></div></div>`; }).join(''); networksList.querySelectorAll('.network-item').forEach(item => { item.addEventListener('click', () => selectNetwork(parseInt(item.dataset.index))); }); }
         function getSignalStrength(rssi) { if (rssi >= -50) return 'excellent'; if (rssi >= -60) return 'good'; if (rssi >= -70) return 'weak'; return 'very_weak'; }
@@ -324,24 +357,27 @@ namespace etl
         function showConnectionError() { connectionErrorEl.classList.remove('hidden'); const errorText = connectionErrorEl.querySelector('.connection-error-text'); if (errorText) errorText.textContent = translations[currentLang].connection_failed; const retryBtnEl = connectionErrorEl.querySelector('.retry-btn'); if (retryBtnEl) retryBtnEl.textContent = translations[currentLang].retry_btn; }
         function hideConnectionError() { connectionErrorEl.classList.add('hidden'); connectionError = false; }
         function updateConnectButtonText() { if (selectedNetwork !== null && passwordSection.classList.contains('hidden') === false) { if (isConnected) { connectBtn.textContent = translations[currentLang].disconnect_btn; connectBtn.className = 'btn btn-secondary'; } else { connectBtn.textContent = translations[currentLang].join_btn; connectBtn.className = 'btn btn-primary'; } } }
-        async function connectToNetwork() { if (selectedNetwork === null) { alert(translations[currentLang].error_no_network); return; } const network = networks[selectedNetwork]; if (network.connected || isConnected) { network.connected = false; isConnected = false; setStatus('disconnected'); passwordInputGroup.classList.remove('hidden'); connectBtn.textContent = translations[currentLang].join_btn; connectBtn.className = 'btn btn-primary'; renderNetworks(); return; } const password = passwordInput.value; if (password.length < 8) { alert('Password must be at least 8 characters'); return; } connectBtn.disabled = true; connectBtn.innerHTML = '<span class="spinner"></span>' + translations[currentLang].connecting; setStatus('connecting'); hideConnectionError(); try { const response = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: network.ssid, password }) }); const data = await response.json(); if (data.success) { network.connected = true; isConnected = true; setStatus('connected', `${network.ssid} • ${data.ip}`); renderNetworks(); passwordInputGroup.classList.add('hidden'); connectBtn.textContent = translations[currentLang].disconnect_btn; connectBtn.className = 'btn btn-secondary'; } else { connectionError = true; showConnectionError(); setStatus('error', translations[currentLang].error_connection); } } catch (error) { connectionError = true; showConnectionError(); setStatus('error', translations[currentLang].error_timeout); } connectBtn.disabled = false; connectBtn.textContent = isConnected ? translations[currentLang].disconnect_btn : translations[currentLang].join_btn; }
+        async function connectToNetwork() { if (selectedNetwork === null) { alert(translations[currentLang].error_no_network); return; } const network = networks[selectedNetwork]; if (network.connected || isConnected) { network.connected = false; isConnected = false; setStatus('disconnected'); passwordInputGroup.classList.remove('hidden'); connectBtn.textContent = translations[currentLang].join_btn; connectBtn.className = 'btn btn-primary'; renderNetworks(); return; } const password = passwordInput.value; if (password.length < 8) { alert('Password must be at least 8 characters'); return; } connectBtn.disabled = true; connectBtn.innerHTML = '<span class="spinner"></span>' + translations[currentLang].connecting; setStatus('connecting'); hideConnectionError(); try { const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 25000); const response = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: network.ssid, password }), signal: controller.signal }); clearTimeout(timeoutId); const data = await response.json(); if (data.success) { network.connected = true; isConnected = true; setStatus('connected', `${network.ssid} • ${data.ip}`); renderNetworks(); passwordInputGroup.classList.add('hidden'); connectBtn.textContent = translations[currentLang].disconnect_btn; connectBtn.className = 'btn btn-secondary'; } else { connectionError = true; showConnectionError(); setStatus('error', translations[currentLang].error_connection); } } catch (error) { if (error.name === 'AbortError' || error.message.includes('Failed to fetch')) { console.log('[WiFiSetup] Connection may have succeeded, checking status...'); await new Promise(resolve => setTimeout(resolve, 2000)); try { const statusResponse = await fetch('/api/status'); const status = await statusResponse.json(); if (status.connected) { network.connected = true; isConnected = true; setStatus('connected', `${network.ssid} • ${status.ip}`); renderNetworks(); passwordInputGroup.classList.add('hidden'); connectBtn.textContent = translations[currentLang].disconnect_btn; connectBtn.className = 'btn btn-secondary'; return; } } catch (e) { console.error('[WiFiSetup] Status check failed:', e); } } connectionError = true; showConnectionError(); setStatus('error', translations[currentLang].error_timeout); } connectBtn.disabled = false; connectBtn.textContent = isConnected ? translations[currentLang].disconnect_btn : translations[currentLang].join_btn; }
         function retryConnection() { hideConnectionError(); passwordInput.focus(); connectToNetwork(); }
         function togglePassword(input, btn) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; btn.textContent = isPassword ? translations[currentLang].hide_password : translations[currentLang].show_password; }
         async function saveAndReboot() {
             saveRebootBtn.disabled = true;
             const originalText = saveRebootBtn.textContent;
-            saveRebootBtn.innerHTML = '<span class="btn-spinner"></span><span>Saving...</span>';
+            saveRebootBtn.innerHTML = '<span class="btn-spinner"></span><span>' + translations[currentLang].saving + '</span>';
             saveRebootBtn.classList.add('btn-with-spinner');
-            
+
+            // Fix #2: Scroll to button to show loading indicator
+            saveRebootBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
             showModal(translations[currentLang].success_saved, async () => {
                 try {
                     await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: networks[selectedNetwork]?.ssid, password: passwordInput.value }) });
-                    
+
                     // Показываем экран перезагрузки с анимированным индикатором
                     document.body.innerHTML = `
                         <div class="container" style="text-align: center; padding-top: 100px;">
                             <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
-                            <p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">Rebooting...</p>
+                            <p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">${translations[currentLang].rebooting}</p>
                             <p style="margin-top: 10px; font-size: 15px; color: #8E8E93;">Redirecting in 10 seconds...</p>
                         </div>
                     `;
@@ -355,18 +391,21 @@ namespace etl
                 }
             });
         }
-        
+
         function factoryReset() {
             factoryResetBtn.disabled = true;
             const originalText = factoryResetBtn.textContent;
-            factoryResetBtn.innerHTML = '<span class="btn-spinner"></span><span>Resetting...</span>';
+            factoryResetBtn.innerHTML = '<span class="btn-spinner"></span><span>' + translations[currentLang].resetting + '</span>';
             factoryResetBtn.classList.add('btn-with-spinner');
-            
+
+            // Fix #2: Scroll to button to show loading indicator
+            factoryResetBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
             showModal(translations[currentLang].confirm_reset, async () => {
                 try {
                     await fetch('/api/reset', { method: 'POST' });
-                    document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">Resetting...</p></div>`;
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">${translations[currentLang].resetting}</p><p style="margin-top: 10px; font-size: 14px; color: #8E8E93;">Rebooting in 3 seconds...</p></div>`;
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                     window.location.reload();
                 } catch (error) {
                     factoryResetBtn.disabled = false;

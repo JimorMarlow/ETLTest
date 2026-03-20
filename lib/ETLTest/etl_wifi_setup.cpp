@@ -209,6 +209,35 @@ namespace etl
 
             // Обновление статуса подключения
             update_connection_status();
+            
+            // Перезапуск HTTP сервера после подключения к STA (если нужно)
+            static bool http_server_restarted = false;
+            if (is_connected() && !http_server_restarted) {
+                // Небольшая задержка перед перезапуском сервера
+                static uint32_t restart_delay_start = 0;
+                if (restart_delay_start == 0) {
+                    restart_delay_start = millis();
+                }
+                
+                if (millis() - restart_delay_start > 500) {
+                    Serial.println(F("[WiFiSetup] Restarting HTTP server after STA connection..."));
+                    
+                    // Перезапуск сервера в режиме AP+STA
+                    if (m_server) {
+                        m_server->stop();
+                        m_server.reset();
+                    }
+                    start_http_server();
+                    
+                    http_server_restarted = true;
+                    restart_delay_start = 0;
+                }
+            }
+            
+            // Сброс флага при отключении
+            if (!is_connected()) {
+                http_server_restarted = false;
+            }
         }
 
         void server_setup::handle_client()
@@ -393,7 +422,10 @@ namespace etl
             Serial.print(F("[WiFiSetup] Connecting to "));
             Serial.println(m_config.wifi_ssid);
 
-            // Установка режима STA
+            // Сохранение текущего режима
+            WiFiMode_t previous_mode = WiFi.getMode();
+
+            // Установка режима STA для подключения
             WiFi.mode(WIFI_STA);
 
             // Подключение к сети
@@ -411,6 +443,14 @@ namespace etl
                 Serial.print(F("[WiFiSetup] IP address: "));
                 Serial.println(WiFi.localIP());
 
+                // Возврат в предыдущий режим (AP или AP+STA) для продолжения работы сервера
+                // Переключение в AP+STA будет сделано в handle() после отправки ответа
+                if (previous_mode == WIFI_AP) {
+                    WiFi.mode(WIFI_AP_STA);
+                } else {
+                    WiFi.mode(previous_mode);
+                }
+                
                 m_connection_status = connection_status_t::connected;
                 return true;
             }
@@ -418,18 +458,14 @@ namespace etl
             Serial.println(F("\n[WiFiSetup] Connection timeout"));
             m_connection_status = connection_status_t::error;
 
-            // Возврат в режим AP при ошибке подключения
-            WiFi.mode(WIFI_AP);
-            if (!WiFi.softAP(m_config.ap_ssid.c_str(), m_config.ap_password.c_str())) {
-                Serial.println(F("[WiFiSetup] Failed to restart AP"));
-            } else {
-                Serial.println(F("[WiFiSetup] AP restarted"));
-                // Перезапуск HTTP сервера после смены режима
-                if (m_server) {
-                    m_server->stop();
-                    m_server.reset();
+            // Возврат в предыдущий режим
+            WiFi.mode(previous_mode);
+            if (previous_mode == WIFI_AP || previous_mode == WIFI_AP_STA) {
+                if (!WiFi.softAP(m_config.ap_ssid.c_str(), m_config.ap_password.c_str())) {
+                    Serial.println(F("[WiFiSetup] Failed to restart AP"));
+                } else {
+                    Serial.println(F("[WiFiSetup] AP restarted"));
                 }
-                start_http_server();
             }
 
             return false;
@@ -558,8 +594,8 @@ namespace etl
                     return;
                 }
 
-                // Подключение к сети
-                bool success = connect_to_network(ssid, password);
+                // Подключение к сети (с увеличенным таймаутом для стабильности)
+                bool success = connect_to_network(ssid, password, 20000);  // 20 секунд
 
                 if (success) {
                     send_success_response("Connected", get_ip_address());
@@ -621,7 +657,8 @@ namespace etl
 
             if (success) {
                 send_success_response("Settings reset. Rebooting...");
-                delay(1000);
+                Serial.println(F("[WiFiSetup] Rebooting in 2 seconds..."));
+                delay(2000);  // Дать время на отправку ответа клиенту
                 reboot();
             } else {
                 send_error_response("Failed to reset settings");

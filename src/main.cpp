@@ -26,17 +26,17 @@ bool start_wifi_server() { // WiFi setup
     wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config/*, simulation_data.reset_wifi_on_start*/);
     if(wifi_server && wifi_server->begin()) {
         // Вывод информации о подключении
+        const String& ip_addr = wifi_server->get_ip_address();
+        const String& hostname_cfg = wifi_server->get_config().hostname;
+        
         Serial.println(F("\n=== WiFi Server Info ==="));
-        Serial.print(F("Mode: "));
-        Serial.println(wifi_server->get_mode());
-        Serial.print(F("IP Address: "));
-        Serial.println(wifi_server->get_ip_address());
-        Serial.print(F("Hostname: http://"));
-        Serial.print(wifi_server->get_mode() == "AP" ? wifi_server->get_ip_address() : "espdevice.local");
-        Serial.println(F("/"));
-        Serial.println(F("=========================\n")); 
+        Serial.print  (F("Mode:     ")); Serial.println(wifi_server->get_mode()); 
+        Serial.print  (F("IP Addr:  ")); Serial.println(ip_addr);
+        Serial.print  (F("Hostname: http://")); Serial.print  (wifi_server->get_mode() == "AP" ? ip_addr : hostname_cfg + ".local"); Serial.println(F("/"));
+        Serial.print  (F("mDNS:     http://")); Serial.print  (hostname_cfg); Serial.println(F(".local"));
+        Serial.println(F("=========================\n"));
         return true;
-    }      
+    }
     else {
         Serial.println(F("[ERROR] WiFi server initialization failed!"));
         return false;

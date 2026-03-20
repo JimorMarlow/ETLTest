@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ESP Device - WiFi Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #FFFFFF;
+            min-height: 100vh;
+            color: #1C1C1E;
+            padding: 16px;
+        }
+
+        body.large-font {
+            font-size: 18px;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #C6C6C8;
+            margin-bottom: 20px;
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1C1C1E;
+        }
+
+        .accessibility-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .lang-switch {
+            display: flex;
+            gap: 8px;
+        }
+
+        .lang-btn, .font-btn {
+            padding: 6px 12px;
+            border: 1px solid #C6C6C8;
+            border-radius: 6px;
+            background: #FFFFFF;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 32px;
+            box-sizing: border-box;
+        }
+
+        .font-btn {
+            font-weight: 700;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lang-btn.active, .font-btn.active {
+            background: #007AFF;
+            border-color: #007AFF;
+            color: #FFFFFF;
+        }
+
+        .lang-btn:hover, .font-btn:hover {
+            border-color: #007AFF;
+        }
+
+        /* Device Info Container */
+        .device-info-container {
+            background: #F2F2F7;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .device-icon {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+
+        .device-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .device-info-content {
+            flex: 1;
+            min-width: 0;
+            padding-left: 8px;
+        }
+
+        .device-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1C1C1E;
+            margin-bottom: 4px;
+        }
+
+        .device-description {
+            font-size: 15px;
+            font-weight: 400;
+            color: #8E8E93;
+            line-height: 1.4;
+        }
+
+        body.large-font .device-name {
+            font-size: 24px;
+        }
+
+        body.large-font .device-description {
+            font-size: 18px;
+        }
+
+        /* Status Section */
+        .status-section {
+            background: #F2F2F7;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.disconnected {
+            background: #FF3B30;
+        }
+
+        .status-indicator.connecting {
+            background: #FF9500;
+            animation: pulse 1s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #34C759;
+        }
+
+        .status-indicator.error {
+            background: #FF3B30;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            flex: 1;
+            font-size: 15px;
+            color: #1C1C1E;
+        }
+
+        .status-details {
+            font-size: 13px;
+            color: #8E8E93;
+            margin-top: 4px;
+        }
+
+        body.large-font .status-text {
+            font-size: 18px;
+        }
+
+        body.large-font .status-details {
+            font-size: 15px;
+        }
+
+        .refresh-btn {
+            padding: 6px 16px;
+            border: 1px solid #007AFF;
+            border-radius: 8px;
+            background: #FFFFFF;
+            color: #007AFF;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 32px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            background: #007AFF;
+            color: #FFFFFF;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .refresh-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #007AFF;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .btn-with-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Networks Section */
+        .section-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1C1C1E;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.large-font .section-title {
+            font-size: 20px;
+        }
+
+        .section-title-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #007AFF;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .networks-list {
+            background: #F2F2F7;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .network-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid #C6C6C8;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .network-item:last-child {
+            border-bottom: none;
+        }
+
+        .network-item:hover {
+            background: #E5E5EA;
+        }
+
+        .network-item.selected {
+            background: #007AFF;
+        }
+
+        .network-item.selected .network-name,
+        .network-item.selected .network-signal,
+        .network-item.selected .network-lock {
+            color: #FFFFFF;
+        }
+
+        .network-icon {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .network-info {
+            flex: 1;
+        }
+
+        .network-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1C1C1E;
+            margin-bottom: 4px;
+        }
+
+        .network-signal {
+            font-size: 13px;
+            color: #8E8E93;
+        }
+
+        body.large-font .network-name {
+            font-size: 18px;
+        }
+
+        body.large-font .network-signal {
+            font-size: 15px;
+        }
+
+        .network-lock-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .network-lock {
+            font-size: 14px;
+            color: #8E8E93;
+            line-height: 1;
+        }
+
+        .network-checkmark {
+            font-size: 14px;
+            color: #34C759;
+            line-height: 1;
+        }
+
+        body.large-font .network-lock,
+        body.large-font .network-checkmark {
+            font-size: 16px;
+        }
+
+        /* Password Section */
+        .password-section {
+            background: #F2F2F7;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #8E8E93;
+            margin-bottom: 6px;
+        }
+
+        body.large-font .input-label {
+            font-size: 15px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-field {
+            width: 100%;
+            height: 44px;
+            padding: 0 12px;
+            border: 1px solid #C6C6C8;
+            border-radius: 8px;
+            font-size: 15px;
+            color: #1C1C1E;
+            background: #FFFFFF;
+            transition: border-color 0.2s;
+        }
+
+        body.large-font .input-field {
+            height: 52px;
+            font-size: 18px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .input-field::placeholder {
+            color: #C7C7CC;
+        }
+
+        .show-password-btn {
+            position: absolute;
+            right: 12px;
+            padding: 6px 10px;
+            border: none;
+            background: transparent;
+            color: #007AFF;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        body.large-font .show-password-btn {
+            font-size: 15px;
+        }
+
+        /* Selected Network Header */
+        .selected-network-header {
+            margin-bottom: 16px;
+        }
+
+        .selected-network-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1C1C1E;
+            margin-bottom: 8px;
+        }
+
+        body.large-font .selected-network-title {
+            font-size: 20px;
+        }
+
+        .selected-network-divider {
+            height: 1px;
+            background: #C6C6C8;
+            margin-bottom: 16px;
+        }
+
+        /* Connection Error Message */
+        .connection-error {
+            background: #FF3B30;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .connection-error-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .connection-error-text {
+            flex: 1;
+            font-size: 14px;
+            color: #FFFFFF;
+            font-weight: 500;
+        }
+
+        body.large-font .connection-error-text {
+            font-size: 16px;
+        }
+
+        .retry-btn {
+            padding: 6px 12px;
+            border: 1px solid #FFFFFF;
+            border-radius: 6px;
+            background: transparent;
+            color: #FFFFFF;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        body.large-font .retry-btn {
+            font-size: 15px;
+            padding: 8px 14px;
+        }
+
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* AP Settings Section */
+        .ap-settings-section {
+            background: #F2F2F7;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .ap-settings-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1C1C1E;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #C6C6C8;
+        }
+
+        body.large-font .ap-settings-title {
+            font-size: 18px;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            height: 44px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        body.large-font .btn {
+            height: 52px;
+            font-size: 18px;
+        }
+
+        .btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-primary {
+            background: #007AFF;
+            color: #FFFFFF;
+        }
+
+        .btn-primary:hover {
+            background: #0056CC;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #FFFFFF;
+            color: #007AFF;
+            border: 1px solid #007AFF;
+        }
+
+        .btn-secondary:hover {
+            background: #007AFF;
+            color: #FFFFFF;
+        }
+
+        .btn-danger {
+            background: #FF3B30;
+            color: #FFFFFF;
+        }
+
+        .btn-danger:hover {
+            background: #D63026;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #FFFFFF;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: 20px;
+            max-width: 320px;
+            width: 90%;
+        }
+
+        body.large-font .modal {
+            padding: 24px;
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1C1C1E;
+            margin-bottom: 12px;
+        }
+
+        body.large-font .modal-title {
+            font-size: 20px;
+        }
+
+        .modal-message {
+            font-size: 15px;
+            color: #1C1C1E;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        body.large-font .modal-message {
+            font-size: 18px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        body.large-font .modal-btn {
+            height: 48px;
+            font-size: 17px;
+        }
+
+        .modal-btn-cancel {
+            background: #F2F2F7;
+            color: #1C1C1E;
+        }
+
+        .modal-btn-confirm {
+            background: #FF3B30;
+            color: #FFFFFF;
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .device-info-container {
+                padding: 12px;
+            }
+
+            .device-icon {
+                width: 60px;
+                height: 60px;
+            }
+
+            .device-info-content {
+                padding-left: 4px;
+            }
+
+            .device-name {
+                font-size: 18px;
+            }
+
+            .device-description {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title" data-i18n="title">WiFi Setup</div>
+            <div class="accessibility-controls">
+                <button class="font-btn" id="fontToggleBtn" data-i18n-title="Toggle font size" title="Toggle font size">A<span style="font-size: 0.7em; vertical-align: middle;">A</span></button>
+                <div class="lang-switch">
+                    <button class="lang-btn active" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="ru">RU</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Info Container -->
+        <div class="device-info-container" id="deviceInfoContainer">
+            <div class="device-icon" id="deviceIcon">
+                <!-- Default smart home icon SVG -->
+            </div>
+            <div class="device-info-content">
+                <div class="device-name" id="deviceName">ESP Device v1.0.0</div>
+                <div class="device-description" id="deviceDescription">Smart home device based on ESP8266/ESP32</div>
+            </div>
+        </div>
+
+        <!-- Status Section -->
+        <div class="status-section">
+            <div class="status-indicator disconnected" id="statusIndicator"></div>
+            <div class="status-text">
+                <div id="statusText" data-i18n="status_disconnected">Disconnected</div>
+                <div class="status-details" id="statusDetails"></div>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" data-i18n="refresh_btn">
+                <span class="refresh-btn-text">Refresh</span>
+                <span class="refresh-spinner hidden" id="refreshSpinner"></span>
+            </button>
+        </div>
+
+        <!-- Networks Section -->
+        <div class="section-title" id="sectionTitle">
+            <span data-i18n="select_network">Select Network</span>
+            <span class="section-title-spinner hidden" id="sectionTitleSpinner"></span>
+        </div>
+        <div class="networks-list" id="networksList">
+            <div class="network-item" style="justify-content: center; color: #8E8E93;">
+                <span data-i18n="scan_networks">Scan networks to see available networks</span>
+            </div>
+        </div>
+
+        <!-- Password Section -->
+        <div class="password-section hidden" id="passwordSection">
+            <div class="selected-network-header">
+                <div class="selected-network-title" id="selectedNetworkTitle"></div>
+                <div class="selected-network-divider"></div>
+            </div>
+
+            <!-- Connection Error Message -->
+            <div class="connection-error hidden" id="connectionError">
+                <span class="connection-error-icon">⚠️</span>
+                <span class="connection-error-text" data-i18n="connection_failed">Connection failed. Check password.</span>
+                <button class="retry-btn" id="retryBtn" data-i18n="retry_btn">Retry</button>
+            </div>
+
+            <div class="input-group" id="passwordInputGroup">
+                <label class="input-label" data-i18n="password_label">Password</label>
+                <div class="input-wrapper">
+                    <input type="password" class="input-field" id="passwordInput" data-i18n-placeholder="password_placeholder" placeholder="Enter password">
+                    <button type="button" class="show-password-btn" id="showPasswordBtn" data-i18n="show_password">Show</button>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="connectBtn" style="margin-top: 12px;" data-i18n="join_btn">
+                Join
+            </button>
+        </div>
+
+        <!-- AP Settings Section -->
+        <div class="ap-settings-section">
+            <div class="ap-settings-title" data-i18n="ap_settings_title">Access Point Settings</div>
+            <div class="input-group">
+                <label class="input-label" data-i18n="ap_ssid_label">AP SSID</label>
+                <input type="text" class="input-field" id="apSsidInput" value="ESP_Device_AP">
+            </div>
+            <div class="input-group">
+                <label class="input-label" data-i18n="ap_password_label">AP Password</label>
+                <div class="input-wrapper">
+                    <input type="password" class="input-field" id="apPasswordInput" value="password123">
+                    <button type="button" class="show-password-btn" id="showApPasswordBtn" data-i18n="show_password">Show</button>
+                </div>
+            </div>
+            <button class="btn btn-secondary" id="applyApSettingsBtn" style="margin-top: 12px;" data-i18n="apply_ap_settings_btn">
+                Apply AP Settings
+            </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <button class="btn btn-primary" id="saveRebootBtn" data-i18n="save_reboot_btn">Save & Reboot</button>
+        <button class="btn btn-danger" id="factoryResetBtn" data-i18n="factory_reset_btn">Factory Reset</button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-title" id="modalTitle">Confirm</div>
+            <div class="modal-message" id="modalMessage">Are you sure?</div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="modalCancelBtn" data-i18n="cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn" data-i18n="confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Localization
+        const translations = {
+            en: {
+                title: 'WiFi Setup',
+                device_name: 'ESP Device v1.0.0',
+                device_description: 'Smart home device based on ESP8266/ESP32',
+                refresh_btn: 'Refresh',
+                select_network: 'Select Network',
+                scan_networks: 'Scan networks to see available networks',
+                selected_network: 'Selected Network',
+                password_label: 'Password',
+                password_placeholder: 'Enter password',
+                show_password: 'Show',
+                hide_password: 'Hide',
+                join_btn: 'Join',
+                disconnect_btn: 'Disconnect',
+                connect_btn: 'Connect',
+                connecting: 'Connecting...',
+                ap_settings_title: 'Access Point Settings',
+                ap_ssid_label: 'AP SSID',
+                ap_password_label: 'AP Password',
+                apply_ap_settings_btn: 'Apply AP Settings',
+                save_reboot_btn: 'Save & Reboot',
+                factory_reset_btn: 'Factory Reset',
+                status_disconnected: 'Disconnected',
+                status_connecting: 'Connecting...',
+                status_connected: 'Connected',
+                status_error: 'Connection Error',
+                confirm_reset: 'Are you sure you want to reset to factory settings?',
+                cancel: 'Cancel',
+                confirm: 'Confirm',
+                success_saved: 'Settings saved! Rebooting...',
+                success_ap_applied: 'AP settings applied! Reconnecting...',
+                error_connection: 'Connection failed. Check password.',
+                error_no_network: 'Please select a network first.',
+                error_timeout: 'Connection timeout. Try again.',
+                no_networks: 'No networks found',
+                signal_excellent: 'Excellent',
+                signal_good: 'Good',
+                signal_weak: 'Weak',
+                signal_very_weak: 'Very Weak',
+                retry_btn: 'Retry',
+                connection_failed: 'Connection failed. Check password.',
+                saving: 'Saving...',
+                resetting: 'Resetting...',
+                rebooting: 'Rebooting...'
+            },
+            ru: {
+                title: 'Настройка WiFi',
+                device_name: 'ESP Device v1.0.0',
+                device_description: 'Устройство для умного дома на базе ESP8266/ESP32',
+                refresh_btn: 'Обновить',
+                select_network: 'Выберите сеть',
+                scan_networks: 'Нажмите "Обновить" для поиска сетей',
+                selected_network: 'Выбранная сеть',
+                password_label: 'Пароль',
+                password_placeholder: 'Введите пароль',
+                show_password: 'Show',
+                hide_password: 'Hide',
+                join_btn: 'Join',
+                disconnect_btn: 'Disconnect',
+                connect_btn: 'Подключиться',
+                connecting: 'Подключение...',
+                ap_settings_title: 'Настройки точки доступа',
+                ap_ssid_label: 'SSID точки доступа',
+                ap_password_label: 'Пароль точки доступа',
+                apply_ap_settings_btn: 'Применить настройки AP',
+                save_reboot_btn: 'Запомнить и перезапустить',
+                factory_reset_btn: 'Сброс настроек',
+                status_disconnected: 'Не подключено',
+                status_connecting: 'Подключение...',
+                status_connected: 'Подключено',
+                status_error: 'Ошибка подключения',
+                confirm_reset: 'Вы уверены, что хотите сбросить настройки к заводским?',
+                cancel: 'Отмена',
+                confirm: 'Подтвердить',
+                success_saved: 'Настройки сохранены! Перезагрузка...',
+                success_ap_applied: 'Настройки AP применены! Переподключение...',
+                error_connection: 'Ошибка подключения. Проверьте пароль.',
+                error_no_network: 'Пожалуйста, выберите сеть.',
+                error_timeout: 'Превышено время подключения. Попробуйте снова.',
+                no_networks: 'Сети не найдены',
+                signal_excellent: 'Отличный',
+                signal_good: 'Хороший',
+                signal_weak: 'Слабый',
+                signal_very_weak: 'Очень слабый',
+                retry_btn: 'Повторить',
+                connection_failed: 'Ошибка подключения. Проверьте пароль.',
+                saving: 'Сохранение...',
+                resetting: 'Сброс...',
+                rebooting: 'Перезагрузка...'
+            }
+        };
+
+        // Default SVG icon for smart home device (from icon_smart_device2_mini.svg)
+        const DEFAULT_DEVICE_ICON = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="512pt" height="512pt" viewBox="0 0 512 512">
+                <path fill="transparent" stroke="transparent" stroke-width=".25" d="M0 0h512v512H0z"/>
+                <path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M400.39 15.33c1.97-1.22 4.39-.79 6.59-.92 5.97.16 12.03-.45 17.9.9 6 1.34 12.06 2.62 17.81 4.87 11.87 4.48 22.16 12.22 31.74 20.38 7.56 7.66 14.22 16.41 18.69 26.25 3.11 7.53 5.44 15.37 7.03 23.36.74 2.99-1.46 6.12-4.17 7.22-2.69.23-5.91.78-7.99-1.38-1.99-2.28-1.97-5.53-2.64-8.34-4.61-21.64-19.85-40.25-39.23-50.56-8.36-4.59-17.7-6.92-27.07-8.24-6.43-.7-12.95.13-19.35-.81-4.54-2.58-4.23-10.78.69-12.73ZM234.49 33.47c4.89-4.27 10.85-7.87 17.5-8.12 5.4-.21 11.04-.43 16.11 1.75 7.42 2.94 12.79 9.06 18.95 13.88 26.2 21.08 52.47 42.09 78.35 63.58 12.61 10.39 25.62 20.31 38.02 30.95 27.11 21.17 53.23 43.56 80.19 64.91 3.34 2.97 7.24 5.32 10.25 8.65 2.4 2.61 1.99 6.89-.44 9.33-6.59 7.16-12.08 15.22-18.37 22.63-4.62 5.41-8.21 11.74-13.64 16.42-3.01 2.68-7.79 2.69-10.81.02-9.37-7.45-18.09-15.75-27.98-22.54-.03 78.37 0 156.74-.06 235.11-.02 7.45-2.89 15.01-8.34 20.19-5.44 5.68-13.47 8.28-21.19 8.3-91.36-.04-182.71.01-274.06-.02-8.62-.17-17.46-3.67-22.93-10.53-4.52-5.2-6.48-12.17-6.46-18.97-.04-78.06.12-156.13-.11-234.19-6.86 4.97-13.2 10.59-19.82 15.87-3.24 2.56-6.08 5.67-9.67 7.78-3.27.34-7.39 1.13-9.92-1.53-2.6-2.41-4.58-5.39-6.67-8.23-6.23-8.42-13-16.43-19.49-24.65-2.38-3.06-5.39-5.7-7.14-9.2-.95-2.87.78-5.49 2.93-7.23 26.74-21.62 53.47-43.25 80.36-64.69 3.45-2.94 7.32-5.48 10.22-8.99.38-24.61-.03-49.25.1-73.86-.06-2.26 1.74-4.09 3.51-5.23 5.2-1.63 10.77-1.16 16.12-.71 10.27.32 20.57-.19 30.84.2 2.98-.06 4.42 2.95 4.4 5.56.34 10.12-.16 20.26.26 30.38 10.08-7.83 19.5-16.47 29.64-24.23 13-11 26.42-21.5 39.35-32.59Z"/><path fill="#fff" stroke="#fff" stroke-width=".25" d="M237.28 49.41c4.71-3.55 8.9-8.25 14.76-9.86 5.01-.55 10.9-1.23 14.81 2.68 29.46 23.84 58.96 47.64 88.23 71.71 25.47 20.53 50.93 41.09 76.19 61.87 15.5 13.12 31.67 25.41 47.36 38.29-3.02 4.41-6.98 8.04-10.22 12.26-4.32 5.05-7.83 10.88-13.05 15.1-1.41.81-2.56-.48-3.63-1.22-15.61-13.11-31.74-25.57-47.37-38.66-29.9-23.66-59.15-48.11-88.8-72.08-18.24-14.36-36.05-29.26-53.93-44.06-2.78-2.83-7.45-2.79-10.16.13-31.93 26.73-64.57 52.62-96.76 79.03-14.87 11.49-29.08 23.78-43.99 35.2-15.57 12.74-31.56 24.97-46.78 38.13-2.08 1.85-4.45 3.33-6.9 4.62C49.33 233 41 223.91 33.86 213.92c17.11-13.61 34.06-27.42 51.24-40.93 8.89-7.43 17.78-14.85 26.88-22.01 14.91-12.07 29.52-24.5 44.54-36.43 14.31-11.32 28.44-22.86 42.71-34.22 12.89-10.06 25.22-20.79 38.05-30.92Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M404.48 52.66c2.59-1.49 5.67-1.09 8.52-.96 4.56.62 9.23.9 13.61 2.41 16.52 5.81 30.27 19.45 35.38 36.31.95 3.52 2.56 7.6.38 10.98-1.68 3.06-5.6 3.64-8.71 2.86-4.98-2.56-4.24-8.92-6.19-13.41-4.54-10.45-13.35-19.01-23.98-23.17-6.11-1.98-12.65-1.69-18.97-2.33-5.95-1.37-5.72-11.05-.04-12.69Z"/><path fill="#a2d6fd" stroke="#a2d6fd" stroke-width=".25" d="M123.51 67.48c9.94-.11 19.89-.16 29.84-.01-.02 8.85 0 17.71.04 26.56-.12 2.12.21 4.49-1.07 6.35-1.42 1.6-3.22 2.78-4.89 4.09-7.77 5.75-14.93 12.29-22.97 17.69-.55-2.35-.94-4.73-.9-7.14.04-15.85-.1-31.69-.05-47.54Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M406.28 85.09c11.58-3.45 25.64 6.33 24.45 18.88.84 6.67-2.43 13.1-7.76 16.99-4.74 4.28-11.6 4.33-17.55 3.31-12.19-3.33-17.64-19.51-11.27-30.05 2.92-4.23 7.12-7.74 12.13-9.13Z"/><path fill="#fff" stroke="#fff" stroke-width=".25" d="M407.51 99.39c4.24-3.22 11.11 1.27 10.09 6.42-.41 3.01-3.71 5.07-6.61 4.85-3.87.32-7.93-4.53-5.86-8.2.54-1.2 1.39-2.23 2.38-3.07Z"/><path fill="#a2d6fd" stroke="#a2d6fd" stroke-width=".25" d="M256.35 100.26c1.18-.12 2.13.72 3.02 1.36 19.78 16.93 40.4 32.84 60.31 49.63 10.54 8.11 20.77 16.63 31.05 25.08C367.34 189.33 383.4 203 400 216c2.84 2.28 5.85 4.42 8.3 7.15.82 3.88.25 7.91.38 11.85-.03 78.68-.05 157.37.08 236.05-.76 8.04-8.6 14.72-16.67 14.38-90.72-.02-181.44-.06-272.16.02-9.09.31-17.12-8.36-16.41-17.38-.08-78.02-.1-156.04-.06-234.07.08-3.48-.28-7.01.33-10.45 1.58-2.02 3.77-3.43 5.73-5.06 33-26.31 65.7-53.02 98.64-79.4 13.5-11.54 27.64-22.29 41.2-33.76 2.22-1.81 4.37-3.82 6.99-5.07Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M215.46 222.71c2.88-.7 5.38 1.57 6.79 3.84 1.29 7.61-.5 15.46 1.13 23.05 8.67-.24 17.35.04 26.03-.16.1-6.82-.15-13.64.06-20.46-.08-5.43 7.68-8.89 11.53-4.99 2.03 1.68 2.32 4.48 2.37 6.94.07 6.2-.07 12.41.02 18.61 8.65-.06 17.29-.16 25.94 0 .28-6.81-.16-13.62.2-20.42.43-4.83 6.52-7.33 10.54-5.1 2.25 1.54 3.29 4.27 3.29 6.93.16 6.19-.04 12.4.05 18.6 8.22-.04 16.44-.12 24.66-.11 3.61-.14 7.66 2.73 7.45 6.62.28 9.22-.1 18.44.2 27.66 7.69.25 15.48-.67 23.1.58 6.28.99 6.75 11.37.79 13.14-3.11 1.01-6.42.87-9.61.53-4.77-.56-9.52.27-14.28.38-.1 8.42-.07 16.84-.02 25.26 7.06.25 14.12-.08 21.18.19 4.85.23 8.03 6.01 6.02 10.34-1.03 2.68-4.21 3.61-6.84 3.55-6.75.12-13.51-.12-20.26.04-.03 8.87-.07 16.84-.02 25.26 7.06.25 14.12-.08 21.18.19 4.85.23 8.03 6.01 6.02 10.34-1.03 2.68-4.21 3.61-6.84 3.55-6.75.12-13.51-.12-20.26.04-.64 8.39.02 16.81-.41 25.21-.1 3.66-4.09 5.74-7.37 5.71-8.23.17-16.47.09-24.69-.04-.12 6.86.07 13.74-.13 20.6.01 3.15-1.46 6.22-4.24 7.8-4.13 2.45-9.63-1.25-9.53-5.86-.26-7.52.16-15.05-.16-22.57-8.65.14-17.31.1-25.95-.01-.08 6.87.13 13.74-.1 20.6-.02 3.16-1.38 6.36-4.2 7.98-4.11 2.18-9.68-1.4-9.6-6-.22-7.5.08-15 0-22.5-8.94 0-17.87-.13-26.8.02-.12 7.49.13 14.99-.11 22.49.1 2.92-2.3 5.49-4.9 6.43-4.96 1.23-8.95-3.85-8.92-8.42-.17-6.79-.03-13.59.04-20.38-8.57-.22-17.15.1-25.73-.13-3.5.18-6.37-3.05-6.36-6.44-.25-7.96-.03-15.94 0-23.9-7.21-.97-14.48-.21-21.71-.52-2.46.07-4.8-1.41-6.04-3.49-1.18-3.39-.15-8.18 3.48-9.57 8.11-.64 16.27.02 24.4-.36l-.12-26.47c-7.54-.32-15.09.11-22.62-.26-2.58-.03-4.36-2.45-5.31-4.6-.76-4.28 2.58-9.35 7.22-9.17 6.88-.16 13.76 0 20.65-.12.13-8.46.08-16.91.07-25.37-6.91-.15-13.82.09-20.72-.07-4.07-.04-8.35-3.91-7.52-8.17.16-3.76 3.98-6.32 7.53-6.28 6.87-.16 13.75.06 20.62-.09.19-9.19-.15-18.39.03-27.57-.07-3.77 3.56-6.94 7.26-6.6 8.2-.07 16.41.04 24.61.03.07-6.53-.22-13.07.09-19.6.06-3.73 3.49-6.37 6.85-7.2Z"/><path fill="#fff" stroke="#fff" stroke-width=".25" d="M191.35 263.55c43.63.03 87.25-.06 130.88.09.2 38.78.01 77.57.07 116.36-.04 4.88.3 9.8-.61 14.62-43.52.06-87.03.04-130.55.03-.66-4.86-.37-9.77-.41-14.65-.04-36.34.01-72.68.01-109.02-.01-2.5.31-4.96.61-7.43Z"/><path fill="#1d436d" stroke="#1d436d" stroke-width=".25" d="M248.38 294.58c8.02-.45 16.67-1.24 23.9 3.03 7.47 4.44 14.12 11.25 16.5 19.81 2.48 7.73 2.87 16.44-.24 24.05-4.19 11.79-15.43 20.53-27.72 22.4-6.88 1.46-13.82-.82-20.02-3.66-9.23-4.29-15.48-13.31-18.27-22.89-2.38-8.7-.61-18.1 3.48-26.01 4.78-8.3 12.98-14.64 22.37-16.73Z"/><path fill="#a2d6fd" stroke="#a2d6fd" stroke-width=".25" d="M249.5 308.88c6.63-2.53 14.53-.95 19.68 3.92 2.88 2.77 5.93 5.82 6.84 9.85 1.3 6.92 1.05 14.93-4.11 20.31-6.37 7.68-18.38 8.78-26.62 3.57-9.9-5.46-12.98-19.69-6.73-28.96 2.8-3.76 6.44-7.15 10.94-8.69Z"/>
+            </svg>
+        `;
+
+        // State
+        let currentLang = localStorage.getItem('wifiSetupLang') || 'en';
+        let selectedNetwork = null;
+        let networks = [];
+        let isConnected = false;
+        let connectionError = false;
+        let largeFont = localStorage.getItem('wifiSetupLargeFont') === 'true';
+        let emptyScanRetryCount = 0;
+        const MAX_EMPTY_SCAN_RETRIES = 5;
+        const INITIAL_SCAN_DELAY = 2000;  // Delay before first scan after page load (ms)
+        const EMPTY_SCAN_RETRY_DELAY = 1500;  // Delay between empty scan retries (ms)
+
+        // Device configuration (can be overridden by actual device)
+        window.deviceConfig = {
+            version: 'ESP Device v1.0.0',
+            description: 'Smart home device based on ESP8266/ESP32',
+            iconSvg: null  // Custom SVG icon (optional)
+        };
+
+        // Simulation mode (set to false for production)
+        const SIMULATION_MODE = true;
+
+        // DOM Elements
+        const deviceName = document.getElementById('deviceName');
+        const deviceDescription = document.getElementById('deviceDescription');
+        const deviceIcon = document.getElementById('deviceIcon');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const statusDetails = document.getElementById('statusDetails');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const refreshSpinner = document.getElementById('refreshSpinner');
+        const refreshBtnText = refreshBtn.querySelector('.refresh-btn-text');
+        const networksList = document.getElementById('networksList');
+        const passwordSection = document.getElementById('passwordSection');
+        const selectedNetworkTitle = document.getElementById('selectedNetworkTitle');
+        const passwordInputGroup = document.getElementById('passwordInputGroup');
+        const passwordInput = document.getElementById('passwordInput');
+        const showPasswordBtn = document.getElementById('showPasswordBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const connectionErrorEl = document.getElementById('connectionError');
+        const retryBtn = document.getElementById('retryBtn');
+        const fontToggleBtn = document.getElementById('fontToggleBtn');
+        const apSsidInput = document.getElementById('apSsidInput');
+        const apPasswordInput = document.getElementById('apPasswordInput');
+        const showApPasswordBtn = document.getElementById('showApPasswordBtn');
+        const applyApSettingsBtn = document.getElementById('applyApSettingsBtn');
+        const saveRebootBtn = document.getElementById('saveRebootBtn');
+        const factoryResetBtn = document.getElementById('factoryResetBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const sectionTitleSpinner = document.getElementById('sectionTitleSpinner');
+
+        // Initialize
+        async function init() {
+            applyDeviceConfig();
+            setLanguage(currentLang);
+            updateStatusUI();
+            applyLargeFont();
+
+            // Fix #3 & #4: Load device config first, then scan after delay
+            // This prevents race condition between /api/config and /api/scan
+            try {
+                await loadDeviceConfig();
+            } catch (error) {
+                console.error('[WiFiSetup] Failed to load device config:', error);
+            }
+
+            // Delay before first scan to allow server to recover after reboot
+            setTimeout(() => {
+                scanNetworks();
+            }, INITIAL_SCAN_DELAY);
+        }
+
+        // Load device configuration from server
+        async function loadDeviceConfig() {
+            const response = await fetch('/api/config');
+            const config = await response.json();
+            window.deviceConfig = {
+                version: config.device_name || 'ESP Device',
+                description: config.device_description || '',
+                iconSvg: config.device_icon_svg || null,
+                hostname: config.hostname || 'espdevice'
+            };
+        }
+
+        // Apply device configuration
+        function applyDeviceConfig() {
+            const config = window.deviceConfig || {};
+
+            if (config.version) {
+                deviceName.textContent = config.version;
+            }
+
+            if (config.description) {
+                deviceDescription.textContent = config.description;
+            }
+
+            if (config.iconSvg && config.iconSvg.trim()) {
+                deviceIcon.innerHTML = config.iconSvg;
+            } else {
+                deviceIcon.innerHTML = DEFAULT_DEVICE_ICON;
+            }
+        }
+
+        // Apply large font setting
+        function applyLargeFont() {
+            if (largeFont) {
+                document.body.classList.add('large-font');
+                fontToggleBtn.classList.add('active');
+            } else {
+                document.body.classList.remove('large-font');
+                fontToggleBtn.classList.remove('active');
+            }
+        }
+
+        // Toggle large font
+        function toggleLargeFont() {
+            largeFont = !largeFont;
+            localStorage.setItem('wifiSetupLargeFont', largeFont);
+            applyLargeFont();
+        }
+
+        // Language
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('wifiSetupLang', lang);
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang][key]) {
+                    el.placeholder = translations[lang][key];
+                }
+            });
+
+            // Update device name and description from translations
+            deviceName.textContent = translations[lang].device_name;
+            deviceDescription.textContent = translations[lang].device_description;
+
+            // Apply custom config if available
+            const config = window.deviceConfig || {};
+            if (config.version) {
+                deviceName.textContent = config.version;
+            }
+            if (config.description) {
+                deviceDescription.textContent = config.description;
+            }
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+
+            // Update connect button text
+            updateConnectButtonText();
+
+            // Update error message if visible
+            if (connectionError) {
+                showConnectionError();
+            }
+        }
+
+        // Status
+        function updateStatusUI() {
+            statusIndicator.className = 'status-indicator disconnected';
+            statusText.textContent = translations[currentLang].status_disconnected;
+            statusDetails.textContent = '';
+        }
+
+        function setStatus(status, details = '') {
+            statusIndicator.className = `status-indicator ${status}`;
+            statusText.textContent = translations[currentLang][`status_${status}`] || status;
+            statusDetails.textContent = details;
+        }
+
+        // Scan networks
+        async function scanNetworks() {
+            refreshBtn.disabled = true;
+            refreshSpinner.classList.remove('hidden');
+            sectionTitleSpinner.classList.remove('hidden');
+            networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>';
+
+            if (SIMULATION_MODE) {
+                await new Promise(resolve => setTimeout(resolve, 800));
+                networks = generateSimulatedNetworks();
+                renderNetworks();
+            } else {
+                try {
+                    const response = await fetch('/api/scan');
+                    const data = await response.json();
+                    networks = data.networks || [];
+                    renderNetworks();
+
+                    // Fix #1 & #3: Retry if empty network list (after reboot)
+                    if (networks.length === 0 && emptyScanRetryCount < MAX_EMPTY_SCAN_RETRIES) {
+                        emptyScanRetryCount++;
+                        console.log(`[WiFiSetup] Empty scan result, retry ${emptyScanRetryCount}/${MAX_EMPTY_SCAN_RETRIES}`);
+                        await new Promise(resolve => setTimeout(resolve, EMPTY_SCAN_RETRY_DELAY));
+                        await scanNetworks();
+                        return;
+                    }
+                } catch (error) {
+                    networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`;
+                }
+            }
+            refreshBtn.disabled = false;
+            refreshSpinner.classList.add('hidden');
+            sectionTitleSpinner.classList.add('hidden');
+            emptyScanRetryCount = 0;  // Reset counter on success
+        }
+
+        // Generate simulated networks
+        function generateSimulatedNetworks() {
+            const baseNetworks = [
+                { ssid: 'FIREFLY_HOME', rssi: -45, encryption: 'WPA2' },
+                { ssid: 'FIREFLY_GUEST', rssi: -55, encryption: 'WPA2' },
+                { ssid: 'FIREFLY_IOT', rssi: -65, encryption: 'WPA2' }
+            ];
+
+            return baseNetworks.map(net => ({
+                ...net,
+                rssi: net.rssi + Math.floor(Math.random() * 10) - 5,
+                connected: false
+            })).sort((a, b) => b.rssi - a.rssi);
+        }
+
+        // Render networks
+        function renderNetworks() {
+            if (networks.length === 0) {
+                networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #8E8E93;">${translations[currentLang].no_networks}</div>`;
+                return;
+            }
+
+            networksList.innerHTML = networks.map((network, index) => {
+                const signalStrength = getSignalStrength(network.rssi);
+                const signalText = translations[currentLang][`signal_${signalStrength}`] || signalStrength;
+                const lockIcon = network.encryption === 'none' ? '🔓' : '🔒';
+                const checkmark = network.connected ? '✅' : '';
+
+                return `
+                    <div class="network-item ${selectedNetwork === index ? 'selected' : ''}" data-index="${index}">
+                        <span class="network-icon">📶</span>
+                        <div class="network-info">
+                            <div class="network-name">${escapeHtml(network.ssid)}</div>
+                            <div class="network-signal">${signalText} • ${network.encryption === 'none' ? 'Open' : network.encryption}</div>
+                        </div>
+                        <div class="network-lock-wrapper">
+                            ${checkmark ? `<span class="network-checkmark">${checkmark}</span>` : ''}
+                            <span class="network-lock">${lockIcon}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            networksList.querySelectorAll('.network-item').forEach(item => {
+                item.addEventListener('click', () => selectNetwork(parseInt(item.dataset.index)));
+            });
+        }
+
+        // Get signal strength
+        function getSignalStrength(rssi) {
+            if (rssi >= -50) return 'excellent';
+            if (rssi >= -60) return 'good';
+            if (rssi >= -70) return 'weak';
+            return 'very_weak';
+        }
+
+        // Select network
+        function selectNetwork(index) {
+            // Reset previous selection
+            if (selectedNetwork !== null && networks[selectedNetwork]) {
+                networks[selectedNetwork].connected = false;
+            }
+
+            // If clicking on already selected and connected network, show disconnect
+            if (selectedNetwork === index && networks[index].connected) {
+                selectedNetwork = index;
+                renderNetworks();
+                showPasswordSection(networks[index].ssid, true);
+                return;
+            }
+
+            selectedNetwork = index;
+            renderNetworks();
+            showPasswordSection(networks[index].ssid, false);
+        }
+
+        // Show password section
+        function showPasswordSection(ssid, isDisconnect = false) {
+            passwordSection.classList.remove('hidden');
+            selectedNetworkTitle.textContent = ssid;
+
+            // Hide connection error when selecting new network
+            hideConnectionError();
+
+            if (isDisconnect) {
+                passwordInputGroup.classList.add('hidden');
+                connectBtn.textContent = translations[currentLang].disconnect_btn;
+                connectBtn.className = 'btn btn-secondary';
+            } else {
+                passwordInputGroup.classList.remove('hidden');
+                connectBtn.textContent = translations[currentLang].join_btn;
+                connectBtn.className = 'btn btn-primary';
+            }
+        }
+
+        // Show connection error
+        function showConnectionError() {
+            connectionErrorEl.classList.remove('hidden');
+            const errorText = connectionErrorEl.querySelector('.connection-error-text');
+            if (errorText) {
+                errorText.textContent = translations[currentLang].connection_failed;
+            }
+            const retryBtn = connectionErrorEl.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.textContent = translations[currentLang].retry_btn;
+            }
+        }
+
+        // Hide connection error
+        function hideConnectionError() {
+            connectionErrorEl.classList.add('hidden');
+            connectionError = false;
+        }
+
+        // Update connect button text
+        function updateConnectButtonText() {
+            if (selectedNetwork !== null && passwordSection.classList.contains('hidden') === false) {
+                if (isConnected) {
+                    connectBtn.textContent = translations[currentLang].disconnect_btn;
+                    connectBtn.className = 'btn btn-secondary';
+                } else {
+                    connectBtn.textContent = translations[currentLang].join_btn;
+                    connectBtn.className = 'btn btn-primary';
+                }
+            }
+        }
+
+        // Connect to network
+        async function connectToNetwork() {
+            if (selectedNetwork === null) {
+                alert(translations[currentLang].error_no_network);
+                return;
+            }
+
+            const network = networks[selectedNetwork];
+
+            // Disconnect mode
+            if (network.connected || isConnected) {
+                network.connected = false;
+                isConnected = false;
+                setStatus('disconnected');
+                passwordInputGroup.classList.remove('hidden');
+                connectBtn.textContent = translations[currentLang].join_btn;
+                connectBtn.className = 'btn btn-primary';
+                renderNetworks();
+                return;
+            }
+
+            const password = passwordInput.value;
+
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+
+            connectBtn.disabled = true;
+            connectBtn.innerHTML = '<span class="spinner"></span>' + translations[currentLang].connecting;
+            setStatus('connecting');
+            hideConnectionError();
+
+            if (SIMULATION_MODE) {
+                // Simulate connection failure for testing
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Simulate random failure for demo
+                const simulateFailure = Math.random() < 0.3;
+                if (simulateFailure) {
+                    // Connection failed - server still responsive
+                    connectionError = true;
+                    showConnectionError();
+                    setStatus('error', translations[currentLang].error_timeout);
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = translations[currentLang].join_btn;
+                    return;
+                }
+
+                // Success
+                network.connected = true;
+                isConnected = true;
+                setStatus('connected', `${network.ssid} • 192.168.1.42`);
+                renderNetworks();
+                passwordInputGroup.classList.add('hidden');
+                connectBtn.textContent = translations[currentLang].disconnect_btn;
+                connectBtn.className = 'btn btn-secondary';
+            } else {
+                try {
+                    // Отключаем стандартный таймаут fetch, так как подключение может занять до 20 секунд
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 25000);  // 25 секунд таймаут
+                    
+                    const response = await fetch('/api/connect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ssid: network.ssid, password }),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    const data = await response.json();
+
+                    if (data.success) {
+                        network.connected = true;
+                        isConnected = true;
+                        setStatus('connected', `${network.ssid} • ${data.ip}`);
+                        renderNetworks();
+                        passwordInputGroup.classList.add('hidden');
+                        connectBtn.textContent = translations[currentLang].disconnect_btn;
+                        connectBtn.className = 'btn btn-secondary';
+                    } else {
+                        connectionError = true;
+                        showConnectionError();
+                        setStatus('error', translations[currentLang].error_connection);
+                    }
+                } catch (error) {
+                    // После подключения сервер может перезапускаться, поэтому пробуем получить статус
+                    if (error.name === 'AbortError' || error.message.includes('Failed to fetch')) {
+                        console.log('[WiFiSetup] Connection may have succeeded, checking status...');
+                        // Ждём немного и проверяем статус подключения
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        try {
+                            const statusResponse = await fetch('/api/status');
+                            const status = await statusResponse.json();
+                            if (status.connected) {
+                                network.connected = true;
+                                isConnected = true;
+                                setStatus('connected', `${network.ssid} • ${status.ip}`);
+                                renderNetworks();
+                                passwordInputGroup.classList.add('hidden');
+                                connectBtn.textContent = translations[currentLang].disconnect_btn;
+                                connectBtn.className = 'btn btn-secondary';
+                                return;
+                            }
+                        } catch (e) {
+                            console.error('[WiFiSetup] Status check failed:', e);
+                        }
+                    }
+                    connectionError = true;
+                    showConnectionError();
+                    setStatus('error', translations[currentLang].error_timeout);
+                }
+            }
+
+            connectBtn.disabled = false;
+            connectBtn.textContent = isConnected ? translations[currentLang].disconnect_btn : translations[currentLang].join_btn;
+        }
+
+        // Retry connection
+        function retryConnection() {
+            hideConnectionError();
+            passwordInput.focus();
+            connectToNetwork();
+        }
+
+        // Show/hide password
+        function togglePassword(input, btn) {
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            btn.textContent = isPassword ? translations[currentLang].hide_password : translations[currentLang].show_password;
+        }
+
+        // Save and reboot
+        async function saveAndReboot() {
+            saveRebootBtn.disabled = true;
+            const originalText = saveRebootBtn.textContent;
+            saveRebootBtn.innerHTML = '<span class="btn-spinner"></span><span>' + translations[currentLang].saving + '</span>';
+            saveRebootBtn.classList.add('btn-with-spinner');
+
+            // Fix #2: Scroll to button to show loading indicator
+            saveRebootBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            showModal(
+                translations[currentLang].success_saved,
+                async () => {
+                    if (SIMULATION_MODE) {
+                        document.body.innerHTML = `
+                            <div class="container" style="text-align: center; padding-top: 100px;">
+                                <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+                                <p style="font-size: 16px; color: #1C1C1E;">${translations[currentLang].rebooting}</p>
+                                <p style="font-size: 14px; color: #8E8E93; margin-top: 10px;">Redirecting in 10 seconds...</p>
+                            </div>
+                        `;
+                    } else {
+                        try {
+                            await fetch('/api/save', { method: 'POST' });
+                            await fetch('/api/reset', { method: 'POST' });
+
+                            document.body.innerHTML = `
+                                <div class="container" style="text-align: center; padding-top: 100px;">
+                                    <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+                                    <p style="font-size: 16px; color: #1C1C1E;">${translations[currentLang].rebooting}</p>
+                                    <p style="font-size: 14px; color: #8E8E93; margin-top: 10px;">Redirecting in 10 seconds...</p>
+                                </div>
+                            `;
+                        } catch (error) {
+                            saveRebootBtn.disabled = false;
+                            saveRebootBtn.textContent = originalText;
+                            saveRebootBtn.classList.remove('btn-with-spinner');
+                            alert('Error: ' + error.message);
+                        }
+                    }
+                }
+            );
+        }
+
+        // Factory reset
+        function factoryReset() {
+            factoryResetBtn.disabled = true;
+            const originalText = factoryResetBtn.textContent;
+            factoryResetBtn.innerHTML = '<span class="btn-spinner"></span><span>' + translations[currentLang].resetting + '</span>';
+            factoryResetBtn.classList.add('btn-with-spinner');
+
+            // Fix #2: Scroll to button to show loading indicator
+            factoryResetBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            showModal(
+                translations[currentLang].confirm_reset,
+                async () => {
+                    if (SIMULATION_MODE) {
+                        document.body.innerHTML = `
+                            <div class="container" style="text-align: center; padding-top: 100px;">
+                                <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+                                <p style="font-size: 16px; color: #1C1C1E;">${translations[currentLang].resetting}</p>
+                            </div>
+                        `;
+                    } else {
+                        try {
+                            await fetch('/api/reset', { method: 'POST' });
+
+                            document.body.innerHTML = `
+                                <div class="container" style="text-align: center; padding-top: 100px;">
+                                    <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+                                    <p style="font-size: 16px; color: #1C1C1E;">${translations[currentLang].resetting}</p>
+                                    <p style="font-size: 14px; color: #8E8E93; margin-top: 10px;">Rebooting in 3 seconds...</p>
+                                </div>
+                            `;
+                            
+                            // Wait for reboot
+                            await new Promise(resolve => setTimeout(resolve, 3000));
+                            
+                            // Try to reload - device should be rebooted
+                            window.location.reload();
+                        } catch (error) {
+                            factoryResetBtn.disabled = false;
+                            factoryResetBtn.textContent = originalText;
+                            factoryResetBtn.classList.remove('btn-with-spinner');
+                            alert('Error: ' + error.message);
+                        }
+                    }
+                }
+            );
+        }
+
+        // Apply AP settings
+        async function applyApSettings() {
+            const apSsid = apSsidInput.value;
+            const apPassword = apPasswordInput.value;
+
+            if (apSsid.length === 0) {
+                alert('AP SSID is required');
+                return;
+            }
+
+            if (apPassword.length > 0 && apPassword.length < 8) {
+                alert('AP password must be at least 8 characters');
+                return;
+            }
+
+            if (SIMULATION_MODE) {
+                showModal(translations[currentLang].success_ap_applied, () => {});
+            } else {
+                try {
+                    const response = await fetch('/api/ap_settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ap_ssid: apSsid, ap_password: apPassword })
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showModal(translations[currentLang].success_ap_applied, () => {});
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+
+        // Modal
+        function showModal(message, onConfirm) {
+            modalMessage.textContent = message;
+            modalOverlay.classList.add('active');
+
+            modalConfirmBtn.onclick = () => {
+                modalOverlay.classList.remove('active');
+                onConfirm();
+            };
+
+            modalCancelBtn.onclick = () => {
+                modalOverlay.classList.remove('active');
+            };
+        }
+
+        // Utility: Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => setLanguage(btn.getAttribute('data-lang')));
+        });
+
+        fontToggleBtn.addEventListener('click', toggleLargeFont);
+
+        refreshBtn.addEventListener('click', scanNetworks);
+
+        connectBtn.addEventListener('click', connectToNetwork);
+
+        retryBtn.addEventListener('click', retryConnection);
+
+        showPasswordBtn.addEventListener('click', () => togglePassword(passwordInput, showPasswordBtn));
+
+        showApPasswordBtn.addEventListener('click', () => togglePassword(apPasswordInput, showApPasswordBtn));
+
+        saveRebootBtn.addEventListener('click', saveAndReboot);
+
+        factoryResetBtn.addEventListener('click', factoryReset);
+
+        applyApSettingsBtn.addEventListener('click', applyApSettings);
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
