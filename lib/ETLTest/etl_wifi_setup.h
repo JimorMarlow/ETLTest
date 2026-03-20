@@ -71,19 +71,19 @@ namespace etl
             } device;
 
             void trace() const {
-                Serial.println("=== server_config_t settings ===");
-                Serial.printf("hostname = %s\n", hostname.c_str());
-                Serial.printf("ap_ssid = %s\n", ap_ssid.c_str());
-                Serial.printf("ap_password = %s\n", ap_password.c_str());
-                Serial.printf("wifi_ssid = %s\n", wifi_ssid.c_str());
-                Serial.printf("wifi_password = %s\n", wifi_password.c_str());
-                Serial.printf("port = %d\n", port);
+                Serial.println(F("=== server_config_t settings ==="));
+                Serial.printf("hostname        = %s\n", hostname.c_str());
+                Serial.printf("ap_ssid         = %s\n", ap_ssid.c_str());
+                Serial.printf("ap_password     = %s\n", ap_password.c_str());
+                Serial.printf("wifi_ssid       = %s\n", wifi_ssid.c_str());
+                Serial.printf("wifi_password   = %s\n", wifi_password.c_str());
+                Serial.printf("port            = %u\n", port);
                 Serial.printf("update_interval = %u\n", update_interval);
                 Serial.printf("--- device info ---\n");
-                Serial.printf("name = %s\n", device.name.c_str());
-                Serial.printf("description = %s\n", device.description.c_str());
-                Serial.printf("icon_svg = %s\n", device.icon_svg.c_str());
-                Serial.println("========================");
+                Serial.printf("name            = %s\n", device.name.c_str());
+                Serial.printf("description     = %s\n", device.description.c_str());
+                Serial.printf("icon_svg        = %s\n", device.icon_svg.c_str());
+                Serial.println(F("========================"));
             }
         };
 

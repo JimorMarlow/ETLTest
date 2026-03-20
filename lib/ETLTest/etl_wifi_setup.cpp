@@ -14,7 +14,7 @@
 #include "etl/etl_settings.h"
 
 // :DEBUG: Для отладки падений исключаю запись на карту памяти
-#define EXCLUDE_SETTINGS_DATA
+// #define EXCLUDE_SETTINGS_DATA
 
 namespace etl
 {
@@ -28,6 +28,7 @@ namespace etl
             const String    data_path = "/settings/wifi.cfg";
             const uint16_t  data_update_delay = 0;  // 0ms - Immiaditly update
             server_config_t default_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
+            etl::shared_ptr<etl::settings::data<etl::wifi::server_config_t>> wifi_cfg;
 
             #ifdef EXCLUDE_SETTINGS_DATA
             server_config_t temp_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
@@ -39,21 +40,33 @@ namespace etl
              */
             bool init_config(const etl::wifi::server_config_t& default_cfg)
             {
+                Serial.println(F("[wifi::settings] init_config()"));
+                
                 #ifdef EXCLUDE_SETTINGS_DATA
                 temp_wifi_cfg = default_cfg;
+                Serial.println(F("[wifi::settings] init_config() EXCLUDE_SETTINGS_DATA mode"));
                 return true;
-                #endif//#ifdef EXCLUDE_SETTINGS_DATA 
+                #endif//#ifdef EXCLUDE_SETTINGS_DATA
 
                 if(etl::little_fs::begin())
                 {
                     // Создание директории для файла настроек
-                    etl::little_fs::create_dir(settings::data_path); 
+                    etl::little_fs::create_dir(settings::data_path);
                 }
 
                 // Сохранение настроек в постоянной памяти
-                etl::settings::data<etl::wifi::server_config_t> data (settings::data_path, settings::data_update_delay, default_cfg);
-                return data.init();
-            }  
+                if(!wifi_cfg)
+                {
+                    wifi_cfg = etl::make_shared<etl::settings::data<etl::wifi::server_config_t>>(settings::data_path, settings::data_update_delay, default_cfg);
+                    bool result = wifi_cfg->init();
+                    Serial.print(F("[wifi::settings] init_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+                    return result;
+                }
+                
+                Serial.print(F("[wifi::settings] init_config() result: ALREADY INITED"));
+                return true;
+            }
 
             /**
              * @brief Установить значения подключения к точками доступа
@@ -61,37 +74,56 @@ namespace etl
              */
             bool save_config(const server_config_t& cfg)
             {
+                Serial.println(F("[wifi::settings] save_config()"));
+                
                 #ifdef EXCLUDE_SETTINGS_DATA
                 temp_wifi_cfg = cfg;
+                Serial.println(F("[wifi::settings] save_config() EXCLUDE_SETTINGS_DATA mode"));
                 return true;
-                #endif//#ifdef EXCLUDE_SETTINGS_DATA 
+                #endif//#ifdef EXCLUDE_SETTINGS_DATA
 
-                etl::settings::data<etl::wifi::server_config_t> data (settings::data_path, settings::data_update_delay, default_wifi_cfg);
-                data.init();
-                data.set(cfg);
-                return data.save();
-            }  
+                if(wifi_cfg)
+                {
+                    wifi_cfg->set(cfg);
+                    bool result = wifi_cfg->save();
+                    Serial.print(F("[wifi::settings] save_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] save_config() error: wifi_cfg not inited"));
+                return false;
+            }
 
             /**
              * @brief Считать текущие значения подключения к точками доступа
              */
             server_config_t load_config()
             {
+                Serial.println(F("[wifi::settings] load_config()"));
+                
             #ifdef EXCLUDE_SETTINGS_DATA
+                Serial.println(F("[wifi::settings] load_config() EXCLUDE_SETTINGS_DATA mode"));
                 return temp_wifi_cfg;
-            #endif//#ifdef EXCLUDE_SETTINGS_DATA 
-                server_config_t cfg = default_wifi_cfg; 
-                etl::settings::data<etl::wifi::server_config_t> data (settings::data_path, settings::data_update_delay, default_wifi_cfg);
-                if(data.init())
+            #endif//#ifdef EXCLUDE_SETTINGS_DATA
+                server_config_t cfg = default_wifi_cfg;
+                if(wifi_cfg)
                 {
-                    cfg = data.get();
-                    
+                    cfg = wifi_cfg->get();
+                    Serial.println(F("[wifi::settings] load_config() loaded from FS"));
+
                     // device info update from actual default
                     cfg.device = default_wifi_cfg.device;
+                    // DEBUG
+                    cfg = default_wifi_cfg; // На карте памяти какой-то мусор буду завтра разбираться
                 }
-                
+                else
+                {
+                    Serial.println(F("[wifi::settings] load_config(): wifi_cfg noi inited, using defaults"));
+                }
+
                 return cfg;
-            } 
+            }
         }
 
         server_setup::server_setup(const server_config_t& cfg)

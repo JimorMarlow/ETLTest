@@ -22,6 +22,8 @@ simulation_t simulation_data;   // Настройки тестирования
 bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
+    // В setup() или до начала работы с WiFi
+    etl::wifi::settings::init_config(web_config);
 
     wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config/*, simulation_data.reset_wifi_on_start*/);
     if(wifi_server && wifi_server->begin()) {
