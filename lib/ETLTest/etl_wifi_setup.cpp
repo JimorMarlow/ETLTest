@@ -87,9 +87,7 @@ namespace etl
                     cfg = data.get();
                     
                     // device info update from actual default
-                    cfg.device_name = default_wifi_cfg.device_name;
-                    cfg.device_description = default_wifi_cfg.device_description;
-                    cfg.device_icon_svg = default_wifi_cfg.device_icon_svg;
+                    cfg.device = default_wifi_cfg.device;
                 }
                 
                 return cfg;
@@ -288,18 +286,23 @@ namespace etl
 
             results.clear();
 
-            // Переключение в режим STA для сканирования
+            // Сохранение текущего режима
             WiFiMode_t current_mode = WiFi.getMode();
-            WiFi.mode(WIFI_STA);
 
-            int32_t count = WiFi.scanNetworks();
-
-            // Возврат предыдущего режима
+            // Для сканирования нужен режим STA, но если мы в AP, переключаемся в AP+STA
             if (current_mode == WIFI_AP) {
-                WiFi.mode(WIFI_AP);
-            } else if (current_mode == WIFI_AP_STA) {
                 WiFi.mode(WIFI_AP_STA);
+                delay(50);  // Ждём переключения режима
+            } else if (current_mode == WIFI_STA) {
+                // Уже в STA, ничего не делаем
             }
+            // Если уже AP_STA или OFF, оставляем как есть
+
+            // Асинхронное сканирование с ожиданием
+            int32_t count = WiFi.scanNetworks(false, true);  // async=false, show_hidden=true
+            
+            // Небольшая задержка для завершения сканирования
+            delay(100);
 
             if (count == 0) {
                 Serial.println(F("[WiFiSetup] No networks found"));
@@ -515,8 +518,8 @@ namespace etl
 
         String server_setup::get_device_icon() const
         {
-            if (m_config.device_icon_svg.length() > 0) {
-                return m_config.device_icon_svg;
+            if (m_config.device.icon_svg.length() > 0) {
+                return m_config.device.icon_svg;
             }
 
             // Иконка умного устройства по умолчанию
@@ -548,8 +551,10 @@ namespace etl
 
             // Сканирование сетей
             m_scan_cache.clear();
-            scan_networks(m_scan_cache);
-            m_scan_timestamp = current_time;
+            int32_t count = scan_networks(m_scan_cache);
+            m_scan_timestamp = millis();
+            
+            Serial.printf("[WiFiSetup] Scan completed: %d networks\n", count);
 
             send_scan_response();
         }
@@ -624,9 +629,9 @@ namespace etl
         void server_setup::handle_api_config()
         {
             JsonDocument doc;
-            doc["device_name"] = m_config.device_name;
-            doc["device_description"] = m_config.device_description;
-            doc["device_icon_svg"] = m_config.device_icon_svg;
+            doc["device_name"] = m_config.device.name;
+            doc["device_description"] = m_config.device.description;
+            doc["device_icon_svg"] = m_config.device.icon_svg;
             doc["hostname"] = m_config.hostname;
             doc["ap_ssid"] = m_config.ap_ssid;
             doc["port"] = m_config.port;
@@ -696,11 +701,17 @@ namespace etl
                 m_config.ap_ssid = ap_ssid;
                 m_config.ap_password = ap_password;
 
+                // Сначала отправляем ответ клиенту
+                send_success_response("AP settings applied", m_config.ap_ssid);
+                
+                // Небольшая задержка для отправки ответа
+                delay(100);
+
                 // Перезапуск точки доступа
                 WiFi.softAPdisconnect(true);
                 start_ap();
-
-                send_success_response("AP settings applied", m_config.ap_ssid);
+                
+                Serial.println(F("[WiFiSetup] AP restarted, client should reconnect"));
             } else {
                 send_error_response("No data provided");
             }

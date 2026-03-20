@@ -37,6 +37,7 @@ namespace etl
          */
         struct server_config_t
         {
+            // Конфигурация сети
             String hostname = "espdevice";              // Имя хоста для mDNS
             String ap_ssid = "ESP_Device_AP";           // SSID точки доступа
             String ap_password = "password123";         // Пароль точки доступа
@@ -45,10 +46,29 @@ namespace etl
             uint16_t port = 80;                         // Порт веб-сервера
             uint32_t update_interval = 500;             // Интервал обновления данных (мс)
 
-            // Конфигурация веб-интерфейса
-            String device_name = "ESP Device v1.0.0";   // Название устройства
-            String device_description = "Smart home device based on ESP8266/ESP32";  // Описание
-            String device_icon_svg = "";                // SVG иконка устройства (опционально)
+            // Информация об устройстве (не сохраняется в постоянной памяти, берется каждый раз из значения по умолчанию, чтобы была актуальной)
+            struct device_info_t {
+                String name = "ESP Device v1.0.0";      // Название устройства
+                String description = "Smart home device based on ESP8266/ESP32";  // Описание
+                String icon_svg = "";                   // SVG иконка устройства (опционально)
+
+                // Очистка информации об устройстве
+                void clear() {
+                    name = "";
+                    description = "";
+                    icon_svg = "";
+                }
+
+                // Оператор присвоения
+                device_info_t& operator=(const device_info_t& other) {
+                    if (this != &other) {
+                        name = other.name;
+                        description = other.description;
+                        icon_svg = other.icon_svg;
+                    }
+                    return *this;
+                }
+            } device;
 
             void trace() const {
                 Serial.println("=== server_config_t settings ===");
@@ -60,9 +80,9 @@ namespace etl
                 Serial.printf("port = %d\n", port);
                 Serial.printf("update_interval = %u\n", update_interval);
                 Serial.printf("--- device info ---\n");
-                Serial.printf("device_name = %s\n", device_name.c_str());
-                Serial.printf("device_description = %s\n", device_description.c_str());
-                Serial.printf("device_icon_svg = %s\n", device_icon_svg.c_str());
+                Serial.printf("name = %s\n", device.name.c_str());
+                Serial.printf("description = %s\n", device.description.c_str());
+                Serial.printf("icon_svg = %s\n", device.icon_svg.c_str());
                 Serial.println("========================");
             }
         };

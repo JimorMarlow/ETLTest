@@ -84,10 +84,11 @@ void loop() {
     // Основной цикл пустой - тесты выполняются один раз в setup()
     // TODO ...
 
-    // Обработка клиентских запросов
+    // Обработка клиентских запросов и WiFi событий
 #ifdef USE_WIFI_UI_SERVER
     if(wifi_server) {
-        wifi_server->handle_client();
+        wifi_server->handle();        // Обновление статуса WiFi
+        wifi_server->handle_client(); // Обработка HTTP запросов
     }
 #endif// USE_WIFI_UI_SERVER
 }
