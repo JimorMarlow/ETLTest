@@ -741,6 +741,17 @@ namespace etl
                 handle_root();
             });
 
+            // Favicon и Apple touch icons (возвращаем 204 No Content)
+            m_server->on("/favicon.ico", HTTP_GET, [this]() {
+                m_server->send(204);
+            });
+            m_server->on("/apple-touch-icon.png", HTTP_GET, [this]() {
+                m_server->send(204);
+            });
+            m_server->on("/apple-touch-icon-precomposed.png", HTTP_GET, [this]() {
+                m_server->send(204);
+            });
+
             // API endpoints
             m_server->on("/api/scan", HTTP_GET, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/scan"));
