@@ -13,9 +13,6 @@
 #include "etl/etl_littlefs.h"
 #include "etl/etl_settings.h"
 
-// :DEBUG: Для отладки падений исключаю запись на карту памяти
-// #define EXCLUDE_SETTINGS_DATA
-
 namespace etl
 {
     namespace wifi
@@ -30,10 +27,6 @@ namespace etl
             server_config_t default_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
             etl::shared_ptr<etl::settings::data<etl::wifi::server_config_t>> wifi_cfg;
 
-            #ifdef EXCLUDE_SETTINGS_DATA
-            server_config_t temp_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
-            #endif//EXCLUDE_SETTINGS_DATA
-
             /**
              * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
              * @param cfg Конфигурация WiFi сервера по умолчанию
@@ -42,12 +35,6 @@ namespace etl
             {
                 Serial.println(F("[wifi::settings] init_config()"));
                 
-                #ifdef EXCLUDE_SETTINGS_DATA
-                temp_wifi_cfg = default_cfg;
-                Serial.println(F("[wifi::settings] init_config() EXCLUDE_SETTINGS_DATA mode"));
-                return true;
-                #endif//#ifdef EXCLUDE_SETTINGS_DATA
-
                 if(etl::little_fs::begin())
                 {
                     // Создание директории для файла настроек
@@ -76,12 +63,6 @@ namespace etl
             {
                 Serial.println(F("[wifi::settings] save_config()"));
                 
-                #ifdef EXCLUDE_SETTINGS_DATA
-                temp_wifi_cfg = cfg;
-                Serial.println(F("[wifi::settings] save_config() EXCLUDE_SETTINGS_DATA mode"));
-                return true;
-                #endif//#ifdef EXCLUDE_SETTINGS_DATA
-
                 if(wifi_cfg)
                 {
                     wifi_cfg->set(cfg);
@@ -102,10 +83,6 @@ namespace etl
             {
                 Serial.println(F("[wifi::settings] load_config()"));
                 
-            #ifdef EXCLUDE_SETTINGS_DATA
-                Serial.println(F("[wifi::settings] load_config() EXCLUDE_SETTINGS_DATA mode"));
-                return temp_wifi_cfg;
-            #endif//#ifdef EXCLUDE_SETTINGS_DATA
                 server_config_t cfg = default_wifi_cfg;
                 if(wifi_cfg)
                 {
