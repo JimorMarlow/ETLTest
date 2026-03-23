@@ -23,9 +23,9 @@ bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
     // В setup() или до начала работы с WiFi
-    etl::wifi::settings::init_config(web_config);
+    etl::wifi::settings::init_config(web_config, simulation_data.reset_wifi_on_start);
 
-    wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config/*, simulation_data.reset_wifi_on_start*/);
+    wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config);
     if(wifi_server && wifi_server->begin()) {
         // Вывод информации о подключении
         const String& ip_addr = wifi_server->get_ip_address();

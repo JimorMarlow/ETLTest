@@ -30,8 +30,9 @@ namespace etl
             /**
              * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
              * @param cfg Конфигурация WiFi сервера по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при страте
              */
-            bool init_config(const etl::wifi::server_config_t& default_cfg)
+            bool init_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default /*= false*/)
             {
                 Serial.println(F("[wifi::settings] init_config()"));
                 
@@ -48,6 +49,26 @@ namespace etl
                     bool result = wifi_cfg->init();
                     Serial.print(F("[wifi::settings] init_config() result: "));
                     Serial.println(result ? F("OK") : F("FAILED"));
+
+                    if(result && reset_to_default)
+                    {
+                        Serial.println(F("[wifi::settings] reseting to deafult ..."));
+                        auto loaded_cfg = wifi_cfg->get();
+                        Serial.println(F("[wifi::settings] loaded from memory:"));
+                        loaded_cfg.trace();
+                        wifi_cfg->tick();
+                        wifi_cfg->set(default_cfg);
+                        wifi_cfg->tick();
+                    //    bool result = wifi_cfg->save();
+                        wifi_cfg->tick();
+                        Serial.print(F("[wifi::settings] reset to deafult: "));
+                        Serial.println(result ? F("OK") : F("FAILED"));
+                        if(result)
+                        {
+                            default_cfg.trace();
+                        }
+                    }
+
                     return result;
                 }
                 
@@ -92,7 +113,7 @@ namespace etl
                     // device info update from actual default
                     cfg.device = default_wifi_cfg.device;
                     // DEBUG
-                    cfg = default_wifi_cfg; // На карте памяти какой-то мусор буду завтра разбираться
+                    //cfg = default_wifi_cfg; // На карте памяти какой-то мусор буду завтра разбираться
                 }
                 else
                 {

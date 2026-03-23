@@ -117,8 +117,9 @@ namespace etl
             /**
              * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
              * @param cfg Конфигурация WiFi сервера по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при страте
              */
-            bool init_config(const etl::wifi::server_config_t& default_cfg);  
+            bool init_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default = false);    
 
             /**
              * @brief Установить значения подключения к точками доступа
