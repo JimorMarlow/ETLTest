@@ -23,19 +23,19 @@ namespace etl
         namespace settings
         {
             const String    data_path = "/settings/wifi.cfg";
-            const uint16_t  data_update_delay = 0;  // 0ms - Immiaditly update
+            const uint16_t  data_update_delay = 0;  // 0ms - Immediately update
             server_config_t default_wifi_cfg;       // Значение по-умолчанию для сброса к заводским значениям
             etl::shared_ptr<etl::settings::data<etl::wifi::server_config_t>> wifi_cfg;
 
             /**
              * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
              * @param cfg Конфигурация WiFi сервера по умолчанию
-             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при страте
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
             bool init_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default /*= false*/)
             {
                 Serial.println(F("[wifi::settings] init_config()"));
-                
+
                 if(etl::little_fs::begin())
                 {
                     // Создание директории для файла настроек
@@ -52,18 +52,18 @@ namespace etl
 
                     if(result && reset_to_default)
                     {
-                        Serial.println(F("[wifi::settings] reseting to deafult ..."));
+                        Serial.println(F("[wifi::settings] resetting to default ..."));
                         auto loaded_cfg = wifi_cfg->get();
                         Serial.println(F("[wifi::settings] loaded from memory:"));
                         loaded_cfg.trace();
-                        wifi_cfg->tick();
+                        
+                        // Выполняем сброс: устанавливаем значения по умолчанию и сохраняем
                         wifi_cfg->set(default_cfg);
-                        wifi_cfg->tick();
-                    //    bool result = wifi_cfg->save();
-                        wifi_cfg->tick();
-                        Serial.print(F("[wifi::settings] reset to deafult: "));
-                        Serial.println(result ? F("OK") : F("FAILED"));
-                        if(result)
+                        bool reset_result = wifi_cfg->save();
+                        
+                        Serial.print(F("[wifi::settings] reset to default: "));
+                        Serial.println(reset_result ? F("OK") : F("FAILED"));
+                        if(reset_result)
                         {
                             default_cfg.trace();
                         }
@@ -71,7 +71,7 @@ namespace etl
 
                     return result;
                 }
-                
+
                 Serial.print(F("[wifi::settings] init_config() result: ALREADY INITED"));
                 return true;
             }
@@ -83,7 +83,7 @@ namespace etl
             bool save_config(const server_config_t& cfg)
             {
                 Serial.println(F("[wifi::settings] save_config()"));
-                
+
                 if(wifi_cfg)
                 {
                     wifi_cfg->set(cfg);
@@ -103,26 +103,124 @@ namespace etl
             server_config_t load_config()
             {
                 Serial.println(F("[wifi::settings] load_config()"));
-                
+
                 server_config_t cfg = default_wifi_cfg;
                 if(wifi_cfg)
                 {
                     cfg = wifi_cfg->get();
                     Serial.println(F("[wifi::settings] load_config() loaded from FS"));
-
-                    // device info update from actual default
-                    cfg.device = default_wifi_cfg.device;
-                    // DEBUG
-                    //cfg = default_wifi_cfg; // На карте памяти какой-то мусор буду завтра разбираться
                 }
                 else
                 {
-                    Serial.println(F("[wifi::settings] load_config(): wifi_cfg noi inited, using defaults"));
+                    Serial.println(F("[wifi::settings] load_config(): wifi_cfg not inited, using defaults"));
                 }
 
                 return cfg;
             }
         }
+
+        // ============================================================================
+        // Реализация server_config_t
+        // ============================================================================
+
+        void server_config_t::clear()
+        {
+            memset(hostname, 0, WIFI_CONFIG_HOSTNAME_SIZE);
+            memset(ap_ssid, 0, WIFI_CONFIG_SSID_SIZE);
+            memset(ap_password, 0, WIFI_CONFIG_PASSWORD_SIZE);
+            memset(wifi_ssid, 0, WIFI_CONFIG_SSID_SIZE);
+            memset(wifi_password, 0, WIFI_CONFIG_PASSWORD_SIZE);
+            
+            // Установка значений по умолчанию
+            strncpy(hostname, "espdevice", WIFI_CONFIG_HOSTNAME_SIZE - 1);
+            hostname[WIFI_CONFIG_HOSTNAME_SIZE - 1] = '\0';
+            strncpy(ap_ssid, "ESP_Device_AP", WIFI_CONFIG_SSID_SIZE - 1);
+            ap_ssid[WIFI_CONFIG_SSID_SIZE - 1] = '\0';
+            strncpy(ap_password, "password123", WIFI_CONFIG_PASSWORD_SIZE - 1);
+            ap_password[WIFI_CONFIG_PASSWORD_SIZE - 1] = '\0';
+            
+            port = 80;
+            update_interval = 500;
+        }
+
+        void server_config_t::trace() const
+        {
+            Serial.println(F("=== server_config_t settings ==="));
+            Serial.printf("hostname        = %s\n", hostname);
+            Serial.printf("ap_ssid         = %s\n", ap_ssid);
+            Serial.printf("ap_password     = %s\n", ap_password);
+            Serial.printf("wifi_ssid       = %s\n", wifi_ssid);
+            Serial.printf("wifi_password   = %s\n", wifi_password);
+            Serial.printf("port            = %u\n", port);
+            Serial.printf("update_interval = %u\n", update_interval);
+            Serial.println(F("========================"));
+        }
+
+        // Setters
+        void server_config_t::set_hostname(const String& value)
+        {
+            memset(hostname, 0, WIFI_CONFIG_HOSTNAME_SIZE);
+            strncpy(hostname, value.c_str(), WIFI_CONFIG_HOSTNAME_SIZE - 1);
+            hostname[WIFI_CONFIG_HOSTNAME_SIZE - 1] = '\0';
+        }
+
+        void server_config_t::set_ap_ssid(const String& value)
+        {
+            memset(ap_ssid, 0, WIFI_CONFIG_SSID_SIZE);
+            strncpy(ap_ssid, value.c_str(), WIFI_CONFIG_SSID_SIZE - 1);
+            ap_ssid[WIFI_CONFIG_SSID_SIZE - 1] = '\0';
+        }
+
+        void server_config_t::set_ap_password(const String& value)
+        {
+            memset(ap_password, 0, WIFI_CONFIG_PASSWORD_SIZE);
+            strncpy(ap_password, value.c_str(), WIFI_CONFIG_PASSWORD_SIZE - 1);
+            ap_password[WIFI_CONFIG_PASSWORD_SIZE - 1] = '\0';
+        }
+
+        void server_config_t::set_wifi_ssid(const String& value)
+        {
+            memset(wifi_ssid, 0, WIFI_CONFIG_SSID_SIZE);
+            strncpy(wifi_ssid, value.c_str(), WIFI_CONFIG_SSID_SIZE - 1);
+            wifi_ssid[WIFI_CONFIG_SSID_SIZE - 1] = '\0';
+        }
+
+        void server_config_t::set_wifi_password(const String& value)
+        {
+            memset(wifi_password, 0, WIFI_CONFIG_PASSWORD_SIZE);
+            strncpy(wifi_password, value.c_str(), WIFI_CONFIG_PASSWORD_SIZE - 1);
+            wifi_password[WIFI_CONFIG_PASSWORD_SIZE - 1] = '\0';
+        }
+
+        // Getters
+        String server_config_t::get_hostname() const
+        {
+            return String(hostname);
+        }
+
+        String server_config_t::get_ap_ssid() const
+        {
+            return String(ap_ssid);
+        }
+
+        String server_config_t::get_ap_password() const
+        {
+            return String(ap_password);
+        }
+
+        String server_config_t::get_wifi_ssid() const
+        {
+            return String(wifi_ssid);
+        }
+
+        String server_config_t::get_wifi_password() const
+        {
+            return String(wifi_password);
+        }
+
+        // ============================================================================
+        // Реализация server_setup
+        // ============================================================================
 
         server_setup::server_setup(const server_config_t& cfg)
             : m_config(cfg)
@@ -134,18 +232,21 @@ namespace etl
             stop();
         }
 
-        bool server_setup::begin()
+        bool server_setup::begin(const device_info_t& device_info)
         {
             Serial.println(F("[WiFiSetup] Initializing..."));
+
+            // Сохранение информации об устройстве
+            m_device_info = device_info;
 
             // Попытка загрузки сохранённых настроек
             if (load_settings()) {
                 Serial.println(F("[WiFiSetup] Loaded saved settings"));
 
                 // Если есть сохранённые настройки, пробуем подключиться
-                if (m_config.wifi_ssid.length() > 0) {
+                if (m_config.get_wifi_ssid().length() > 0) {
                     Serial.print(F("[WiFiSetup] Connecting to saved network: "));
-                    Serial.println(m_config.wifi_ssid);
+                    Serial.println(m_config.get_wifi_ssid());
 
                     if (connect_to_sta(WIFI_CONNECT_TIMEOUT)) {
                         Serial.println(F("[WiFiSetup] Connected to saved network"));
@@ -187,9 +288,9 @@ namespace etl
             Serial.println(m_config.port);
 
             // mDNS
-            if (MDNS.begin(m_config.hostname.c_str())) {
+            if (MDNS.begin(m_config.get_hostname().c_str())) {
                 Serial.print(F("[WiFiSetup] mDNS: http://"));
-                Serial.print(m_config.hostname);
+                Serial.print(m_config.get_hostname());
                 Serial.println(F(".local"));
                 MDNS.addService("http", "tcp", m_config.port);
             } else {
@@ -237,7 +338,7 @@ namespace etl
 
             // Обновление статуса подключения
             update_connection_status();
-            
+
             // Перезапуск HTTP сервера после подключения к STA (если нужно)
             static bool http_server_restarted = false;
             if (is_connected() && !http_server_restarted) {
@@ -246,22 +347,22 @@ namespace etl
                 if (restart_delay_start == 0) {
                     restart_delay_start = millis();
                 }
-                
+
                 if (millis() - restart_delay_start > 500) {
                     Serial.println(F("[WiFiSetup] Restarting HTTP server after STA connection..."));
-                    
+
                     // Перезапуск сервера в режиме AP+STA
                     if (m_server) {
                         m_server->stop();
                         m_server.reset();
                     }
                     start_http_server();
-                    
+
                     http_server_restarted = true;
                     restart_delay_start = 0;
                 }
             }
-            
+
             // Сброс флага при отключении
             if (!is_connected()) {
                 http_server_restarted = false;
@@ -301,13 +402,14 @@ namespace etl
 
         String server_setup::get_mode() const
         {
-            WiFiMode_t mode = WiFi.getMode();
-            switch (mode) {
-                case WIFI_STA: return "STA";
-                case WIFI_AP: return "AP";
-                case WIFI_AP_STA: return "AP+STA";
-                default: return "UNKNOWN";
-            }
+            // Проверяем активные интерфейсы напрямую
+            bool ap_active = (WiFi.softAPgetStationNum() >= 0);  // AP активен
+            bool sta_connected = (WiFi.status() == WL_CONNECTED);  // STA подключен
+            
+            if (ap_active && sta_connected) return "AP+STA";
+            if (sta_connected) return "STA";
+            if (ap_active) return "AP";
+            return "OFF";
         }
 
         int32_t server_setup::scan_networks(std::vector<scan_result_t>& results)
@@ -330,7 +432,7 @@ namespace etl
 
             // Асинхронное сканирование с ожиданием
             int32_t count = WiFi.scanNetworks(false, true);  // async=false, show_hidden=true
-            
+
             // Небольшая задержка для завершения сканирования
             delay(100);
 
@@ -369,11 +471,29 @@ namespace etl
             Serial.print(F("[WiFiSetup] Connecting to network: "));
             Serial.println(ssid);
 
-            // Сохранение настроек
-            m_config.wifi_ssid = ssid;
-            m_config.wifi_password = password;
+            // Сохранение настроек через setter'ы
+            m_config.set_wifi_ssid(ssid);
+            m_config.set_wifi_password(password);
 
             return connect_to_sta(timeout);
+        }
+
+        void server_setup::connect_to_network_async(const String& ssid, const String& password)
+        {
+            Serial.print(F("[WiFiSetup] Starting async connection to: "));
+            Serial.println(ssid);
+
+            // Сохранение настроек через setter'ы
+            m_config.set_wifi_ssid(ssid);
+            m_config.set_wifi_password(password);
+
+            // Установка режима STA для подключения
+            WiFi.mode(WIFI_STA);
+
+            // Начинаем подключение (не ждём завершения)
+            WiFi.begin(m_config.get_wifi_ssid().c_str(), m_config.get_wifi_password().c_str());
+            
+            Serial.println(F("[WiFiSetup] Async connection started"));
         }
 
         void server_setup::disconnect()
@@ -406,7 +526,7 @@ namespace etl
         {
             Serial.println(F("[WiFiSetup] Resetting settings..."));
             // Сброс конфигурации к значениям по умолчанию
-            m_config = settings::default_wifi_cfg;
+            m_config.clear();
 
             Serial.println(F("[WiFiSetup] Settings reset"));
             return settings::save_config(m_config);
@@ -415,6 +535,11 @@ namespace etl
         void server_setup::set_config(const server_config_t& cfg)
         {
             m_config = cfg;
+        }
+
+        void server_setup::set_device_info(const device_info_t& info)
+        {
+            m_device_info = info;
         }
 
         void server_setup::reboot()
@@ -427,13 +552,13 @@ namespace etl
         bool server_setup::start_ap()
         {
             Serial.print(F("[WiFiSetup] Starting AP: "));
-            Serial.println(m_config.ap_ssid);
+            Serial.println(m_config.get_ap_ssid());
 
             // Установка режима AP
             WiFi.mode(WIFI_AP);
 
             // Запуск точки доступа
-            if (!WiFi.softAP(m_config.ap_ssid.c_str(), m_config.ap_password.c_str())) {
+            if (!WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str())) {
                 Serial.println(F("[WiFiSetup] Failed to start AP"));
                 return false;
             }
@@ -447,13 +572,13 @@ namespace etl
 
         bool server_setup::connect_to_sta(uint32_t timeout)
         {
-            if (m_config.wifi_ssid.length() == 0) {
+            if (m_config.get_wifi_ssid().length() == 0) {
                 Serial.println(F("[WiFiSetup] No SSID configured"));
                 return false;
             }
 
             Serial.print(F("[WiFiSetup] Connecting to "));
-            Serial.println(m_config.wifi_ssid);
+            Serial.println(m_config.get_wifi_ssid());
 
             // Сохранение текущего режима
             WiFiMode_t previous_mode = WiFi.getMode();
@@ -462,7 +587,7 @@ namespace etl
             WiFi.mode(WIFI_STA);
 
             // Подключение к сети
-            WiFi.begin(m_config.wifi_ssid.c_str(), m_config.wifi_password.c_str());
+            WiFi.begin(m_config.get_wifi_ssid().c_str(), m_config.get_wifi_password().c_str());
 
             // Ожидание подключения
             uint32_t start_time = millis();
@@ -483,7 +608,7 @@ namespace etl
                 } else {
                     WiFi.mode(previous_mode);
                 }
-                
+
                 m_connection_status = connection_status_t::connected;
                 return true;
             }
@@ -494,7 +619,7 @@ namespace etl
             // Возврат в предыдущий режим
             WiFi.mode(previous_mode);
             if (previous_mode == WIFI_AP || previous_mode == WIFI_AP_STA) {
-                if (!WiFi.softAP(m_config.ap_ssid.c_str(), m_config.ap_password.c_str())) {
+                if (!WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str())) {
                     Serial.println(F("[WiFiSetup] Failed to restart AP"));
                 } else {
                     Serial.println(F("[WiFiSetup] AP restarted"));
@@ -548,8 +673,8 @@ namespace etl
 
         String server_setup::get_device_icon() const
         {
-            if (m_config.device.icon_svg.length() > 0) {
-                return m_config.device.icon_svg;
+            if (m_device_info.icon_svg.length() > 0) {
+                return m_device_info.icon_svg;
             }
 
             // Иконка умного устройства по умолчанию
@@ -559,11 +684,11 @@ namespace etl
         void server_setup::handle_root()
         {
             Serial.println(F("[WiFiSetup] Serving root page..."));
-            
+
             // Отправка HTML напрямую из PROGMEM
             m_server->sendHeader("Cache-Control", "no-cache");
             m_server->send_P(200, "text/html", HTML_TEMPLATE);
-            
+
             Serial.println(F("[WiFiSetup] Page sent"));
         }
 
@@ -583,7 +708,7 @@ namespace etl
             m_scan_cache.clear();
             int32_t count = scan_networks(m_scan_cache);
             m_scan_timestamp = millis();
-            
+
             Serial.printf("[WiFiSetup] Scan completed: %d networks\n", count);
 
             send_scan_response();
@@ -600,6 +725,8 @@ namespace etl
                 net["rssi"] = network.rssi;
                 net["encryption"] = network.encryption;
                 net["channel"] = network.channel;
+                // Помечаем текущую подключенную сеть
+                net["connected"] = (network.ssid == m_config.get_wifi_ssid()) && is_connected();
             }
 
             String response;
@@ -629,14 +756,15 @@ namespace etl
                     return;
                 }
 
-                // Подключение к сети (с увеличенным таймаутом для стабильности)
-                bool success = connect_to_network(ssid, password, 20000);  // 20 секунд
-
-                if (success) {
-                    send_success_response("Connected", get_ip_address());
-                } else {
-                    send_error_response("Connection failed");
-                }
+                // Сохраняем настройки и начинаем подключение (не ждём завершения)
+                m_config.set_wifi_ssid(ssid);
+                m_config.set_wifi_password(password);
+                
+                // Начинаем подключение в фоне (не блокируем ответ)
+                connect_to_network_async(ssid, password);
+                
+                // Отправляем ответ сразу - клиент будет опрашивать статус
+                send_success_response("Connecting...", get_ip_address());
             } else {
                 send_error_response("No data provided");
             }
@@ -646,7 +774,7 @@ namespace etl
         {
             JsonDocument doc;
             doc["connected"] = is_connected();
-            doc["ssid"] = m_config.wifi_ssid;
+            doc["ssid"] = m_config.get_wifi_ssid();
             doc["ip"] = get_ip_address();
             doc["rssi"] = WiFi.RSSI();
             doc["mode"] = get_mode();
@@ -659,11 +787,13 @@ namespace etl
         void server_setup::handle_api_config()
         {
             JsonDocument doc;
-            doc["device_name"] = m_config.device.name;
-            doc["device_description"] = m_config.device.description;
-            doc["device_icon_svg"] = m_config.device.icon_svg;
-            doc["hostname"] = m_config.hostname;
-            doc["ap_ssid"] = m_config.ap_ssid;
+            // Информация об устройстве (из m_device_info)
+            doc["device_name"] = m_device_info.name;
+            doc["device_description"] = m_device_info.description;
+            doc["device_icon_svg"] = m_device_info.icon_svg;
+            // WiFi конфигурация (из m_config)
+            doc["hostname"] = m_config.get_hostname();
+            doc["ap_ssid"] = m_config.get_ap_ssid();
             doc["port"] = m_config.port;
 
             String response;
@@ -727,20 +857,20 @@ namespace etl
                     return;
                 }
 
-                // Применение настроек AP
-                m_config.ap_ssid = ap_ssid;
-                m_config.ap_password = ap_password;
+                // Применение настроек AP через setter'ы
+                m_config.set_ap_ssid(ap_ssid);
+                m_config.set_ap_password(ap_password);
 
                 // Сначала отправляем ответ клиенту
-                send_success_response("AP settings applied", m_config.ap_ssid);
-                
+                send_success_response("AP settings applied", m_config.get_ap_ssid());
+
                 // Небольшая задержка для отправки ответа
                 delay(100);
 
                 // Перезапуск точки доступа
                 WiFi.softAPdisconnect(true);
                 start_ap();
-                
+
                 Serial.println(F("[WiFiSetup] AP restarted, client should reconnect"));
             } else {
                 send_error_response("No data provided");

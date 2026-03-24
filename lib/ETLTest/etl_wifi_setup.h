@@ -26,65 +26,102 @@
 #include <ArduinoJson.h>
 #include <etl/etl_memory.h>
 
+// Размеры буферов для строк в server_config_t
+#define WIFI_CONFIG_HOSTNAME_SIZE     32
+#define WIFI_CONFIG_SSID_SIZE         32
+#define WIFI_CONFIG_PASSWORD_SIZE     64
+
 namespace etl
 {
     namespace wifi
     {
         /**
+         * @brief Информация об устройстве
+         * 
+         * НЕ сохраняется в постоянной памяти, передаётся отдельно при запуске сервера.
+         * Использует String для поддержки произвольных размеров (особенно для SVG иконки).
+         */
+        struct device_info_t
+        {
+            String name = "ESP Device v1.0.0";          // Название устройства
+            String description = "Smart home device based on ESP8266/ESP32";  // Описание
+            String icon_svg = "";                       // SVG иконка устройства (опционально)
+
+            /**
+             * @brief Очистка информации об устройстве
+             */
+            void clear() {
+                name.clear();
+                description.clear();
+                icon_svg.clear();
+            }
+
+            /**
+             * @brief Оператор присвоения
+             * @param other Другой объект device_info_t
+             * @return Ссылка на текущий объект
+             */
+            device_info_t& operator=(const device_info_t& other) {
+                if (this != &other) {
+                    name = other.name;
+                    description = other.description;
+                    icon_svg = other.icon_svg;
+                }
+                return *this;
+            }
+
+            /**
+             * @brief Вывод информации об устройстве в Serial
+             */
+            void trace() const {
+                Serial.println(F("--- device info ---"));
+                Serial.printf("name            = %s\n", name.c_str());
+                Serial.printf("description     = %s\n", description.c_str());
+                Serial.printf("icon_svg        = %s\n", icon_svg.c_str());
+            }
+        };
+
+        /**
          * @brief Конфигурация WiFi сервера
          *
          * Содержит параметры для точки доступа и внешней сети.
+         * Сохраняется в энергонезависимой памяти через FileData.
+         * Использует фиксированные массивы char для корректного бинарного сохранения.
          */
         struct server_config_t
         {
             // Конфигурация сети
-            String hostname = "espdevice";              // Имя хоста для mDNS
-            String ap_ssid = "ESP_Device_AP";           // SSID точки доступа
-            String ap_password = "password123";         // Пароль точки доступа
-            String wifi_ssid = "";                       // SSID внешней сети (пусто = не подключено)
-            String wifi_password = "";                   // Пароль внешней сети
+            char hostname[WIFI_CONFIG_HOSTNAME_SIZE] = "espdevice";
+            char ap_ssid[WIFI_CONFIG_SSID_SIZE] = "ESP_Device_AP";
+            char ap_password[WIFI_CONFIG_PASSWORD_SIZE] = "password123";
+            char wifi_ssid[WIFI_CONFIG_SSID_SIZE] = "";
+            char wifi_password[WIFI_CONFIG_PASSWORD_SIZE] = "";
             uint16_t port = 80;                         // Порт веб-сервера
             uint32_t update_interval = 500;             // Интервал обновления данных (мс)
 
-            // Информация об устройстве (не сохраняется в постоянной памяти, берется каждый раз из значения по умолчанию, чтобы была актуальной)
-            struct device_info_t {
-                String name = "ESP Device v1.0.0";      // Название устройства
-                String description = "Smart home device based on ESP8266/ESP32";  // Описание
-                String icon_svg = "";                   // SVG иконка устройства (опционально)
+            /**
+             * @brief Очистка конфигурации к значениям по умолчанию
+             */
+            void clear();
 
-                // Очистка информации об устройстве
-                void clear() {
-                    name = "";
-                    description = "";
-                    icon_svg = "";
-                }
+            /**
+             * @brief Вывод конфигурации в Serial
+             */
+            void trace() const;
 
-                // Оператор присвоения
-                device_info_t& operator=(const device_info_t& other) {
-                    if (this != &other) {
-                        name = other.name;
-                        description = other.description;
-                        icon_svg = other.icon_svg;
-                    }
-                    return *this;
-                }
-            } device;
+            // Setters
+            void set_hostname(const String& value);
+            void set_ap_ssid(const String& value);
+            void set_ap_password(const String& value);
+            void set_wifi_ssid(const String& value);
+            void set_wifi_password(const String& value);
 
-            void trace() const {
-                Serial.println(F("=== server_config_t settings ==="));
-                Serial.printf("hostname        = %s\n", hostname.c_str());
-                Serial.printf("ap_ssid         = %s\n", ap_ssid.c_str());
-                Serial.printf("ap_password     = %s\n", ap_password.c_str());
-                Serial.printf("wifi_ssid       = %s\n", wifi_ssid.c_str());
-                Serial.printf("wifi_password   = %s\n", wifi_password.c_str());
-                Serial.printf("port            = %u\n", port);
-                Serial.printf("update_interval = %u\n", update_interval);
-                Serial.printf("--- device info ---\n");
-                Serial.printf("name            = %s\n", device.name.c_str());
-                Serial.printf("description     = %s\n", device.description.c_str());
-                Serial.printf("icon_svg        = %s\n", device.icon_svg.c_str());
-                Serial.println(F("========================"));
-            }
+            // Getters
+            String get_hostname() const;
+            String get_ap_ssid() const;
+            String get_ap_password() const;
+            String get_wifi_ssid() const;
+            String get_wifi_password() const;
         };
 
         /**
@@ -96,6 +133,7 @@ namespace etl
             int32_t rssi;                               // Уровень сигнала (dBm)
             String encryption;                          // Тип шифрования (WPA2, WPA, Open)
             uint8_t channel;                            // Канал
+            bool connected = false;                     // Флаг: подключено к этой сети
         };
 
         /**
@@ -116,21 +154,21 @@ namespace etl
         {
             /**
              * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
-             * @param cfg Конфигурация WiFi сервера по умолчанию
-             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при страте
+             * @param default_cfg Конфигурация WiFi сервера по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default = false);    
+            bool init_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default = false);
 
             /**
              * @brief Установить значения подключения к точками доступа
              * @param cfg Конфигурация WiFi сервера
              */
-            bool save_config(const etl::wifi::server_config_t& cfg);  
+            bool save_config(const etl::wifi::server_config_t& cfg);
 
             /**
              * @brief Считать текущие значения подключения к точками доступа
              */
-            etl::wifi::server_config_t load_config();  
+            etl::wifi::server_config_t load_config();
         }
 
         /**
@@ -161,10 +199,11 @@ namespace etl
              *
              * - Запуск в режиме точки доступа
              * - Настройка сети
-             *
+             * 
+             * @param device_info Информация об устройстве (не сохраняется в FS)
              * @return true при успешной инициализации
              */
-            virtual bool begin();
+            virtual bool begin(const device_info_t& device_info);
 
             /**
              * @brief Остановка WiFi сервера
@@ -229,6 +268,13 @@ namespace etl
             virtual bool connect_to_network(const String& ssid, const String& password, uint32_t timeout = 10000);
 
             /**
+             * @brief Начать подключение к WiFi сети (асинхронно, без ожидания)
+             * @param ssid SSID сети
+             * @param password Пароль сети
+             */
+            virtual void connect_to_network_async(const String& ssid, const String& password);
+
+            /**
              * @brief Отключение от WiFi сети
              */
             virtual void disconnect();
@@ -263,6 +309,18 @@ namespace etl
              * @return Конфигурация сервера
              */
             virtual const server_config_t& get_config() const { return m_config; }
+
+            /**
+             * @brief Установить информацию об устройстве
+             * @param info Информация об устройстве
+             */
+            virtual void set_device_info(const device_info_t& info);
+
+            /**
+             * @brief Получить информацию об устройстве
+             * @return Информация об устройстве
+             */
+            virtual const device_info_t& get_device_info() const { return m_device_info; }
 
             /**
              * @brief Перезагрузка устройства
@@ -381,7 +439,8 @@ namespace etl
              */
             virtual void send_error_response(const String& message);
 
-            server_config_t m_config;                   ///< Конфигурация
+            server_config_t m_config;                   ///< Конфигурация WiFi
+            device_info_t m_device_info;                ///< Информация об устройстве
             bool m_initialized = false;                 ///< Флаг инициализации
             connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
         };
@@ -403,20 +462,21 @@ namespace etl
  * // Глобальный экземпляр
  * etl::wifi::server_setup wifi_server;
  * etl::wifi::server_config_t wifi_config;
+ * etl::wifi::device_info_t device_info;
  *
  * void setup() {
  *     Serial.begin(115200);
  *
- *     // Настройка конфигурации
- *     wifi_config.hostname = "moonshine";
- *     wifi_config.ap_ssid = "Moonshine_AP";
- *     wifi_config.ap_password = "moonshine123";
+ *     // Настройка конфигурации WiFi
+ *     wifi_config.set_hostname("moonshine");
+ *     wifi_config.set_ap_ssid("Moonshine_AP");
+ *     wifi_config.set_ap_password("moonshine123");
  *
- *     // Настройка веб-интерфейса
- *     wifi_config.device_name = "Moonshine v1.2.13";
- *     wifi_config.device_description = "Устройство для контроля температуры";
+ *     // Настройка информации об устройстве
+ *     device_info.name = "Moonshine v1.2.13";
+ *     device_info.description = "Устройство для контроля температуры";
  *     // Опционально: кастомная SVG иконка
- *     // wifi_config.device_icon_svg = "<svg>...</svg>";
+ *     // device_info.icon_svg = "<svg>...</svg>";
  *
  *     // Попытка загрузки сохранённых настроек
  *     if (wifi_server.load_settings()) {
@@ -428,7 +488,7 @@ namespace etl
  *     }
  *
  *     // Инициализация WiFi сервера
- *     if (wifi_server.begin()) {
+ *     if (wifi_server.begin(device_info)) {
  *         Serial.println("WiFi setup server started");
  *         Serial.print("IP: ");
  *         Serial.println(wifi_server.get_ip_address());
