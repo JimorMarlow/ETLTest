@@ -354,7 +354,7 @@ namespace etl
         }
         function getSignalStrength(rssi) { if (rssi >= -50) return 'excellent'; if (rssi >= -60) return 'good'; if (rssi >= -70) return 'weak'; return 'very_weak'; }
         function selectNetwork(index) {
-            if (selectedNetwork !== null && networks[selectedNetwork]) networks[selectedNetwork].connected = false;
+            // Не сбрасываем connected у предыдущей сети — сохраняем состояние
             selectedNetwork = index;
             renderNetworks();
         }
@@ -399,49 +399,79 @@ namespace etl
             if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
             const joinBtn = passwordInput.nextElementSibling;
             const originalBtnText = joinBtn.textContent;
+            
+            // Блокировка UI и показ спиннера
             joinBtn.disabled = true;
             joinBtn.innerHTML = '<span class="spinner"></span>';
             joinBtn.classList.add('btn-with-spinner');
+            passwordInput.disabled = true;
             setStatus('connecting');
             hideConnectionError();
+            
             try {
-                const response = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: network.ssid, password }) });
+                // Таймаут 25 секунд на подключение
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
+                
+                const response = await fetch('/api/connect', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ ssid: network.ssid, password }),
+                    signal: controller.signal 
+                });
+                clearTimeout(timeoutId);
+                
                 const data = await response.json();
                 if (data.success) {
+                    // Успешное подключение
                     network.connected = true;
                     isConnected = true;
                     setStatus('connected', `${network.ssid} • ${data.ip}`);
+                    // Перерисовка покажет кнопку Disconnect вместо Join
                     renderNetworks();
                 } else {
+                    // Ошибка подключения от сервера
                     connectionError = true;
                     showConnectionError();
                     setStatus('error', translations[currentLang].error_connection);
+                    // Восстановление UI
                     joinBtn.disabled = false;
                     joinBtn.textContent = originalBtnText;
                     joinBtn.classList.remove('btn-with-spinner');
+                    passwordInput.disabled = false;
+                    passwordInput.focus();
                 }
             } catch (error) {
+                // Таймаут или обрыв соединения (ESP перезапускает HTTP сервер)
                 if (error.name === 'AbortError' || error.message.includes('Failed to fetch')) {
                     console.log('[WiFiSetup] Connection may have succeeded, checking status...');
+                    // Ждем 2 секунды и проверяем статус подключения
                     await new Promise(resolve => setTimeout(resolve, 2000));
                     try {
                         const statusResponse = await fetch('/api/status');
                         const status = await statusResponse.json();
                         if (status.connected) {
+                            // Подключение успешно, несмотря на ошибку fetch
                             network.connected = true;
                             isConnected = true;
                             setStatus('connected', `${network.ssid} • ${status.ip}`);
                             renderNetworks();
                             return;
                         }
-                    } catch (e) { console.error('[WiFiSetup] Status check failed:', e); }
+                    } catch (e) { 
+                        console.error('[WiFiSetup] Status check failed:', e); 
+                    }
                 }
+                // Ошибка подключения
                 connectionError = true;
                 showConnectionError();
                 setStatus('error', translations[currentLang].error_timeout);
+                // Восстановление UI
                 joinBtn.disabled = false;
                 joinBtn.textContent = originalBtnText;
                 joinBtn.classList.remove('btn-with-spinner');
+                passwordInput.disabled = false;
+                passwordInput.focus();
             }
         }
         function togglePassword(input, btn) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; btn.textContent = isPassword ? translations[currentLang].hide_password : translations[currentLang].show_password; }

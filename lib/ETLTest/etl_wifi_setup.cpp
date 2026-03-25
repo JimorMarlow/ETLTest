@@ -756,15 +756,70 @@ namespace etl
                     return;
                 }
 
-                // Сохраняем настройки и начинаем подключение (не ждём завершения)
+                Serial.print(F("[WiFiSetup] Connecting to: "));
+                Serial.println(ssid);
+
+                // Сохраняем настройки
                 m_config.set_wifi_ssid(ssid);
                 m_config.set_wifi_password(password);
+
+                // Сохранение текущего режима для восстановления
+                WiFiMode_t previous_mode = WiFi.getMode();
+
+                // Установка режима STA для подключения
+                WiFi.mode(WIFI_STA);
+
+                // Подключение к сети с ожиданием
+                WiFi.begin(m_config.get_wifi_ssid().c_str(), m_config.get_wifi_password().c_str());
+
+                // Ожидание подключения (до 15 секунд)
+                uint32_t start_time = millis();
+                const uint32_t timeout = 15000;
                 
-                // Начинаем подключение в фоне (не блокируем ответ)
-                connect_to_network_async(ssid, password);
-                
-                // Отправляем ответ сразу - клиент будет опрашивать статус
-                send_success_response("Connecting...", get_ip_address());
+                while (WiFi.status() != WL_CONNECTED && (millis() - start_time) < timeout) {
+                    delay(500);
+                    Serial.print(F("."));
+                }
+
+                // Проверка результата подключения
+                if (WiFi.status() == WL_CONNECTED) {
+                    Serial.println(F("\n[WiFiSetup] Connected successfully"));
+                    Serial.print(F("[WiFiSetup] IP address: "));
+                    Serial.println(WiFi.localIP());
+
+                    // Возврат в предыдущий режим (AP или AP+STA)
+                    if (previous_mode == WIFI_AP) {
+                        WiFi.mode(WIFI_AP_STA);
+                    }
+
+                    m_connection_status = connection_status_t::connected;
+
+                    // Отправка успешного ответа с IP
+                    JsonDocument response_doc;
+                    response_doc["success"] = true;
+                    response_doc["message"] = "Connected successfully";
+                    response_doc["ip"] = WiFi.localIP().toString();
+                    response_doc["ssid"] = ssid;
+                    
+                    String response;
+                    serializeJson(response_doc, response);
+                    m_server->send(200, "application/json", response);
+                } else {
+                    Serial.println(F("\n[WiFiSetup] Connection failed"));
+                    m_connection_status = connection_status_t::error;
+
+                    // Возврат в предыдущий режим
+                    WiFi.mode(previous_mode);
+
+                    // Отправка ответа с ошибкой
+                    JsonDocument response_doc;
+                    response_doc["success"] = false;
+                    response_doc["message"] = "Connection timeout";
+                    
+                    String response;
+                    serializeJson(response_doc, response);
+                    m_server->send(200, "application/json", response);
+                }
             } else {
                 send_error_response("No data provided");
             }

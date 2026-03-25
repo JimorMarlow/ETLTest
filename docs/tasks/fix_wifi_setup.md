@@ -1,110 +1,47 @@
-# Контекст для продолжения (v0.1.12)
-
-**Дата:** 24 марта 2026 г.
-**Статус:** JavaScript откатан к стабильной версии, C++ изменения сохранены.
-
-## Что выполнено в v0.1.12:
-
-### C++ (сохранено):
-- ✅ `device_info_t` выделена в отдельную структуру (не сохраняется в FS)
-- ✅ `server_config_t` использует `char[]` вместо `String` (фиксированные буферы)
-- ✅ Добавлены set/get методы для `server_config_t` с очисткой буфера
-- ✅ `begin(device_info)` принимает информацию об устройстве отдельно
-- ✅ `connect_to_network_async()` — асинхронное подключение без ожидания
-- ✅ `get_mode()` — проверка по активным интерфейсам (AP+STA, STA, AP, OFF)
-- ✅ `send_scan_response()` — добавлен флаг `connected` в JSON
-- ✅ `init_config()` — исправлен сброс настроек
-- ✅ Кнопка Disconnect унифицирована (красная заливка)
-
-### JavaScript (откатано к стабильной версии):
-- ❌ Спиннер на кнопке JOIN — **не реализован**
-- ❌ Сохранение `connected` при переключении между сетями — **не реализовано**
-- ❌ `updateStatusFromServer()` — **удалено**
-
-## Оставшиеся проблемы (требуют решения):
-
-1. **Спиннер на кнопке JOIN** — показывать во время подключения вместо текста
-2. **Страница не обновляется после подключения** — нужно обновлять статус из сервера
-3. **Пропадает `connected` при переключении** — сбрасывается в `selectNetwork()`
-4. **Если в момент подключения к сети нажать `обновить` сервер перестает отвечать** — разбораться
-
-## Следующие шаги:
-Продолжить работу по частям, начиная с проблемы №1 (спиннер на кнопке).
-
----
-
 # Errors
 
 ## Подключается, но с первого раза не дожидается окончания подлючения
 
-после обновления списка в режиме AP, выбрал sd_wifi, ввел пароль, по логам вижу, что идет подключение, 
-однако в интерфейсе уже вижу ошибку "Не удалось подключиться [Retry]". Дожидаюсь завершения подключения, нажимаю Retry, в этот раз подлкючается и отмечает зеленой галочкой подключение. По логам видно, что выполнялось второе подлючение
+Пытаюсь подключиться к сети sd_wifi, в терминале вижу, что идет подключение и подключается, но на кнопке Join нет кольцевого индикатора и сразу же выпадает с ошибкой "Connection failed. Check password [Retry]"
 
-UPD. Все равно не дожидается первого подключения, приходится нажимать Retry
-
-UPD2. Теперь работает корректно - ошибка исправлена.
-Нужно добавить на кнопку JOIN кольцевой индикатор на время, пока идет подключение к точке (вместо текста JOIN пока идет ожидание обновления до получения коннекта или ошибки)
-
-## Не отображается выбранная сеть
-
-После подключения в списке сетей есть галочка, что сеть подключена и снизу кнопка [Отключить], но в верхнем контейнере со статусом пишет 
-```
-Не подключено   [Обновить]
-sd_wifi - undefined
-```
-После "Save & Reboot" - то же самое, выбранная сеть с галочкой в списке. В контейнере статуса над списком - "Не подключено"
-
-PS. Кнопка [Отключить] бывает разная, то красного цвета целиком с белым текстом, то красный текст с белой рамкой. Сделай, чтобы было одинаково - с заливкой красного цвета.
-
-UPD: 
-- Кнопка работает правильно. ОК
-- Выбранная сеть показывается после "Save & Reboot" и в списке и в контейнере статуса. ОК
-
-
-## Подключение к сети, не выводится IP 
-
-Подключилось корректно, вывело полученный IP, но в трейсе "IP Addr:  (IP unset)"
-Подключил телефон к этой же сети sd_wifi, и не могу открыть страницу по адресу: http://espdevice.local
-
-UPD. Не изменилось, вижу, что подключилась к sd-wifi, но IP должен быть из 10.*.*.*, а тут как для локальной сети
-
-[LittleFS] etl::little_fs::begin(): OK
-[wifi::settings] init_config()
-[wifi::settings] init_config() result: OK
-[WiFiSetup] Initializing...
-[wifi::settings] load_config()
-[wifi::settings] load_config() loaded from FS
-[WiFiSetup] Settings loaded
-=== server_config_t settings ===
-hostname        = espdevice
-ap_ssid         = ESP_Device_AP
-ap_password     = password123
-wifi_ssid       = sd_wifi
-wifi_password   = xsw2xsw2xsw2
-port            = 80
-update_interval = 500
-========================
-[WiFiSetup] Loaded saved settings
-[WiFiSetup] Connecting to saved network: sd_wifi
-[WiFiSetup] Connecting to sd_wifi
-........
-[WiFiSetup] Connected
-[WiFiSetup] IP address: 192.168.88.93
-[WiFiSetup] Connected to saved network
-[WiFiSetup] Starting HTTP server...
 [WiFiSetup] Setting up HTTP routes...
 [WiFiSetup] HTTP server started on port 80
 [WiFiSetup] mDNS: http://espdevice.local
 
 === WiFi Server Info ===
 Mode:     AP
-IP Addr:  (IP unset)
+IP Addr:  192.168.4.1
 Hostname: http://192.168.4.1/
 mDNS:     http://espdevice.local
 =========================
 
-## Пропадает признак connected у элемента списка при смене фокуса
+[WiFiSetup] Request: /
+[WiFiSetup] Serving root page...
+[WiFiSetup] Page sent
+[WiFiSetup] Request: /api/config
+[WiFiSetup] Request: /api/scan
+[WiFiSetup] API: /api/scan
+[WiFiSetup] Scanning networks...
+[WiFiSetup] Found 11 networks
+[WiFiSetup] Network 1: 228 (RSSI: -53, Encryption: WPA/WPA2)
+[WiFiSetup] Network 2: TP-LINK_675E (RSSI: -63, Encryption: WPA/WPA2)
+[WiFiSetup] Network 3: room301m (RSSI: -89, Encryption: WPA/WPA2)
+[WiFiSetup] Network 4: WiFi-MTD (RSSI: -92, Encryption: WPA2)
+[WiFiSetup] Network 5: DIRECT-c3-HP M130 LaserJet (RSSI: -86, Encryption: WPA2)
+[WiFiSetup] Network 6:  (RSSI: -85, Encryption: Open)
+[WiFiSetup] Network 7: DIRECT-Rv-Pantum P3010 Series (RSSI: -58, Encryption: WPA2)
+[WiFiSetup] Network 8: TGP2 (RSSI: -90, Encryption: WPA2)
+[WiFiSetup] Network 9: MikroTik-99D048 (RSSI: -91, Encryption: Open)
+[WiFiSetup] Network 10: Keenetic-2238 (RSSI: -93, Encryption: WPA2)
+[WiFiSetup] Network 11: sd_wifi (RSSI: -43, Encryption: WPA2)
+[WiFiSetup] Scan completed: 11 networks
+[WiFiSetup] Request: /api/connect
+[WiFiSetup] API: /api/connect
+[WiFiSetup] Starting async connection to: sd_wifi
+[WiFiSetup] Async connection started
+[WiFiSetup] Restarting HTTP server after STA connection...
+[WiFiSetup] Starting HTTP server...
+[WiFiSetup] Setting up HTTP routes...
+[WiFiSetup] HTTP server started on port 80
+[WiFiSetup] mDNS: http://espdevice.local
 
-- Если подключиться к точке, нажать на нее - показывает кнопка "Отключиться"
-- Если нажать на другую кнопку - появится полее ввода пароля и [Join]
-- Выбираем обратно точку, к которой подключены - тоже появляется поле ввода пароля и [Join], статус подключенности тоже пропадает. В верхнем контейнера со стусом - все ОК.
