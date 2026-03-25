@@ -1,5 +1,104 @@
 # История изменений WiFi Setup
 
+## 25 марта 2026 — Диагностика сети и mDNS
+
+### Проблема
+ESP получает адрес **192.168.88.x** от точки доступа sd_wifi, в то время как локальная сеть пользователя использует **10.x.x.x**. Это означает, что sd_wifi раздаёт адреса из другой подсети.
+
+### Внесённые изменения
+
+#### Файл: `lib/ETLTest/etl_wifi_setup.cpp`
+
+**1. Добавлена подробная информация о сети при подключении (строка ~816)**
+```cpp
+if (WiFi.status() == WL_CONNECTED) {
+    Serial.println(F("\n[WiFiSetup] Connected successfully"));
+    Serial.print(F("[WiFiSetup] IP address: "));
+    Serial.println(WiFi.localIP());
+    Serial.print(F("[WiFiSetup] Subnet Mask: "));
+    Serial.println(WiFi.subnetMask());
+    Serial.print(F("[WiFiSetup] Gateway IP: "));
+    Serial.println(WiFi.gatewayIP());
+    Serial.print(F("[WiFiSetup] DNS IP: "));
+    Serial.println(WiFi.dnsIP());
+    // ...
+}
+```
+
+### Диагностика
+
+**Что проверить:**
+1. Откройте Serial Monitor после подключения к sd_wifi
+2. Посмотрите логи:
+   ```
+   [WiFiSetup] Connected successfully
+   [WiFiSetup] IP address: 192.168.88.93
+   [WiFiSetup] Subnet Mask: 255.255.255.0
+   [WiFiSetup] Gateway IP: 192.168.88.1
+   [WiFiSetup] DNS IP: 192.168.88.1
+   ```
+
+**Вывод:**
+- Если ESP получает адрес 192.168.88.x, значит **sd_wifi раздаёт адреса этой подсети**
+- Если ваш десктоп в сети 10.x.x.x — они в разных подсетях
+- mDNS не работает между разными подсетями
+
+**Решение:**
+1. **Подключите десктоп к той же Wi-Fi сети sd_wifi** — тогда он получит адрес 192.168.88.x и mDNS заработает
+2. **Используйте IP адрес напрямую** — http://192.168.88.93/
+3. **Настройте маршрутизацию** между подсетями на роутере
+
+### Тесты компиляции
+- ✅ nodemcuv3 — SUCCESS (46.5% RAM, 44.5% Flash)
+
+---
+
+## 25 марта 2026 — Добавление отладки спиннера и пояснение mDNS
+
+### Проблемы
+1. **Спиннер на кнопке Join не отображался** — нужна отладка для понимания проблемы
+2. **mDNS не виден в других подсетях** — это ограничение протокола mDNS
+
+### Внесённые изменения
+
+#### Файл: `lib/ETLTest/etl_wifi_setup_html.h`
+
+**1. Добавлены console.log для отладки спиннера (строка ~448)**
+```javascript
+// Блокировка UI и показ спиннера
+joinBtn.disabled = true;
+joinBtn.innerHTML = '<span class="spinner"></span>';
+joinBtn.classList.add('btn-with-spinner');
+// ...
+console.log('[WiFiSetup] Join button set to spinner, disabled=', joinBtn.disabled);
+
+try {
+    console.log('[WiFiSetup] Starting fetch to /api/connect...');
+    const response = await fetch('/api/connect', {...});
+    console.log('[WiFiSetup] Response received:', response.status);
+```
+
+### Пояснения
+
+**Спиннер:**
+- Добавлены логи для отслеживания состояния кнопки
+- Спиннер должен показываться сразу после нажатия Join
+- Проверьте консоль браузера (F12) на наличие сообщений `[WiFiSetup]`
+
+**mDNS:**
+- mDNS работает только в пределах одной подсети (broadcast domain)
+- Если ESP получает адрес 192.168.88.x, а компьютер в сети 192.168.0.x или 10.x.x.x — mDNS не будет виден
+- Это нормальное поведение протокола mDNS/Bonjour
+- Для доступа из других сетей:
+  - Используйте IP адрес напрямую (например, http://192.168.88.93/)
+  - Настройте mDNS forwarding на маршрутизаторе
+  - Подключайте устройства к одной подсети
+
+### Тесты компиляции
+- ✅ nodemcuv3 — SUCCESS (46.5% RAM, 44.4% Flash)
+
+---
+
 ## 25 марта 2026 — Исправление спиннера, mDNS и статуса подключения
 
 ### Проблемы

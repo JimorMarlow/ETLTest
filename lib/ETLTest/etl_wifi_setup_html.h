@@ -443,11 +443,15 @@ namespace etl
             passwordInput.disabled = true;
             setStatus('connecting');
             hideConnectionError();
+            
+            console.log('[WiFiSetup] Join button set to spinner, disabled=', joinBtn.disabled);
 
             try {
                 // Таймаут 25 секунд на подключение
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 25000);
+                
+                console.log('[WiFiSetup] Starting fetch to /api/connect...');
 
                 const response = await fetch('/api/connect', {
                     method: 'POST',
@@ -456,6 +460,8 @@ namespace etl
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
+                
+                console.log('[WiFiSetup] Response received:', response.status);
 
                 const data = await response.json();
                 if (data.success) {

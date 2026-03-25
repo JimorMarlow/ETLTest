@@ -815,6 +815,12 @@ namespace etl
                     Serial.println(F("\n[WiFiSetup] Connected successfully"));
                     Serial.print(F("[WiFiSetup] IP address: "));
                     Serial.println(WiFi.localIP());
+                    Serial.print(F("[WiFiSetup] Subnet Mask: "));
+                    Serial.println(WiFi.subnetMask());
+                    Serial.print(F("[WiFiSetup] Gateway IP: "));
+                    Serial.println(WiFi.gatewayIP());
+                    Serial.print(F("[WiFiSetup] DNS IP: "));
+                    Serial.println(WiFi.dnsIP());
 
                     // Отправка успешного ответа с IP
                     JsonDocument response_doc;
