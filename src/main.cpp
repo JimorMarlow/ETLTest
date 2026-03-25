@@ -16,22 +16,29 @@ etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница дл
 
 struct simulation_t {
     bool reset_wifi_on_start = true;    // Не считывать настройки, а заменить на значения по умолчанию
+    bool custom_device_info = false;    // Установить отладочную информацию об устройстве
+    bool custom_icon_svg = true;       // Установить отладочную иконку для устройства
 };
 simulation_t simulation_data;   // Настройки тестирования
 
 bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
-    etl::wifi::device_info_t device_info;  // device information
-    
     // В setup() или до начала работы с WiFi
     etl::wifi::settings::init_config(web_config, simulation_data.reset_wifi_on_start);
 
     // Настройка информации об устройстве
-    device_info.name = F("ETL Test v" APP_VERSION_STRING);
-    device_info.description = F("ESP8266/ESP32 ETL library test project");
+    etl::wifi::device_info_t device_info;  // device information
+    if(simulation_data.custom_device_info)
+    {
+        device_info.name = F("ETL Test v" APP_VERSION_STRING);
+        device_info.description = F("ESP8266/ESP32 ETL library test project");
+    }
     // Опционально: кастомная SVG иконка
-    // device_info.icon_svg = "<svg>...</svg>";
+    if(simulation_data.custom_icon_svg)
+    {
+        device_info.icon_svg = F("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><style>.led{animation:blink 1.5s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}</style><path d='M8 32c0-8 6-14 14-14s14 6 14 14-6 14-14 14-14-6-14-14zm8 0c0 3 3 6 6 6s6-3 6-6-3-6-6-6-6 3-6 6z' fill='#1d436d'/><path d='M28 32c0-8 6-14 14-14s14 6 14 14-6 14-14 14-14-6-14-14zm8 0c0 3 3 6 6 6s6-3 6-6-3-6-6-6-6 3-6 6z' fill='#1d436d'/><path d='M48 32c0-8 6-14 14-14v28c-8 0-14-6-14-14z' fill='#1d436d'/><circle class='led' cx='22' cy='32' r='3' fill='#a2d6fd'/><circle class='led' cx='42' cy='32' r='3' fill='#a2d6fd'/><circle class='led' cx='62' cy='32' r='3' fill='#a2d6fd'/></svg>");
+    }
 
     wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config);
     if(wifi_server && wifi_server->begin(device_info)) {

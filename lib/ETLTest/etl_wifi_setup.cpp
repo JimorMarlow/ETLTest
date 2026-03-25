@@ -341,14 +341,18 @@ namespace etl
 
             // Перезапуск HTTP сервера после подключения к STA (если нужно)
             static bool http_server_restarted = false;
+            static uint32_t connection_time = 0;
+            
             if (is_connected() && !http_server_restarted) {
-                // Небольшая задержка перед перезапуском сервера
-                static uint32_t restart_delay_start = 0;
-                if (restart_delay_start == 0) {
-                    restart_delay_start = millis();
+                // Запоминаем время подключения для задержки
+                if (connection_time == 0) {
+                    connection_time = millis();
                 }
 
-                if (millis() - restart_delay_start > 500) {
+                // Ждем 5 секунд после подключения перед перезапуском сервера
+                // Это даст время клиенту получить ответ и завершить текущие запросы
+                // Клиент успеет получить ответ и перерисовать UI
+                if (millis() - connection_time > 5000) {
                     Serial.println(F("[WiFiSetup] Restarting HTTP server after STA connection..."));
 
                     // Перезапуск сервера в режиме AP+STA
@@ -359,13 +363,14 @@ namespace etl
                     start_http_server();
 
                     http_server_restarted = true;
-                    restart_delay_start = 0;
+                    connection_time = 0;
                 }
             }
 
             // Сброс флага при отключении
             if (!is_connected()) {
                 http_server_restarted = false;
+                connection_time = 0;
             }
         }
 
@@ -766,8 +771,9 @@ namespace etl
                 // Сохранение текущего режима для восстановления
                 WiFiMode_t previous_mode = WiFi.getMode();
 
-                // Установка режима STA для подключения
-                WiFi.mode(WIFI_STA);
+                // Установка режима AP+STA для подключения
+                // Это позволит точке доступа продолжать работу во время подключения к STA
+                WiFi.mode(WIFI_AP_STA);
 
                 // Подключение к сети с ожиданием
                 WiFi.begin(m_config.get_wifi_ssid().c_str(), m_config.get_wifi_password().c_str());
@@ -775,9 +781,14 @@ namespace etl
                 // Ожидание подключения (до 15 секунд)
                 uint32_t start_time = millis();
                 const uint32_t timeout = 15000;
-                
+
                 while (WiFi.status() != WL_CONNECTED && (millis() - start_time) < timeout) {
                     delay(500);
+                    yield();
+                    // Обработка HTTP запросов во время ожидания
+                    if (m_server) {
+                        m_server->handleClient();
+                    }
                     Serial.print(F("."));
                 }
 
@@ -787,38 +798,51 @@ namespace etl
                     Serial.print(F("[WiFiSetup] IP address: "));
                     Serial.println(WiFi.localIP());
 
-                    // Возврат в предыдущий режим (AP или AP+STA)
-                    if (previous_mode == WIFI_AP) {
-                        WiFi.mode(WIFI_AP_STA);
-                    }
-
-                    m_connection_status = connection_status_t::connected;
-
                     // Отправка успешного ответа с IP
                     JsonDocument response_doc;
                     response_doc["success"] = true;
                     response_doc["message"] = "Connected successfully";
                     response_doc["ip"] = WiFi.localIP().toString();
                     response_doc["ssid"] = ssid;
-                    
+
                     String response;
                     serializeJson(response_doc, response);
                     m_server->send(200, "application/json", response);
+
+                    // Возврат в предыдущий режим (AP или AP+STA)
+                    if (previous_mode == WIFI_AP) {
+                        WiFi.mode(WIFI_AP_STA);
+                    }
+                    // Если был WIFI_OFF или WIFI_STA, оставляем как есть
+
+                    m_connection_status = connection_status_t::connected;
                 } else {
                     Serial.println(F("\n[WiFiSetup] Connection failed"));
                     m_connection_status = connection_status_t::error;
-
-                    // Возврат в предыдущий режим
-                    WiFi.mode(previous_mode);
 
                     // Отправка ответа с ошибкой
                     JsonDocument response_doc;
                     response_doc["success"] = false;
                     response_doc["message"] = "Connection timeout";
-                    
+
                     String response;
                     serializeJson(response_doc, response);
                     m_server->send(200, "application/json", response);
+
+                    // Возврат в предыдущий режим и перезапуск AP
+                    if (previous_mode == WIFI_AP || previous_mode == WIFI_AP_STA) {
+                        WiFi.mode(WIFI_AP);
+                        WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
+                        Serial.println(F("[WiFiSetup] AP restarted after connection failure"));
+                    } else if (previous_mode == WIFI_OFF) {
+                        // Если WiFi был выключен, включаем AP для продолжения настройки
+                        WiFi.mode(WIFI_AP);
+                        WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
+                        Serial.println(F("[WiFiSetup] AP started after connection failure"));
+                    } else {
+                        // previous_mode == WIFI_STA - остаемся в STA
+                        WiFi.mode(previous_mode);
+                    }
                 }
             } else {
                 send_error_response("No data provided");
