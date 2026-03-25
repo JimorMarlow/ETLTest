@@ -1,5 +1,69 @@
 # История изменений WiFi Setup
 
+## 25 марта 2026 — Исправление видимости спиннера на кнопке Join
+
+### Проблема
+Спиннер не отображался на кнопке Join во время подключения, потому что:
+1. `opacity: 0.5` для disabled кнопки делал спиннер почти невидимым
+2. Не было класса для состояния "подключение"
+
+### Внесённые изменения
+
+#### Файл: `lib/ETLTest/etl_wifi_setup_html.h`
+
+**1. Изменены стили кнопки Join (строка ~89)**
+```css
+/* БЫЛО: */
+.inline-join-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* СТАЛО: */
+.inline-join-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.inline-join-btn.connecting { opacity: 1; cursor: wait; }
+```
+
+**2. Добавлен класс `connecting` при показе спиннера (строка ~444)**
+```javascript
+// БЫЛО:
+joinBtn.classList.add('btn-with-spinner');
+
+/* СТАЛО: */
+joinBtn.classList.add('btn-with-spinner', 'connecting');
+```
+
+**3. Удаление класса `connecting` при восстановлении кнопки (строки ~489, ~523)**
+```javascript
+// БЫЛО:
+joinBtn.classList.remove('btn-with-spinner');
+
+/* СТАЛО: */
+joinBtn.classList.remove('btn-with-spinner', 'connecting');
+```
+
+**4. Улучшено логирование (строка ~448)**
+```javascript
+console.log('[WiFiSetup] Join button set to spinner, disabled=', joinBtn.disabled, 'classList=', joinBtn.classList);
+```
+
+### Как это работает
+1. При нажатии Join кнопка получает класс `connecting`
+2. Класс `connecting` устанавливает `opacity: 1`, делая спиннер видимым
+3. Курсор меняется на `wait`
+4. После подключения или ошибки класс удаляется
+
+### Тесты компиляции
+- ✅ nodemcuv3 — SUCCESS (46.5% RAM, 44.5% Flash)
+
+### Проверка
+1. Откройте консоль браузера (F12)
+2. Нажмите кнопку Join
+3. Проверьте сообщение:
+   ```
+   [WiFiSetup] Join button set to spinner, disabled= true classList= btn-with-spinner connecting
+   ```
+4. Спиннер должен быть виден (белый, вращающийся)
+
+---
+
 ## 25 марта 2026 — Диагностика сети и mDNS
 
 ### Проблема

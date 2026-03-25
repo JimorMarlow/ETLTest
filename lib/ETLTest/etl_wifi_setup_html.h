@@ -86,7 +86,8 @@ namespace etl
         body.large-font .inline-show-password-btn { font-size: 15px; }
         .inline-join-btn { height: 40px; padding: 0 20px; border: none; border-radius: 8px; background: #007AFF; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; justify-content: center; }
         .inline-join-btn:hover { background: #0056CC; }
-        .inline-join-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .inline-join-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .inline-join-btn.connecting { opacity: 1; cursor: wait; }
         .inline-disconnect-btn { width: 100%; height: 40px; border: none; border-radius: 8px; background: #FF3B30; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .inline-disconnect-btn:hover { background: #D63026; }
         .inline-disconnect-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -439,12 +440,12 @@ namespace etl
             // Блокировка UI и показ спиннера
             joinBtn.disabled = true;
             joinBtn.innerHTML = '<span class="spinner"></span>';
-            joinBtn.classList.add('btn-with-spinner');
+            joinBtn.classList.add('btn-with-spinner', 'connecting');
             passwordInput.disabled = true;
             setStatus('connecting');
             hideConnectionError();
             
-            console.log('[WiFiSetup] Join button set to spinner, disabled=', joinBtn.disabled);
+            console.log('[WiFiSetup] Join button set to spinner, disabled=', joinBtn.disabled, 'classList=', joinBtn.classList);
 
             try {
                 // Таймаут 25 секунд на подключение
@@ -483,7 +484,7 @@ namespace etl
                     // Восстановление UI
                     joinBtn.disabled = false;
                     joinBtn.textContent = originalBtnText;
-                    joinBtn.classList.remove('btn-with-spinner');
+                    joinBtn.classList.remove('btn-with-spinner', 'connecting');
                     passwordInput.disabled = false;
                     passwordInput.focus();
                 }
@@ -519,7 +520,7 @@ namespace etl
                 // Восстановление UI
                 joinBtn.disabled = false;
                 joinBtn.textContent = originalBtnText;
-                joinBtn.classList.remove('btn-with-spinner');
+                joinBtn.classList.remove('btn-with-spinner', 'connecting');
                 passwordInput.disabled = false;
                 passwordInput.focus();
             }
