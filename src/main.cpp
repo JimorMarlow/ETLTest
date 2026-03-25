@@ -14,12 +14,15 @@
 #include "etl/etl_littlefs.h"
 etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
 
+//////////////////////////////////////////////////////////////
+// Настройки тестирования
 struct simulation_t {
-    bool reset_wifi_on_start = true;    // Не считывать настройки, а заменить на значения по умолчанию
-    bool custom_device_info = false;    // Установить отладочную информацию об устройстве
-    bool custom_icon_svg = true;       // Установить отладочную иконку для устройства
+    bool reset_wifi_on_start = false;   // Не считывать настройки, а заменить на значения по умолчанию
+    bool custom_device_info = true;     // Установить отладочную информацию об устройстве
+    bool custom_icon_svg = false;       // Установить отладочную иконку для устройства
 };
-simulation_t simulation_data;   // Настройки тестирования
+simulation_t simulation_data;   
+//////////////////////////////////////////////////////////////
 
 bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
