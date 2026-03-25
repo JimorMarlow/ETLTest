@@ -287,15 +287,28 @@ namespace etl
             Serial.print(F("[WiFiSetup] HTTP server started on port "));
             Serial.println(m_config.port);
 
-            // mDNS
-            if (MDNS.begin(m_config.get_hostname().c_str())) {
-                Serial.print(F("[WiFiSetup] mDNS: http://"));
+            // mDNS - инициализация только если ещё не инициализирован
+            static bool mdns_initialized = false;
+            
+            if (!mdns_initialized) {
+                if (MDNS.begin(m_config.get_hostname().c_str())) {
+                    Serial.print(F("[WiFiSetup] mDNS: http://"));
+                    Serial.print(m_config.get_hostname());
+                    Serial.println(F(".local"));
+                    mdns_initialized = true;
+                } else {
+                    Serial.println(F("[WiFiSetup] mDNS failed"));
+                }
+            } else {
+                // mDNS уже инициализирован, обновляем сервис
+                Serial.print(F("[WiFiSetup] mDNS already running: http://"));
                 Serial.print(m_config.get_hostname());
                 Serial.println(F(".local"));
-                MDNS.addService("http", "tcp", m_config.port);
-            } else {
-                Serial.println(F("[WiFiSetup] mDNS failed"));
             }
+            
+            // Добавляем сервис http
+            MDNS.addService("http", "tcp", m_config.port);
+            MDNS.update();
         }
 
         void server_setup::stop()
@@ -849,6 +862,34 @@ namespace etl
             }
         }
 
+        void server_setup::handle_api_disconnect()
+        {
+            Serial.println(F("[WiFiSetup] API: /api/disconnect"));
+
+            // Сброс настроек WiFi
+            m_config.set_wifi_ssid("");
+            m_config.set_wifi_password("");
+
+            // Отключение от сети
+            WiFi.disconnect(true);
+            m_connection_status = connection_status_t::disconnected;
+
+            // Возврат в режим AP
+            WiFi.mode(WIFI_AP);
+            WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
+
+            Serial.println(F("[WiFiSetup] Disconnected from WiFi, AP restarted"));
+
+            // Отправка успешного ответа
+            JsonDocument response_doc;
+            response_doc["success"] = true;
+            response_doc["message"] = "Disconnected";
+
+            String response;
+            serializeJson(response_doc, response);
+            m_server->send(200, "application/json", response);
+        }
+
         void server_setup::handle_api_status()
         {
             JsonDocument doc;
@@ -1010,6 +1051,10 @@ namespace etl
             m_server->on("/api/connect", HTTP_POST, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/connect"));
                 handle_api_connect();
+            });
+            m_server->on("/api/disconnect", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/disconnect"));
+                handle_api_disconnect();
             });
             m_server->on("/api/status", HTTP_GET, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/status"));

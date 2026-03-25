@@ -1,5 +1,115 @@
 # История изменений WiFi Setup
 
+## 25 марта 2026 — Исправление mDNS, Disconnect и спиннера
+
+### Проблемы
+1. **Спиннер на кнопке Join не отображался** — текст не менялся на спиннер
+2. **Disconnect не сбрасывал настройки** — после отключения wifi_ssid и wifi_password не очищались
+3. **mDNS не работал после подключения к STA** — http://espdevice.local не открывался
+
+### Внесённые изменения
+
+#### Файл: `lib/ETLTest/etl_wifi_setup_html.h`
+
+**1. Исправление стилей кнопки Join для спиннера (строка ~88)**
+```cpp
+// БЫЛО:
+.inline-join-btn { ... white-space: nowrap; }
+
+// СТАЛО:
+.inline-join-btn { ... white-space: nowrap; display: flex; align-items: center; justify-content: center; }
+```
+
+**2. Исправление стилей спиннера (строка ~121)**
+```cpp
+// БЫЛО:
+.spinner { ... margin-right: 8px; vertical-align: middle; }
+
+// СТАЛО:
+.spinner { ... }  // убраны margin-right и vertical-align для центрирования
+```
+
+**3. Обновление inlineDisconnectNetwork (строка ~373)**
+```javascript
+// БЫЛО: Просто меняли локальное состояние
+network.connected = false;
+isConnected = false;
+
+// СТАЛО: Вызов API для сброса настроек на сервере
+fetch('/api/disconnect', { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Сброс состояния
+        }
+    });
+```
+
+#### Файл: `lib/ETLTest/etl_wifi_setup.h`
+
+**4. Добавлен обработчик handle_api_disconnect (строка ~393)**
+```cpp
+/**
+ * @brief Обработчик API отключения
+ */
+virtual void handle_api_disconnect();
+```
+
+#### Файл: `lib/ETLTest/etl_wifi_setup.cpp`
+
+**5. Реализация handle_api_disconnect (строка ~853)**
+```cpp
+void server_setup::handle_api_disconnect()
+{
+    // Сброс настроек WiFi
+    m_config.set_wifi_ssid("");
+    m_config.set_wifi_password("");
+
+    // Отключение от сети
+    WiFi.disconnect(true);
+    m_connection_status = connection_status_t::disconnected;
+
+    // Возврат в режим AP
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(...);
+
+    // Отправка ответа
+    send_success_response("Disconnected");
+}
+```
+
+**6. Добавлен маршрут /api/disconnect (строка ~1043)**
+```cpp
+m_server->on("/api/disconnect", HTTP_POST, [this]() {
+    handle_api_disconnect();
+});
+```
+
+**7. Исправление mDNS — не перезапускать begin() повторно (строка ~291)**
+```cpp
+// mDNS - инициализация только если ещё не инициализирован
+static bool mdns_initialized = false;
+
+if (!mdns_initialized) {
+    if (MDNS.begin(m_config.get_hostname().c_str())) {
+        mdns_initialized = true;
+    }
+} else {
+    // mDNS уже инициализирован
+}
+
+// Добавляем сервис http и обновляем
+MDNS.addService("http", "tcp", m_config.port);
+MDNS.update();
+```
+
+### Тесты компиляции
+- ✅ nodemcuv3 — SUCCESS (46.5% RAM, 44.2% Flash)
+- ✅ esp32c3 — SUCCESS (4.3% RAM, 18.6% Flash)
+- ✅ esp32-wroom-32u — SUCCESS (6.6% RAM, 20.2% Flash)
+
+---
+
 ## 25 марта 2026 — Исправление проблем с подключением
 
 ### Проблемы

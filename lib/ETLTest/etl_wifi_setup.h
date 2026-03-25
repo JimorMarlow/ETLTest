@@ -391,6 +391,11 @@ namespace etl
             virtual void handle_api_connect();
 
             /**
+             * @brief Обработчик API отключения
+             */
+            virtual void handle_api_disconnect();
+
+            /**
              * @brief Обработчик API статуса
              */
             virtual void handle_api_status();
