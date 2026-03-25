@@ -287,10 +287,13 @@ namespace etl
             Serial.print(F("[WiFiSetup] HTTP server started on port "));
             Serial.println(m_config.port);
 
-            // mDNS - инициализация только если ещё не инициализирован
+            // mDNS - инициализация при каждой загрузке
+            // Статическая переменная сохраняет состояние в течение сессии
             static bool mdns_initialized = false;
             
             if (!mdns_initialized) {
+                // Первый запуск после загрузки
+                Serial.print(F("[WiFiSetup] Initializing mDNS: "));
                 if (MDNS.begin(m_config.get_hostname().c_str())) {
                     Serial.print(F("[WiFiSetup] mDNS: http://"));
                     Serial.print(m_config.get_hostname());
@@ -300,15 +303,17 @@ namespace etl
                     Serial.println(F("[WiFiSetup] mDNS failed"));
                 }
             } else {
-                // mDNS уже инициализирован, обновляем сервис
+                // mDNS уже инициализирован в этой сессии
                 Serial.print(F("[WiFiSetup] mDNS already running: http://"));
                 Serial.print(m_config.get_hostname());
                 Serial.println(F(".local"));
             }
             
-            // Добавляем сервис http
+            // Добавляем сервис http и обновляем mDNS
             MDNS.addService("http", "tcp", m_config.port);
             MDNS.update();
+            
+            Serial.println(F("[WiFiSetup] mDNS service added and updated"));
         }
 
         void server_setup::stop()

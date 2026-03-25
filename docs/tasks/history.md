@@ -1,5 +1,87 @@
 # История изменений WiFi Setup
 
+## 25 марта 2026 — Исправление спиннера, mDNS и статуса подключения
+
+### Проблемы
+1. **Спиннер на кнопке Join не отображался** — перерисовка происходила слишком быстро
+2. **mDNS не работал после перезагрузки в режиме STA** — http://espdevice.local не открывался в локальной сети
+3. **Статус контейнер не обновлялся после перезагрузки** — показывал "Disconnected" вместо "Connected"
+
+### Внесённые изменения
+
+#### Файл: `lib/ETLTest/etl_wifi_setup_html.h`
+
+**1. Добавлена задержка перед перерисовкой после подключения (строка ~448)**
+```javascript
+// БЫЛО: Сразу вызывали renderNetworks()
+renderNetworks();
+
+// СТАЛО: Задержка 500мс, чтобы пользователь увидел спиннер
+await new Promise(resolve => setTimeout(resolve, 500));
+renderNetworks();
+```
+
+**2. Добавлена функция checkConnectionStatus() (строка ~258)**
+```javascript
+async function checkConnectionStatus() {
+    try {
+        const response = await fetch('/api/status');
+        const status = await response.json();
+        if (status.connected) {
+            isConnected = true;
+            setStatus('connected', `${status.ssid} • ${status.ip}`);
+            // Найти сеть в списке и отметить как подключенную
+            const networkIndex = networks.findIndex(n => n.ssid === status.ssid);
+            if (networkIndex >= 0) {
+                networks[networkIndex].connected = true;
+                selectedNetwork = networkIndex;
+            }
+        }
+    } catch (error) {
+        console.log('[WiFiSetup] Status check failed (may be in AP mode):', error.message);
+    }
+}
+```
+
+**3. Вызов checkConnectionStatus() в init() (строка ~255)**
+```javascript
+async function init() {
+    // ...
+    // Проверка статуса подключения при загрузке страницы
+    await checkConnectionStatus();
+    // ...
+}
+```
+
+#### Файл: `lib/ETLTest/etl_wifi_setup.cpp`
+
+**4. Улучшено логирование mDNS (строка ~295)**
+```cpp
+// Добавлено подробное логирование инициализации mDNS
+if (!mdns_initialized) {
+    Serial.print(F("[WiFiSetup] Initializing mDNS: "));
+    if (MDNS.begin(m_config.get_hostname().c_str())) {
+        // ...
+        mdns_initialized = true;
+    }
+} else {
+    Serial.print(F("[WiFiSetup] mDNS already running: http://"));
+    // ...
+}
+
+// Добавлен явный вызов MDNS.update() с логом
+MDNS.addService("http", "tcp", m_config.port);
+MDNS.update();
+Serial.println(F("[WiFiSetup] mDNS service added and updated"));
+```
+
+### Тесты компиляции
+- ✅ nodemcuv3 — SUCCESS (46.5% RAM, 44.4% Flash)
+- ✅ esp32c3 — SUCCESS (4.3% RAM, 18.6% Flash)
+- ✅ esp32-wroom-32u — SUCCESS (6.6% RAM, 20.2% Flash)
+
+---
+
 ## 25 марта 2026 — Исправление mDNS, Disconnect и спиннера
 
 ### Проблемы

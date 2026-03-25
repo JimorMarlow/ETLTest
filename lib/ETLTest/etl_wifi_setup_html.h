@@ -250,7 +250,29 @@ namespace etl
             applyLargeFont();
             applyDeviceConfig();
             try { await loadDeviceConfig(); applyDeviceConfig(); } catch (error) { console.error('[WiFiSetup] Failed to load device config:', error); }
+            
+            // Проверка статуса подключения при загрузке страницы
+            await checkConnectionStatus();
+            
             setTimeout(() => { scanNetworks(); }, INITIAL_SCAN_DELAY);
+        }
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                if (status.connected) {
+                    isConnected = true;
+                    setStatus('connected', `${status.ssid} • ${status.ip}`);
+                    // Найти сеть в списке и отметить как подключенную
+                    const networkIndex = networks.findIndex(n => n.ssid === status.ssid);
+                    if (networkIndex >= 0) {
+                        networks[networkIndex].connected = true;
+                        selectedNetwork = networkIndex;
+                    }
+                }
+            } catch (error) {
+                console.log('[WiFiSetup] Status check failed (may be in AP mode):', error.message);
+            }
         }
         async function loadDeviceConfig() {
             try {
@@ -413,7 +435,7 @@ namespace etl
             if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
             const joinBtn = passwordInput.nextElementSibling;
             const originalBtnText = joinBtn.textContent;
-            
+
             // Блокировка UI и показ спиннера
             joinBtn.disabled = true;
             joinBtn.innerHTML = '<span class="spinner"></span>';
@@ -421,26 +443,30 @@ namespace etl
             passwordInput.disabled = true;
             setStatus('connecting');
             hideConnectionError();
-            
+
             try {
                 // Таймаут 25 секунд на подключение
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 25000);
-                
-                const response = await fetch('/api/connect', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
+
+                const response = await fetch('/api/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ssid: network.ssid, password }),
-                    signal: controller.signal 
+                    signal: controller.signal
                 });
                 clearTimeout(timeoutId);
-                
+
                 const data = await response.json();
                 if (data.success) {
                     // Успешное подключение
                     network.connected = true;
                     isConnected = true;
                     setStatus('connected', `${network.ssid} • ${data.ip}`);
+                    
+                    // Небольшая задержка, чтобы пользователь увидел спиннер
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
                     // Перерисовка покажет кнопку Disconnect вместо Join
                     renderNetworks();
                 } else {
@@ -469,11 +495,15 @@ namespace etl
                             network.connected = true;
                             isConnected = true;
                             setStatus('connected', `${network.ssid} • ${status.ip}`);
+                            
+                            // Небольшая задержка, чтобы пользователь увидел спиннер
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            
                             renderNetworks();
                             return;
                         }
-                    } catch (e) { 
-                        console.error('[WiFiSetup] Status check failed:', e); 
+                    } catch (e) {
+                        console.error('[WiFiSetup] Status check failed:', e);
                     }
                 }
                 // Ошибка подключения
