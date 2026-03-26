@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kitchen Light</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #FFFFFF; min-height: 100vh; color: #1C1C1E; padding: 16px; }
+        .container { max-width: 480px; margin: 0 auto; }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #C6C6C8; margin-bottom: 20px; }
+        .header-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .header-title { font-size: 17px; font-weight: 600; color: #1C1C1E; }
+        .wifi-indicator { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: #F2F2F7; font-size: 13px; font-weight: 500; }
+        .wifi-indicator.connected { background: #E8F5E9; color: #2E7D32; }
+        .wifi-indicator.ap-mode { background: #FFF3E0; color: #EF6C00; }
+        .wifi-indicator.disconnected { background: #F2F2F7; color: #8E8E93; }
+        .wifi-icon { font-size: 16px; }
+        .accessibility-controls { display: flex; gap: 8px; align-items: center; }
+        .wifi-setup-icon-btn { padding: 6px 12px; border: 1px solid #007AFF; border-radius: 6px; background: #FFFFFF; color: #007AFF; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; }
+        .wifi-setup-icon-btn:hover { background: #007AFF; color: #FFFFFF; }
+        .wifi-setup-icon-btn .icon { font-size: 16px; }
+        .lang-switch { display: flex; gap: 8px; }
+        .lang-btn, .font-btn { padding: 6px 12px; border: 1px solid #C6C6C8; border-radius: 6px; background: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; }
+        .font-btn { font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; }
+        .lang-btn.active, .font-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
+        .lang-btn:hover, .font-btn:hover { border-color: #007AFF; }
+        
+        /* Device Info */
+        .device-info-container { background: #F2F2F7; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+        .device-icon { width: 80px; height: 80px; flex-shrink: 0; }
+        .device-icon svg { width: 100%; height: 100%; }
+        .device-info-content { flex: 1; min-width: 0; padding-left: 8px; }
+        .device-name { font-size: 20px; font-weight: 700; color: #1C1C1E; margin-bottom: 4px; }
+        .device-description { font-size: 15px; font-weight: 400; color: #8E8E93; line-height: 1.4; }
+        body.large-font .device-name { font-size: 24px; }
+        body.large-font .device-description { font-size: 18px; }
+        
+        /* Status Section */
+        .status-section { background: #F2F2F7; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .status-indicator.offline { background: #8E8E93; }
+        .status-indicator.online { background: #34C759; }
+        .status-text { flex: 1; font-size: 15px; color: #1C1C1E; }
+        .status-details { font-size: 13px; color: #8E8E93; margin-top: 4px; }
+        body.large-font .status-text { font-size: 18px; }
+        body.large-font .status-details { font-size: 15px; }
+        
+        /* Light Control */
+        .light-control-section { background: #F2F2F7; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .light-control-title { font-size: 17px; font-weight: 600; color: #1C1C1E; margin-bottom: 16px; }
+        body.large-font .light-control-title { font-size: 20px; }
+        
+        /* Power Toggle */
+        .power-toggle-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #C6C6C8; }
+        .power-toggle-label { font-size: 17px; font-weight: 500; color: #1C1C1E; }
+        body.large-font .power-toggle-label { font-size: 18px; }
+        .power-toggle { position: relative; width: 51px; height: 31px; }
+        .power-toggle input { opacity: 0; width: 0; height: 0; }
+        .power-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #E5E5EA; transition: .3s; border-radius: 31px; }
+        .power-slider:before { position: absolute; content: ""; height: 27px; width: 27px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input:checked + .power-slider { background-color: #34C759; }
+        input:checked + .power-slider:before { transform: translateX(20px); }
+        
+        /* Brightness Slider */
+        .brightness-container { margin-bottom: 20px; }
+        .brightness-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .brightness-text { font-size: 15px; font-weight: 500; color: #1C1C1E; }
+        body.large-font .brightness-text { font-size: 18px; }
+        .brightness-value { font-size: 15px; font-weight: 600; color: #007AFF; }
+        body.large-font .brightness-value { font-size: 18px; }
+        .brightness-slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: #E5E5EA; outline: none; }
+        .brightness-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 0.5px solid #C6C6C8; }
+        .brightness-slider::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 0.5px solid #C6C6C8; }
+        .brightness-icons { display: flex; justify-content: space-between; margin-top: 8px; }
+        .brightness-icon { font-size: 20px; color: #8E8E93; }
+        
+        /* Light Preview */
+        .light-preview { background: #FFFFFF; border-radius: 8px; padding: 20px; text-align: center; margin-top: 16px; }
+        .light-preview-icon { font-size: 48px; margin-bottom: 8px; opacity: 0.3; transition: opacity 0.3s, color 0.3s; }
+        .light-preview-icon.on { opacity: 1; }
+        .light-preview-text { font-size: 13px; color: #8E8E93; }
+
+        /* Spinner */
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #FFFFFF; border-radius: 14px; padding: 20px; max-width: 320px; width: 90%; }
+        body.large-font .modal { padding: 24px; }
+        .modal-title { font-size: 17px; font-weight: 600; color: #1C1C1E; margin-bottom: 12px; }
+        body.large-font .modal-title { font-size: 20px; }
+        .modal-message { font-size: 15px; color: #1C1C1E; margin-bottom: 20px; line-height: 1.4; }
+        body.large-font .modal-message { font-size: 18px; }
+        .modal-buttons { display: flex; gap: 12px; }
+        .modal-btn { flex: 1; height: 40px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+        body.large-font .modal-btn { height: 48px; font-size: 17px; }
+        .modal-btn-cancel { background: #F2F2F7; color: #1C1C1E; }
+        .modal-btn-confirm { background: #007AFF; color: #FFFFFF; }
+        
+        .hidden { display: none !important; }
+        
+        /* Responsive */
+        @media (max-width: 480px) { body { padding: 12px; } .device-info-container { padding: 12px; } .device-icon { width: 60px; height: 60px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="header-title" data-i18n="title">Kitchen Light</div>
+                <div class="wifi-indicator disconnected" id="wifiIndicator">
+                    <span class="wifi-icon">📶</span>
+                    <span id="wifiStatus">No WiFi</span>
+                </div>
+            </div>
+            <div class="accessibility-controls">
+                <button class="wifi-setup-icon-btn" id="wifiSetupIconBtn" title="WiFi Setup">
+                    <span class="icon">⚙</span>
+                    <span data-i18n="wifi_setup_short">WiFi</span>
+                </button>
+                <button class="font-btn" id="fontToggleBtn" title="Toggle font size">A<span style="font-size: 0.7em; vertical-align: middle;">A</span></button>
+                <div class="lang-switch">
+                    <button class="lang-btn active" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="ru">RU</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Device Info -->
+        <div class="device-info-container" id="deviceInfoContainer">
+            <div class="device-icon" id="deviceIcon">
+                <!-- SVG иконка будет загружена из устройства -->
+            </div>
+            <div class="device-info-content">
+                <div class="device-name" id="deviceName">Kitchen Light</div>
+                <div class="device-description" id="deviceDescription">LED under-cabinet lighting</div>
+            </div>
+        </div>
+        
+        <!-- Status -->
+        <div class="status-section">
+            <div class="status-indicator offline" id="statusIndicator"></div>
+            <div class="status-text">
+                <div id="statusText" data-i18n="status_offline">Offline</div>
+                <div class="status-details" id="statusDetails"></div>
+            </div>
+        </div>
+        
+        <!-- Light Control -->
+        <div class="light-control-section">
+            <div class="light-control-title" data-i18n="light_control">Light Control</div>
+            
+            <!-- Power Toggle -->
+            <div class="power-toggle-container">
+                <div class="power-toggle-label" data-i18n="power">Power</div>
+                <label class="power-toggle">
+                    <input type="checkbox" id="powerToggle">
+                    <span class="power-slider"></span>
+                </label>
+            </div>
+            
+            <!-- Brightness Slider -->
+            <div class="brightness-container">
+                <div class="brightness-label">
+                    <span class="brightness-text" data-i18n="brightness">Brightness</span>
+                    <span class="brightness-value" id="brightnessValue">50%</span>
+                </div>
+                <input type="range" min="0" max="100" value="50" class="brightness-slider" id="brightnessSlider">
+                <div class="brightness-icons">
+                    <span class="brightness-icon">☀</span>
+                    <span class="brightness-icon">☀</span>
+                    <span class="brightness-icon">☀</span>
+                </div>
+            </div>
+            
+            <!-- Light Preview -->
+            <div class="light-preview">
+                <div class="light-preview-icon" id="lightPreviewIcon">💡</div>
+                <div class="light-preview-text" data-i18n="light_preview">Light Preview</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-title" id="modalTitle">Confirm</div>
+            <div class="modal-message" id="modalMessage">Are you sure?</div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="modalCancelBtn" data-i18n="cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn" data-i18n="confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Translations
+        const translations = {
+            en: {
+                title: 'Kitchen Light',
+                status_offline: 'Offline',
+                status_online: 'Online',
+                status_connecting: 'Connecting...',
+                light_control: 'Light Control',
+                power: 'Power',
+                brightness: 'Brightness',
+                light_preview: 'Light Preview',
+                wifi_setup_btn: 'WiFi Setup...',
+                wifi_setup_short: 'WiFi',
+                cancel: 'Cancel',
+                confirm: 'Confirm',
+                wifi_setup_title: 'WiFi Setup Mode',
+                wifi_setup_message: 'Device will switch to WiFi Setup mode. You will need to reconnect to the new network. Continue?',
+                saving: 'Saving...',
+                saved: 'Settings saved!',
+                wifi_connected: 'Connected',
+                wifi_ap_mode: 'AP Mode',
+                wifi_no_wifi: 'No WiFi'
+            },
+            ru: {
+                title: 'Кухонный Свет',
+                status_offline: 'Офлайн',
+                status_online: 'Онлайн',
+                status_connecting: 'Подключение...',
+                light_control: 'Управление Светом',
+                power: 'Питание',
+                brightness: 'Яркость',
+                light_preview: 'Предпросмотр',
+                wifi_setup_btn: 'Настройка WiFi...',
+                wifi_setup_short: 'WiFi',
+                cancel: 'Отмена',
+                confirm: 'Подтвердить',
+                wifi_setup_title: 'Режим настройки WiFi',
+                wifi_setup_message: 'Устройство переключится в режим настройки WiFi. Потребуется переподключиться к новой сети. Продолжить?',
+                saving: 'Сохранение...',
+                saved: 'Настройки сохранены!',
+                wifi_connected: 'Подключено',
+                wifi_ap_mode: 'Режим AP',
+                wifi_no_wifi: 'Нет WiFi'
+            }
+        };
+        
+        // State
+        let currentLang = localStorage.getItem('kitchenLightLang') || 'en';
+        let largeFont = localStorage.getItem('kitchenLightLargeFont') === 'true';
+        let deviceState = { power: false, brightness: 50, connected: false, wifiMode: 'disconnected', ssid: '' };
+        
+        // DOM Elements
+        const powerToggle = document.getElementById('powerToggle');
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        const brightnessValue = document.getElementById('brightnessValue');
+        const lightPreviewIcon = document.getElementById('lightPreviewIcon');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const deviceName = document.getElementById('deviceName');
+        const deviceDescription = document.getElementById('deviceDescription');
+        const deviceIcon = document.getElementById('deviceIcon');
+        const wifiSetupIconBtn = document.getElementById('wifiSetupIconBtn');
+        const wifiIndicator = document.getElementById('wifiIndicator');
+        const wifiStatus = document.getElementById('wifiStatus');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const fontToggleBtn = document.getElementById('fontToggleBtn');
+        
+        // Device Icon (Kitchen Light SVG)
+        const KITCHEN_LIGHT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect x="100" y="100" width="312" height="80" rx="8" fill="#FFD700" opacity="0.8"/><rect x="120" y="120" width="272" height="40" rx="4" fill="#FFF8DC"/><circle cx="180" cy="140" r="12" fill="#FFA500" opacity="0.6"/><circle cx="256" cy="140" r="12" fill="#FFA500" opacity="0.6"/><circle cx="332" cy="140" r="12" fill="#FFA500" opacity="0.6"/><rect x="140" y="200" width="232" height="20" rx="4" fill="#C0C0C0"/><path d="M 100 220 L 412 220 L 412 240 L 100 240 Z" fill="#A0A0A0"/><rect x="150" y="260" width="212" height="100" rx="8" fill="#F5F5DC" opacity="0.5"/><rect x="170" y="280" width="172" height="60" rx="4" fill="#FFE4B5" opacity="0.7"/></svg>`;
+        
+        // Initialize
+        function init() {
+            applyLanguage(currentLang);
+            applyLargeFont();
+            loadDeviceConfig();
+            updateUI();
+            setupEventListeners();
+            startStatusPolling();
+        }
+        
+        // Language
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('kitchenLightLang', lang);
+            applyLanguage(lang);
+        }
+        
+        function applyLanguage(lang) {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) el.textContent = translations[lang][key];
+            });
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+        }
+        
+        // Font Size
+        function toggleLargeFont() {
+            largeFont = !largeFont;
+            localStorage.setItem('kitchenLightLargeFont', largeFont);
+            applyLargeFont();
+        }
+        
+        function applyLargeFont() {
+            if (largeFont) {
+                document.body.classList.add('large-font');
+                fontToggleBtn.classList.add('active');
+            } else {
+                document.body.classList.remove('large-font');
+                fontToggleBtn.classList.remove('active');
+            }
+        }
+        
+        // Device Config
+        async function loadDeviceConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                if (config.device_name) deviceName.textContent = config.device_name;
+                if (config.device_description) deviceDescription.textContent = config.device_description;
+                if (config.device_icon_svg && config.device_icon_svg.trim()) {
+                    deviceIcon.innerHTML = config.device_icon_svg;
+                } else {
+                    deviceIcon.innerHTML = KITCHEN_LIGHT_ICON;
+                }
+            } catch (error) {
+                console.log('Failed to load device config:', error);
+                deviceIcon.innerHTML = KITCHEN_LIGHT_ICON;
+            }
+        }
+        
+        // Status Polling
+        async function startStatusPolling() {
+            setInterval(async () => {
+                try {
+                    const response = await fetch('/api/status');
+                    const status = await response.json();
+                    deviceState.connected = status.connected !== undefined ? status.connected : true;
+                    deviceState.power = status.power !== undefined ? status.power : deviceState.power;
+                    deviceState.brightness = status.brightness !== undefined ? status.brightness : deviceState.brightness;
+                    deviceState.wifiMode = status.wifi_mode || 'disconnected';
+                    deviceState.ssid = status.ssid || '';
+                    updateUI();
+                } catch (error) {
+                    deviceState.connected = false;
+                    deviceState.wifiMode = 'disconnected';
+                    updateUI();
+                }
+            }, 3000);
+        }
+        
+        // Update UI
+        function updateUI() {
+            // Status
+            statusIndicator.className = 'status-indicator ' + (deviceState.connected ? 'online' : 'offline');
+            statusText.textContent = translations[currentLang][deviceState.connected ? 'status_online' : 'status_offline'];
+            
+            // Power
+            powerToggle.checked = deviceState.power;
+            
+            // Brightness
+            brightnessSlider.value = deviceState.brightness;
+            brightnessValue.textContent = deviceState.brightness + '%';
+            
+            // Light Preview
+            lightPreviewIcon.className = 'light-preview-icon' + (deviceState.power ? ' on' : '');
+            const opacity = deviceState.power ? 0.3 + (deviceState.brightness / 100) * 0.7 : 0.3;
+            lightPreviewIcon.style.opacity = opacity;
+            
+            // WiFi Indicator
+            updateWifiIndicator();
+        }
+        
+        function updateWifiIndicator() {
+            wifiIndicator.className = 'wifi-indicator ' + deviceState.wifiMode;
+            if (deviceState.wifiMode === 'connected') {
+                wifiStatus.textContent = deviceState.ssid || translations[currentLang].wifi_connected;
+            } else if (deviceState.wifiMode === 'ap-mode') {
+                wifiStatus.textContent = translations[currentLang].wifi_ap_mode;
+            } else {
+                wifiStatus.textContent = translations[currentLang].wifi_no_wifi;
+            }
+        }
+        
+        // API Calls
+        async function setPower(power) {
+            try {
+                const response = await fetch('/api/light', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ power: power, brightness: deviceState.brightness })
+                });
+                const result = await response.json();
+                deviceState.power = power;
+                updateUI();
+            } catch (error) {
+                console.error('Failed to set power:', error);
+            }
+        }
+        
+        async function setBrightness(brightness) {
+            try {
+                const response = await fetch('/api/light', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ power: deviceState.power, brightness: brightness })
+                });
+                const result = await response.json();
+                deviceState.brightness = brightness;
+                updateUI();
+            } catch (error) {
+                console.error('Failed to set brightness:', error);
+            }
+        }
+        
+        // Event Listeners
+        function setupEventListeners() {
+            // Language buttons
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => setLanguage(btn.getAttribute('data-lang')));
+            });
+            
+            // Font toggle
+            fontToggleBtn.addEventListener('click', toggleLargeFont);
+            
+            // WiFi Setup button (icon in header)
+            wifiSetupIconBtn.addEventListener('click', showWifiSetupModal);
+            
+            // Power toggle
+            powerToggle.addEventListener('change', (e) => setPower(e.target.checked));
+            
+            // Brightness slider
+            brightnessSlider.addEventListener('input', (e) => {
+                brightnessValue.textContent = e.target.value + '%';
+            });
+            brightnessSlider.addEventListener('change', (e) => setBrightness(parseInt(e.target.value)));
+            
+            // Modal buttons
+            modalCancelBtn.addEventListener('click', hideModal);
+            modalConfirmBtn.addEventListener('click', confirmWifiSetup);
+        }
+        
+        // Modal
+        function showWifiSetupModal() {
+            modalTitle.textContent = translations[currentLang].wifi_setup_title;
+            modalMessage.textContent = translations[currentLang].wifi_setup_message;
+            modalOverlay.classList.add('active');
+        }
+        
+        function hideModal() {
+            modalOverlay.classList.remove('active');
+        }
+        
+        async function confirmWifiSetup() {
+            hideModal();
+            try {
+                await fetch('/api/wifi_setup', { method: 'POST' });
+                // Device will restart, show waiting message
+                setTimeout(() => {
+                    alert(translations[currentLang].saved + ' ' + translations[currentLang].wifi_setup_title);
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to switch to WiFi setup:', error);
+            }
+        }
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>
