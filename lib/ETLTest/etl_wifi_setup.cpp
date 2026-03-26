@@ -914,10 +914,6 @@ namespace etl
             m_config.set_wifi_ssid("");
             m_config.set_wifi_password("");
 
-            // Отключение от сети
-            WiFi.disconnect(true);
-            m_connection_status = connection_status_t::disconnected;
-
             // Сначала отправляем успешный ответ клиенту
             JsonDocument response_doc;
             response_doc["success"] = true;
@@ -927,8 +923,13 @@ namespace etl
             serializeJson(response_doc, response);
             m_server->send(200, "application/json", response);
 
-            // Небольшая задержка для отправки ответа
-            delay(100);
+            // Задержка для отправки ответа клиенту
+            delay(500);
+            yield();
+
+            // Отключение от сети
+            WiFi.disconnect(true);
+            m_connection_status = connection_status_t::disconnected;
 
             // Возврат в режим AP после отправки ответа
             WiFi.mode(WIFI_AP);
