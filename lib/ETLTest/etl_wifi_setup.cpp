@@ -434,12 +434,9 @@ namespace etl
         String server_setup::get_mode() const
         {
             // Проверяем активные интерфейсы напрямую
-#ifdef ESP8266
-            bool ap_active = (WiFi.softAPgetStationNum() >= 0);  // AP активен
-#elif defined(ESP32)
-            bool ap_active = (WiFi.softAPgetStationNum() > 0);  // AP активен (ESP32 возвращает uint8_t)
-#endif
-            bool sta_connected = (WiFi.status() == WL_CONNECTED);  // STA подключен
+            WiFiMode_t mode = WiFi.getMode();
+            bool ap_active = (mode == WIFI_AP || mode == WIFI_AP_STA);
+            bool sta_connected = (WiFi.status() == WL_CONNECTED);
 
             if (ap_active && sta_connected) return "AP+STA";
             if (sta_connected) return "STA";
@@ -640,12 +637,13 @@ namespace etl
                 Serial.print(F("[WiFiSetup] IP address: "));
                 Serial.println(WiFi.localIP());
 
-                // Возврат в предыдущий режим (AP или AP+STA) для продолжения работы сервера
-                // Переключение в AP+STA будет сделано в handle() после отправки ответа
-                if (previous_mode == WIFI_AP) {
-                    WiFi.mode(WIFI_AP_STA);
-                } else {
-                    WiFi.mode(previous_mode);
+                // Переключение в режим AP+STA для одновременной работы AP и STA
+                // Это нужно для работы HTTP сервера в режиме точки доступа
+                WiFi.mode(WIFI_AP_STA);
+                
+                // Запуск точки доступа, если она не была активна
+                if (previous_mode != WIFI_AP && previous_mode != WIFI_AP_STA) {
+                    WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
                 }
 
                 m_connection_status = connection_status_t::connected;
