@@ -119,7 +119,7 @@ namespace etl
         .btn-secondary:hover { background: #007AFF; color: #FFFFFF; }
         .btn-danger { background: #FF3B30; color: #FFFFFF; }
         .btn-danger:hover { background: #D63026; }
-        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #FFFFFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #1C1C1E; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }

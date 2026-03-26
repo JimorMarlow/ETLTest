@@ -924,13 +924,14 @@ namespace etl
             m_server->send(200, "application/json", response);
 
             // Задержка для отправки ответа клиенту
-            delay(500);
+            delay(100);
             yield();
 
             // Отключение от сети
             WiFi.disconnect(true);
             m_connection_status = connection_status_t::disconnected;
 
+#ifdef ESP32
             // Возврат в режим AP после отправки ответа
             WiFi.mode(WIFI_AP);
             WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
@@ -943,6 +944,12 @@ namespace etl
                 m_server.reset();
             }
             start_http_server();
+#else
+            // На ESP8266 просто переключаемся в режим AP
+            // HTTP сервер продолжает работать
+            WiFi.mode(WIFI_AP);
+            WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
+#endif
 
             Serial.println(F("[WiFiSetup] Disconnected from WiFi, AP restarted"));
         }
