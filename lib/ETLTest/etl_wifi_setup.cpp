@@ -932,18 +932,12 @@ namespace etl
             m_connection_status = connection_status_t::disconnected;
 
 #ifdef ESP32
-            // Возврат в режим AP после отправки ответа
-            WiFi.mode(WIFI_AP);
+            // На ESP32 остаёмся в режиме AP+STA для стабильности
+            // Точка доступа уже работает в этом режиме
+            WiFi.mode(WIFI_AP_STA);
             WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
-
-            // Перезапуск HTTP сервера на новом интерфейсе
-            delay(100);
-            yield();
-            if (m_server) {
-                m_server->stop();
-                m_server.reset();
-            }
-            start_http_server();
+            
+            Serial.println(F("[WiFiSetup] Switched to AP+STA mode"));
 #else
             // На ESP8266 просто переключаемся в режим AP
             // HTTP сервер продолжает работать
