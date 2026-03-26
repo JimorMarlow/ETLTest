@@ -1034,6 +1034,9 @@ namespace etl
                 m_config.set_ap_ssid(ap_ssid);
                 m_config.set_ap_password(ap_password);
 
+                // Сохранение настроек в постоянной памяти
+                save_settings();
+
                 // Сначала отправляем ответ клиенту
                 send_success_response("AP settings applied", m_config.get_ap_ssid());
 

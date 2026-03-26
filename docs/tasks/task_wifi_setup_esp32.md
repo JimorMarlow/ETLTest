@@ -27,48 +27,12 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e nodemcuv3 -d c:\Pr
 - По умолчанию буду проверять работу на esp32c3, после завершения проверю на совместимость с esp32-wroom-32u
 
 ### Текст для коммита по итогу работы
-feat: WiFi Setup Server портирован на ESP32
+fix: WiFi Setup - сохранение настроек AP в постоянной памяти
 
-Добавлена поддержка ESP32 в коде WiFi Setup Server (etl_wifi_setup).
-
-Изменения:
-- etl_wifi_setup.h: добавлена условная компиляция для выбора библиотек WiFi/mDNS, алиас etl_web_server_t
-- etl_wifi_setup.cpp: поддержка ESP32 в функциях get_mode(), reboot(), get_encryption_type(), MDNS.update()
-- main.cpp: снято ограничение #ifndef ESP32 для использования WiFi сервера
-
-Тестирование:
-- nodemcuv3 (ESP8266): SUCCESS
-- esp32c3 (ESP32): SUCCESS
-- esp32-wroom-32u (ESP32): SUCCESS
-
-Примечания:
-- ESP32: WiFi.softAPgetStationNum() возвращает uint8_t (проверка > 0)
-- ESP32: MDNS.update() не существует
-- ESP32: используются константы WIFI_AUTH_* вместо ENC_TYPE_*
-- ESP32: ESP.restart() вместо ESP.reset()
-
-fix: WiFi Setup Disconnect - отправка ответа до переключения AP
-
-На ESP32 при нажатии Disconnect сервер переставал отвечать с ошибкой
-"Software caused connection abort".
-
-Причина: ответ отправлялся после переключения WiFi.mode(WIFI_AP),
-что приводило к разрыву соединения с клиентом.
+При смене AP SSID и нажатии [Apply AP Settings] настройки
+применялись, но не сохранялись в LittleFS. После перезагрузки
+возвращались старые значения.
 
 Решение:
-- Сначала отправляется ответ клиенту
-- Затем задержка 100 мс
-- После этого переключение в режим AP
-
-fix: WiFi Setup - предотвращение повторного добавления mDNS сервиса
-
-На ESP32 при перезапуске HTTP сервера после подключения к STA
-появлялась ошибка:
-[E][ESPmDNS.cpp:148] addService(): Failed adding service http.tcp.
-
-Причина: MDNS.addService() вызывался каждый раз при старте сервера,
-но на ESP32 повторное добавление того же сервиса вызывает ошибку.
-
-Решение:
-- Добавлен статический флаг mdns_service_added
-- Сервис добавляется только при первом запуске
+- Добавлен вызов save_settings() после применения настроек AP
+- Настройки теперь сохраняются в энергонезависимой памяти
