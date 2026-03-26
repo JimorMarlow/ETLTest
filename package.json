@@ -1,5 +1,5 @@
 {
   "name": "etl-test-project",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "ETL (Embedded Template Library) Test Project for ESP8266/ESP32"
 }

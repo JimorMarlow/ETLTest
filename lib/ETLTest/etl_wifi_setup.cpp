@@ -1,11 +1,11 @@
 /**
  * @file etl_wifi_setup.cpp
- * @brief Реализация WiFi Setup Server для ESP8266
+ * @brief Реализация WiFi Setup Server
  *
- * Платформа: ESP8266 (NodeMCU v3)
+ * Платформа: ESP8266 (NodeMCU v3), ESP32
  */
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 
 #include "etl_wifi_setup.h"
 #include "etl_wifi_setup_html.h"
@@ -277,7 +277,7 @@ namespace etl
             Serial.println(F("[WiFiSetup] Starting HTTP server..."));
 
             // Создание сервера через shared_ptr
-            m_server = etl::make_shared<ESP8266WebServer>(m_config.port);
+            m_server = etl::make_shared<etl_web_server_t>(m_config.port);
 
             // Настройка роутинга
             setup_http_routes();
@@ -288,9 +288,10 @@ namespace etl
             Serial.println(m_config.port);
 
             // mDNS - инициализация при каждой загрузке
-            // Статическая переменная сохраняет состояние в течение сессии
+            // Статические переменные сохраняют состояние в течение сессии
             static bool mdns_initialized = false;
-            
+            static bool mdns_service_added = false;
+
             if (!mdns_initialized) {
                 // Первый запуск после загрузки
                 Serial.print(F("[WiFiSetup] Initializing mDNS: "));
@@ -308,11 +309,16 @@ namespace etl
                 Serial.print(m_config.get_hostname());
                 Serial.println(F(".local"));
             }
-            
-            // Добавляем сервис http и обновляем mDNS
-            MDNS.addService("http", "tcp", m_config.port);
+
+            // Добавляем сервис http только один раз
+            if (!mdns_service_added) {
+                MDNS.addService("http", "tcp", m_config.port);
+                mdns_service_added = true;
+            }
+#ifdef ESP8266
             MDNS.update();
-            
+#endif
+
             Serial.println(F("[WiFiSetup] mDNS service added and updated"));
         }
 
@@ -395,7 +401,9 @@ namespace etl
         void server_setup::handle_client()
         {
             if (m_server != nullptr) {
+#ifdef ESP8266
                 MDNS.update();
+#endif
                 m_server->handleClient();
             }
         }
@@ -426,9 +434,13 @@ namespace etl
         String server_setup::get_mode() const
         {
             // Проверяем активные интерфейсы напрямую
+#ifdef ESP8266
             bool ap_active = (WiFi.softAPgetStationNum() >= 0);  // AP активен
+#elif defined(ESP32)
+            bool ap_active = (WiFi.softAPgetStationNum() > 0);  // AP активен (ESP32 возвращает uint8_t)
+#endif
             bool sta_connected = (WiFi.status() == WL_CONNECTED);  // STA подключен
-            
+
             if (ap_active && sta_connected) return "AP+STA";
             if (sta_connected) return "STA";
             if (ap_active) return "AP";
@@ -569,7 +581,11 @@ namespace etl
         {
             Serial.println(F("[WiFiSetup] Rebooting..."));
             delay(100);
+#ifdef ESP8266
             ESP.reset();
+#elif defined(ESP32)
+            ESP.restart();
+#endif
         }
 
         bool server_setup::start_ap()
@@ -678,6 +694,7 @@ namespace etl
 
         String server_setup::get_encryption_type(uint8_t type) const
         {
+#ifdef ESP8266
             switch (type) {
                 case ENC_TYPE_NONE:
                     return "Open";
@@ -692,6 +709,24 @@ namespace etl
                 default:
                     return "Unknown";
             }
+#elif defined(ESP32)
+            switch (type) {
+                case WIFI_AUTH_OPEN:
+                    return "Open";
+                case WIFI_AUTH_WEP:
+                    return "WEP";
+                case WIFI_AUTH_WPA_PSK:
+                    return "WPA";
+                case WIFI_AUTH_WPA2_PSK:
+                    return "WPA2";
+                case WIFI_AUTH_WPA_WPA2_PSK:
+                    return "WPA/WPA2";
+                case WIFI_AUTH_WPA2_ENTERPRISE:
+                    return "WPA2-Enterprise";
+                default:
+                    return "Unknown";
+            }
+#endif
         }
 
         String server_setup::get_device_icon() const
@@ -885,13 +920,7 @@ namespace etl
             WiFi.disconnect(true);
             m_connection_status = connection_status_t::disconnected;
 
-            // Возврат в режим AP
-            WiFi.mode(WIFI_AP);
-            WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
-
-            Serial.println(F("[WiFiSetup] Disconnected from WiFi, AP restarted"));
-
-            // Отправка успешного ответа
+            // Сначала отправляем успешный ответ клиенту
             JsonDocument response_doc;
             response_doc["success"] = true;
             response_doc["message"] = "Disconnected";
@@ -899,6 +928,15 @@ namespace etl
             String response;
             serializeJson(response_doc, response);
             m_server->send(200, "application/json", response);
+
+            // Небольшая задержка для отправки ответа
+            delay(100);
+
+            // Возврат в режим AP после отправки ответа
+            WiFi.mode(WIFI_AP);
+            WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
+
+            Serial.println(F("[WiFiSetup] Disconnected from WiFi, AP restarted"));
         }
 
         void server_setup::handle_api_status()
@@ -907,7 +945,11 @@ namespace etl
             doc["connected"] = is_connected();
             doc["ssid"] = m_config.get_wifi_ssid();
             doc["ip"] = get_ip_address();
+#ifdef ESP8266
             doc["rssi"] = WiFi.RSSI();
+#elif defined(ESP32)
+            doc["rssi"] = WiFi.RSSI();  // На ESP32 возвращает RSSI текущего подключения
+#endif
             doc["mode"] = get_mode();
 
             String response;

@@ -3,7 +3,7 @@
  * @file etl_wifi_setup.h
  * @brief WiFi Setup Server для первичной настройки WiFi подключения
  *
- * Платформа: ESP8266 (NodeMCU v3)
+ * Платформа: ESP8266 (NodeMCU v3), ESP32
  *
  * Особенности:
  * - Режим точки доступа для настройки WiFi
@@ -18,13 +18,30 @@
  *       Веб-страница доступна по http://hostname.local (где hostname из конфигурации)
  */
 
+// Для включения нужной wi-fi библиотеки
 #if defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <ESP8266WebServer.h>
+  #include <ESP8266mDNS.h>
+#elif defined(ESP32)
+  #include <WiFi.h>
+  #include <WebServer.h>
+  #include <ESPmDNS.h>
+#else
+  #pragma message("ERROR: no Wi-Fi lib specified")
+#endif
 
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
 #include <etl/etl_memory.h>
+
+// Алиас типа сервера для совместимости ESP8266 и ESP32
+#if defined(ESP8266)
+  using etl_web_server_t = ESP8266WebServer;
+#elif defined(ESP32)
+  using etl_web_server_t = WebServer;
+#endif
+
+#if defined(ESP8266) || defined(ESP32)
 
 // Размеры буферов для строк в server_config_t
 #define WIFI_CONFIG_HOSTNAME_SIZE     32
@@ -335,7 +352,7 @@ namespace etl
             virtual void handle_client();
 
         protected:
-            etl::shared_ptr<ESP8266WebServer> m_server; ///< HTTP сервер
+            etl::shared_ptr<etl_web_server_t> m_server; ///< HTTP сервер
             std::vector<scan_result_t> m_scan_cache;    ///< Кэш результатов сканирования
             uint32_t m_scan_timestamp = 0;              ///< Время последнего сканирования
             static const uint32_t SCAN_CACHE_TIME = 30000;  ///< Время кэширования сканирования (30 сек)

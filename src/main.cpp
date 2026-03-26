@@ -7,23 +7,22 @@
 #include "etl/etl_test.h"
 
 //////////////////////////////////////////////////////////////
-// WEB-UI
-#ifndef ESP32
-#define USE_WIFI_UI_SERVER
-#include "etl_wifi_setup.h"
-#include "etl/etl_littlefs.h"
-etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
-
-//////////////////////////////////////////////////////////////
 // Настройки тестирования
 struct simulation_t {
     bool reset_wifi_on_start = false;   // Не считывать настройки, а заменить на значения по умолчанию
     bool custom_device_info = true;     // Установить отладочную информацию об устройстве
     bool custom_icon_svg = false;       // Установить отладочную иконку для устройства
 };
-simulation_t simulation_data;   
+simulation_t simulation_data;
 //////////////////////////////////////////////////////////////
 
+#define USE_WIFI_UI_SERVER
+//////////////////////////////////////////////////////////////
+// WEB-UI
+#ifdef USE_WIFI_UI_SERVER
+#include "etl_wifi_setup.h"
+#include "etl/etl_littlefs.h"
+etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
 bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
@@ -53,7 +52,13 @@ bool start_wifi_server() { // WiFi setup
         Serial.println(F("\n=== WiFi Server Info ==="));
         Serial.print  (F("Mode:     ")); Serial.println(mode);
         Serial.print  (F("IP Addr:  ")); Serial.println(ip_addr.length() > 0 ? ip_addr : F("(AP IP: 192.168.4.1)"));
-        Serial.print  (F("Hostname: http://")); Serial.print  (mode == "AP" ? F("192.168.4.1") : hostname_cfg + ".local"); Serial.println(F("/"));
+        Serial.print  (F("Hostname: http://"));
+        if (mode == "AP") {
+            Serial.println(F("192.168.4.1"));
+        } else {
+            Serial.print(hostname_cfg);
+            Serial.println(F(".local"));
+        }
         Serial.print  (F("mDNS:     http://")); Serial.print  (hostname_cfg); Serial.println(F(".local"));
         Serial.println(F("=========================\n"));
         return true;
@@ -65,7 +70,7 @@ bool start_wifi_server() { // WiFi setup
 
     return false;
 }
-#endif// ESP32
+#endif//USE_WIFI_UI_SERVER
 //////////////////////////////////////////////////////////////
 
 void setup() {
