@@ -967,6 +967,7 @@ namespace etl
             // WiFi конфигурация (из m_config)
             doc["hostname"] = m_config.get_hostname();
             doc["ap_ssid"] = m_config.get_ap_ssid();
+            doc["ap_password"] = m_config.get_ap_password();
             doc["port"] = m_config.port;
 
             String response;

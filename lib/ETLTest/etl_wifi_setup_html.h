@@ -279,10 +279,10 @@ namespace etl
             try {
                 const response = await fetch('/api/config');
                 const config = await response.json();
-                window.deviceConfig = { version: config.device_name || 'ESP Device', description: config.device_description || '', iconSvg: config.device_icon_svg || null, hostname: config.hostname || 'espdevice' };
+                window.deviceConfig = { version: config.device_name || 'ESP Device', description: config.device_description || '', iconSvg: config.device_icon_svg || null, hostname: config.hostname || 'espdevice', apSsid: config.ap_ssid || 'ESP_Device_AP', apPassword: config.ap_password || '' };
             } catch (error) { console.error('Failed to load device config:', error); }
         }
-        function applyDeviceConfig() { const config = window.deviceConfig || {}; if (config.version) deviceName.textContent = config.version; if (config.description) deviceDescription.textContent = config.description; if (config.iconSvg && config.iconSvg.trim()) { deviceIcon.innerHTML = config.iconSvg; } else { deviceIcon.innerHTML = DEFAULT_DEVICE_ICON; } }
+        function applyDeviceConfig() { const config = window.deviceConfig || {}; if (config.version) deviceName.textContent = config.version; if (config.description) deviceDescription.textContent = config.description; if (config.iconSvg && config.iconSvg.trim()) { deviceIcon.innerHTML = config.iconSvg; } else { deviceIcon.innerHTML = DEFAULT_DEVICE_ICON; } if (config.apSsid) apSsidInput.value = config.apSsid; if (config.apPassword) apPasswordInput.value = config.apPassword; }
         function applyLargeFont() { if (largeFont) { document.body.classList.add('large-font'); fontToggleBtn.classList.add('active'); } else { document.body.classList.remove('large-font'); fontToggleBtn.classList.remove('active'); } }
         function toggleLargeFont() { largeFont = !largeFont; localStorage.setItem('wifiSetupLargeFont', largeFont); applyLargeFont(); }
         function setLanguage(lang) {

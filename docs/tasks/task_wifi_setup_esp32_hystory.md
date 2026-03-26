@@ -119,3 +119,21 @@
 
 **Изменённые файлы:**
 - `lib/ETLTest/etl_wifi_setup.cpp` - функция `handle_api_save()`
+
+### Проблема 5: Поля AP настроек не обновляются из сохранённой конфигурации
+
+**Симптомы:**
+- Настройки загружаются из FS правильно (логи показывают `ap_ssid = ESP_Device_test`)
+- Но на странице в полях ввода показываются значения по умолчанию (`ESP_Device_AP`)
+- После изменения настроек и перезагрузки видно старое значение в UI
+
+**Причина:**
+JavaScript код загружал конфигурацию через `/api/config`, но не обновлял поля `apSsidInput` и `apPasswordInput` из загруженных данных.
+
+**Решение:**
+1. Добавлен `ap_password` в ответ `/api/config`
+2. Обновлены функции `loadDeviceConfig()` и `applyDeviceConfig()` для сохранения и применения настроек AP
+
+**Изменённые файлы:**
+- `lib/ETLTest/etl_wifi_setup.cpp` - функция `handle_api_config()`
+- `lib/ETLTest/etl_wifi_setup_html.h` - функции `loadDeviceConfig()` и `applyDeviceConfig()`
