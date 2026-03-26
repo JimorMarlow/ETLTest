@@ -935,6 +935,15 @@ namespace etl
             WiFi.mode(WIFI_AP);
             WiFi.softAP(m_config.get_ap_ssid().c_str(), m_config.get_ap_password().c_str());
 
+            // Перезапуск HTTP сервера на новом интерфейсе
+            delay(100);
+            yield();
+            if (m_server) {
+                m_server->stop();
+                m_server.reset();
+            }
+            start_http_server();
+
             Serial.println(F("[WiFiSetup] Disconnected from WiFi, AP restarted"));
         }
 
