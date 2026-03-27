@@ -145,7 +145,7 @@ namespace etl
             port = 80;
             update_interval = 500;
             dark_theme = false;
-            ui_scale = false;
+            large_font = false;
             use_bold_values = false;
         }
 
@@ -160,9 +160,9 @@ namespace etl
             Serial.printf("port            = %u\n", port);
             Serial.printf("update_interval = %u\n", update_interval);
             Serial.printf("language        = %s\n", language);
-            Serial.printf("dark_theme      = %d\n", dark_theme);
-            Serial.printf("ui_scale        = %d\n", ui_scale);
-            Serial.printf("use_bold_values = %d\n", use_bold_values);
+            Serial.printf("dark_theme      = %s\n", dark_theme ? "ON" : "OFF");
+            Serial.printf("large_font      = %s\n", large_font ? "ON" : "OFF");
+            Serial.printf("use_bold_values = %s\n", use_bold_values ? "ON" : "OFF");
             Serial.println(F("========================"));
         }
 
@@ -214,9 +214,9 @@ namespace etl
             dark_theme = value;
         }
 
-        void server_config_t::set_ui_scale(bool value)
+        void server_config_t::set_large_font(bool value)
         {
-            ui_scale = value;
+            large_font = value;
         }
 
         void server_config_t::set_use_bold_values(bool value)
@@ -260,9 +260,9 @@ namespace etl
             return dark_theme;
         }
 
-        bool server_config_t::is_ui_scale() const
+        bool server_config_t::is_large_font() const
         {
-            return ui_scale;
+            return large_font;
         }
 
         bool server_config_t::is_use_bold_values() const
@@ -1033,7 +1033,7 @@ namespace etl
             // Настройки интерфейса
             doc["language"] = m_config.get_language();
             doc["dark_theme"] = m_config.is_dark_theme();
-            doc["ui_scale"] = m_config.is_ui_scale();
+            doc["large_font"] = m_config.is_large_font();
             doc["use_bold_values"] = m_config.is_use_bold_values();
 
             String response;
@@ -1141,18 +1141,15 @@ namespace etl
                 if (doc["dark_theme"].is<bool>()) {
                     m_config.set_dark_theme(doc["dark_theme"].as<bool>());
                 }
-                if (doc["ui_scale"].is<bool>()) {
-                    m_config.set_ui_scale(doc["ui_scale"].as<bool>());
+                if (doc["large_font"].is<bool>()) {
+                    m_config.set_large_font(doc["large_font"].as<bool>());
                 }
                 if (doc["use_bold_values"].is<bool>()) {
                     m_config.set_use_bold_values(doc["use_bold_values"].as<bool>());
                 }
 
-                // Сохранение настроек в постоянной памяти
-                save_settings();
-
-                send_success_response("UI settings saved");
-                Serial.println(F("[WiFiSetup] UI settings saved"));
+                send_success_response("UI settings updated");
+                Serial.println(F("[WiFiSetup] UI settings updated"));
             } else {
                 send_error_response("No data provided");
             }

@@ -127,7 +127,7 @@ namespace etl
             // Настройки интерфейса
             char language[WIFI_CONFIG_LANGUAGE_SIZE] = "en";  // Язык интерфейса (ISO 639-1)
             bool dark_theme = false;                    // Тёмная тема
-            bool ui_scale = false;                      // Увеличенный шрифт
+            bool large_font = false;                    // Увеличенный шрифт
             bool use_bold_values = false;               // Bold шрифт для ключевых значений
 
             /**
@@ -148,7 +148,7 @@ namespace etl
             void set_wifi_password(const String& value);
             void set_language(const String& value);
             void set_dark_theme(bool value);
-            void set_ui_scale(bool value);
+            void set_large_font(bool value);
             void set_use_bold_values(bool value);
 
             // Getters
@@ -159,7 +159,7 @@ namespace etl
             String get_wifi_password() const;
             String get_language() const;
             bool is_dark_theme() const;
-            bool is_ui_scale() const;
+            bool is_large_font() const;
             bool is_use_bold_values() const;
         };
 
