@@ -76,6 +76,12 @@ namespace etl
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .status-text { flex: 1; font-size: 15px; color: #1C1C1E; }
         .status-details { font-size: 13px; color: #8E8E93; margin-top: 4px; }
+        body.ui-scale .status-text, body.large-font .status-text { font-size: 18px; }
+        body.ui-scale .status-details, body.large-font .status-details { font-size: 15px; }
+        .status-text.bold-value { font-weight: 700 !important; }
+        .status-details.bold-value { font-weight: 700 !important; }
+        #statusText.bold-value { font-weight: 700 !important; }
+        #statusDetails.bold-value { font-weight: 700 !important; }
         .refresh-btn { padding: 6px 16px; border: 1px solid #007AFF; border-radius: 8px; background: #FFFFFF; color: #007AFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; }
         .refresh-btn:hover { background: #007AFF; color: #FFFFFF; }
         .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -356,6 +362,30 @@ namespace etl
             } else {
                 document.body.classList.remove('large-font');
             }
+            // Применение bold к ключевым значениям
+            const statusText = document.getElementById('statusText');
+            const statusDetails = document.getElementById('statusDetails');
+            console.log('[WiFiSetup] statusText:', statusText, 'statusDetails:', statusDetails);
+            console.log('[WiFiSetup] boldValuesToggle.checked:', boldValuesToggle.checked);
+            if (boldValuesToggle && boldValuesToggle.checked) {
+                if (statusText) {
+                    statusText.classList.add('bold-value');
+                    console.log('[WiFiSetup] bold-value added to statusText, classList:', statusText.classList);
+                }
+                if (statusDetails) {
+                    statusDetails.classList.add('bold-value');
+                    console.log('[WiFiSetup] bold-value added to statusDetails, classList:', statusDetails.classList);
+                }
+            } else {
+                if (statusText) {
+                    statusText.classList.remove('bold-value');
+                    console.log('[WiFiSetup] bold-value removed from statusText');
+                }
+                if (statusDetails) {
+                    statusDetails.classList.remove('bold-value');
+                    console.log('[WiFiSetup] bold-value removed from statusDetails');
+                }
+            }
             // Установка флага инициализации после применения настроек
             uiSettingsInitialized = true;
         }
@@ -378,7 +408,7 @@ namespace etl
             // Только если настройки были инициализированы
             if (uiSettingsInitialized) {
                 saveUISettings();
-                // Небольшая задержка для отправки настроек
+                // Небольшая задержка для отправки настроек и прокрутки
                 setTimeout(() => {
                     saveAndReboot();
                 }, 500);
@@ -386,6 +416,8 @@ namespace etl
                 // Если настройки ещё не инициализированы, просто сохраняем и перезагружаем
                 saveAndReboot();
             }
+            // Прокрутка к кнопке для отображения спиннера
+            saveRebootBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         function setLanguage(lang) {
             currentLang = lang;
@@ -414,8 +446,8 @@ namespace etl
                 }
             }
         }
-        function updateStatusUI() { statusIndicator.className = 'status-indicator disconnected'; statusText.textContent = translations[currentLang].status_disconnected; statusDetails.textContent = ''; }
-        function setStatus(status, details = '') { statusIndicator.className = `status-indicator ${status}`; statusText.textContent = translations[currentLang][`status_${status}`] || status; statusDetails.textContent = details; }
+        function updateStatusUI() { statusIndicator.className = 'status-indicator disconnected'; statusText.textContent = translations[currentLang].status_disconnected; statusDetails.textContent = ''; if (boldValuesToggle && boldValuesToggle.checked) { statusText.classList.add('bold-value'); statusDetails.classList.add('bold-value'); } else { statusText.classList.remove('bold-value'); statusDetails.classList.remove('bold-value'); } }
+        function setStatus(status, details = '') { statusIndicator.className = `status-indicator ${status}`; statusText.textContent = translations[currentLang][`status_${status}`] || status; statusDetails.textContent = details; if (boldValuesToggle && boldValuesToggle.checked) { statusText.classList.add('bold-value'); statusDetails.classList.add('bold-value'); } else { statusText.classList.remove('bold-value'); statusDetails.classList.remove('bold-value'); } }
         async function scanNetworks() {
             refreshBtn.disabled = true;
             refreshSpinner.classList.remove('hidden');
@@ -729,6 +761,16 @@ namespace etl
         });
         boldValuesToggle.addEventListener('change', function() {
             if (!uiSettingsInitialized) return;
+            // Применяем bold к ключевым значениям
+            const statusText = document.getElementById('statusText');
+            const statusDetails = document.getElementById('statusDetails');
+            if (this.checked) {
+                if (statusText) statusText.classList.add('bold-value');
+                if (statusDetails) statusDetails.classList.add('bold-value');
+            } else {
+                if (statusText) statusText.classList.remove('bold-value');
+                if (statusDetails) statusDetails.classList.remove('bold-value');
+            }
             // Не сохраняем на сервер
         });
         showApPasswordBtn.addEventListener('click', () => togglePassword(apPasswordInput, showApPasswordBtn));
