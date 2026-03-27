@@ -24,12 +24,19 @@ namespace etl
         .container { max-width: 480px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #C6C6C8; margin-bottom: 20px; }
         .header-title { font-size: 17px; font-weight: 600; color: #1C1C1E; }
-        .accessibility-controls { display: flex; gap: 8px; align-items: center; }
-        .lang-switch { display: flex; gap: 8px; }
-        .lang-btn, .font-btn { padding: 6px 12px; border: 1px solid #C6C6C8; border-radius: 6px; background: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; }
-        .font-btn { font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; }
-        .lang-btn.active, .font-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
-        .lang-btn:hover, .font-btn:hover { border-color: #007AFF; }
+        .lang-btn { padding: 6px 12px; border: 1px solid #C6C6C8; border-radius: 6px; background: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; }
+        .lang-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
+        .lang-btn:hover { border-color: #007AFF; }
+        .ui-settings-container { background: #F2F2F7; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .ui-settings-title { font-size: 15px; font-weight: 600; color: #1C1C1E; margin-bottom: 12px; }
+        .ui-setting-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+        .ui-setting-label { font-size: 15px; color: #1C1C1E; }
+        .ios-toggle { position: relative; width: 51px; height: 31px; }
+        .ios-toggle input { opacity: 0; width: 0; height: 0; }
+        .ios-toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #E9E9EA; transition: 0.3s; border-radius: 34px; }
+        .ios-toggle-slider:before { position: absolute; content: ""; height: 27px; width: 27px; left: 2px; bottom: 2px; background-color: white; transition: 0.3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .ios-toggle input:checked + .ios-toggle-slider { background-color: #34C759; }
+        .ios-toggle input:checked + .ios-toggle-slider:before { transform: translateX(20px); }
         .device-info-container { background: #F2F2F7; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
         .device-icon { width: 80px; height: 80px; flex-shrink: 0; }
         .device-icon svg { width: 100%; height: 100%; }
@@ -142,19 +149,37 @@ namespace etl
     <div class="container">
         <div class="header">
             <div class="header-title" data-i18n="title">WiFi Setup</div>
-            <div class="accessibility-controls">
-                <button class="font-btn" id="fontToggleBtn" title="Toggle font size">A<span style="font-size: 0.7em; vertical-align: middle;">A</span></button>
-                <div class="lang-switch">
-                    <button class="lang-btn active" data-lang="en">EN</button>
-                    <button class="lang-btn" data-lang="ru">RU</button>
-                </div>
-            </div>
+            <button class="lang-btn" id="langToggleBtn" title="Toggle language">RU</button>
         </div>
         <div class="device-info-container" id="deviceInfoContainer">
             <div class="device-icon" id="deviceIcon"></div>
             <div class="device-info-content">
                 <div class="device-name" id="deviceName">DEVICE_NAME_PLACEHOLDER</div>
                 <div class="device-description" id="deviceDescription">DEVICE_DESC_PLACEHOLDER</div>
+            </div>
+        </div>
+        <div class="ui-settings-container">
+            <div class="ui-settings-title">Настройки интерфейса</div>
+            <div class="ui-setting-item">
+                <span class="ui-setting-label">Тёмная тема</span>
+                <label class="ios-toggle">
+                    <input type="checkbox" id="darkThemeToggle">
+                    <span class="ios-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="ui-setting-item">
+                <span class="ui-setting-label">Увеличенный шрифт</span>
+                <label class="ios-toggle">
+                    <input type="checkbox" id="uiScaleToggle">
+                    <span class="ios-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="ui-setting-item">
+                <span class="ui-setting-label">Ключевые значения (Bold)</span>
+                <label class="ios-toggle">
+                    <input type="checkbox" id="boldValuesToggle">
+                    <span class="ios-toggle-slider"></span>
+                </label>
             </div>
         </div>
         <div class="status-section">
@@ -216,7 +241,6 @@ namespace etl
         let networks = [];
         let isConnected = false;
         let connectionError = false;
-        let largeFont = localStorage.getItem('wifiSetupLargeFont') === 'true';
         let emptyScanRetryCount = 0;
         const MAX_EMPTY_SCAN_RETRIES = 5;
         const INITIAL_SCAN_DELAY = 2000;
@@ -232,7 +256,10 @@ namespace etl
         const refreshSpinner = document.getElementById('refreshSpinner');
         const refreshBtnText = refreshBtn.querySelector('.refresh-btn-text');
         const networksList = document.getElementById('networksList');
-        const fontToggleBtn = document.getElementById('fontToggleBtn');
+        const langToggleBtn = document.getElementById('langToggleBtn');
+        const darkThemeToggle = document.getElementById('darkThemeToggle');
+        const uiScaleToggle = document.getElementById('uiScaleToggle');
+        const boldValuesToggle = document.getElementById('boldValuesToggle');
         const apSsidInput = document.getElementById('apSsidInput');
         const apPasswordInput = document.getElementById('apPasswordInput');
         const showApPasswordBtn = document.getElementById('showApPasswordBtn');
@@ -248,13 +275,12 @@ namespace etl
         async function init() {
             setLanguage(currentLang);
             updateStatusUI();
-            applyLargeFont();
             applyDeviceConfig();
-            try { await loadDeviceConfig(); applyDeviceConfig(); } catch (error) { console.error('[WiFiSetup] Failed to load device config:', error); }
-            
+            try { await loadDeviceConfig(); applyDeviceConfig(); applyUISettings(); } catch (error) { console.error('[WiFiSetup] Failed to load device config:', error); }
+
             // Проверка статуса подключения при загрузке страницы
             await checkConnectionStatus();
-            
+
             setTimeout(() => { scanNetworks(); }, INITIAL_SCAN_DELAY);
         }
         async function checkConnectionStatus() {
@@ -283,8 +309,26 @@ namespace etl
             } catch (error) { console.error('Failed to load device config:', error); }
         }
         function applyDeviceConfig() { const config = window.deviceConfig || {}; if (config.version) deviceName.textContent = config.version; if (config.description) deviceDescription.textContent = config.description; if (config.iconSvg && config.iconSvg.trim()) { deviceIcon.innerHTML = config.iconSvg; } else { deviceIcon.innerHTML = DEFAULT_DEVICE_ICON; } if (config.apSsid) apSsidInput.value = config.apSsid; if (config.apPassword) apPasswordInput.value = config.apPassword; }
-        function applyLargeFont() { if (largeFont) { document.body.classList.add('large-font'); fontToggleBtn.classList.add('active'); } else { document.body.classList.remove('large-font'); fontToggleBtn.classList.remove('active'); } }
-        function toggleLargeFont() { largeFont = !largeFont; localStorage.setItem('wifiSetupLargeFont', largeFont); applyLargeFont(); }
+        function applyUISettings() {
+            if (window.deviceConfig) {
+                const config = window.deviceConfig;
+                if (config.dark_theme !== undefined) darkThemeToggle.checked = config.dark_theme;
+                if (config.ui_scale !== undefined) uiScaleToggle.checked = config.ui_scale;
+                if (config.use_bold_values !== undefined) boldValuesToggle.checked = config.use_bold_values;
+            }
+        }
+        function saveUISettings() {
+            fetch('/api/ui_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    language: currentLang,
+                    dark_theme: darkThemeToggle.checked,
+                    ui_scale: uiScaleToggle.checked,
+                    use_bold_values: boldValuesToggle.checked
+                })
+            }).catch(error => console.error('[WiFiSetup] Failed to save UI settings:', error));
+        }
         function setLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('wifiSetupLang', lang);
@@ -292,7 +336,15 @@ namespace etl
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const key = el.getAttribute('data-i18n-placeholder'); if (translations[lang][key]) el.placeholder = translations[lang][key]; });
             // Device info is loaded from API, not from translations
             applyDeviceConfig();
-            document.querySelectorAll('.lang-btn').forEach(btn => { btn.classList.toggle('active', btn.getAttribute('data-lang') === lang); });
+            // Обновление текста на кнопке переключения языка - показываем следующий язык
+            const languages = ['en', 'ru'];
+            const currentIndex = languages.indexOf(lang);
+            let nextLang = 'en';
+            if (currentIndex >= 0 && currentIndex < languages.length - 1) {
+                nextLang = languages[currentIndex + 1];
+            }
+            if (langToggleBtn) langToggleBtn.textContent = nextLang.toUpperCase();
+            saveUISettings();
             if (connectionError) showConnectionError();
             if (selectedNetwork !== null) renderNetworks();
             if (selectedNetwork !== null) {
@@ -593,12 +645,23 @@ namespace etl
         function showModal(message, onConfirm) { modalMessage.textContent = message; modalOverlay.classList.add('active'); modalConfirmBtn.onclick = () => { modalOverlay.classList.remove('active'); onConfirm(); }; modalCancelBtn.onclick = () => { modalOverlay.classList.remove('active'); }; }
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         refreshBtn.addEventListener('click', scanNetworks);
-        fontToggleBtn.addEventListener('click', toggleLargeFont);
+        langToggleBtn.addEventListener('click', () => {
+            // Переключение языка по кругу
+            const languages = ['en', 'ru'];
+            const currentIndex = languages.indexOf(currentLang);
+            let nextLang = 'en';
+            if (currentIndex >= 0 && currentIndex < languages.length - 1) {
+                nextLang = languages[currentIndex + 1];
+            }
+            setLanguage(nextLang);
+        });
+        darkThemeToggle.addEventListener('change', saveUISettings);
+        uiScaleToggle.addEventListener('change', saveUISettings);
+        boldValuesToggle.addEventListener('change', saveUISettings);
         showApPasswordBtn.addEventListener('click', () => togglePassword(apPasswordInput, showApPasswordBtn));
         saveRebootBtn.addEventListener('click', saveAndReboot);
         factoryResetBtn.addEventListener('click', factoryReset);
         applyApSettingsBtn.addEventListener('click', applyApSettings);
-        document.querySelectorAll('.lang-btn').forEach(btn => { btn.addEventListener('click', () => setLanguage(btn.dataset.lang)); });
         init();
     </script>
 </body>

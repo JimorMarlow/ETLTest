@@ -130,7 +130,8 @@ namespace etl
             memset(ap_password, 0, WIFI_CONFIG_PASSWORD_SIZE);
             memset(wifi_ssid, 0, WIFI_CONFIG_SSID_SIZE);
             memset(wifi_password, 0, WIFI_CONFIG_PASSWORD_SIZE);
-            
+            memset(language, 0, WIFI_CONFIG_LANGUAGE_SIZE);
+
             // Установка значений по умолчанию
             strncpy(hostname, "espdevice", WIFI_CONFIG_HOSTNAME_SIZE - 1);
             hostname[WIFI_CONFIG_HOSTNAME_SIZE - 1] = '\0';
@@ -138,9 +139,14 @@ namespace etl
             ap_ssid[WIFI_CONFIG_SSID_SIZE - 1] = '\0';
             strncpy(ap_password, "password123", WIFI_CONFIG_PASSWORD_SIZE - 1);
             ap_password[WIFI_CONFIG_PASSWORD_SIZE - 1] = '\0';
-            
+            strncpy(language, "en", WIFI_CONFIG_LANGUAGE_SIZE - 1);
+            language[WIFI_CONFIG_LANGUAGE_SIZE - 1] = '\0';
+
             port = 80;
             update_interval = 500;
+            dark_theme = false;
+            ui_scale = false;
+            use_bold_values = false;
         }
 
         void server_config_t::trace() const
@@ -153,6 +159,10 @@ namespace etl
             Serial.printf("wifi_password   = %s\n", wifi_password);
             Serial.printf("port            = %u\n", port);
             Serial.printf("update_interval = %u\n", update_interval);
+            Serial.printf("language        = %s\n", language);
+            Serial.printf("dark_theme      = %d\n", dark_theme);
+            Serial.printf("ui_scale        = %d\n", ui_scale);
+            Serial.printf("use_bold_values = %d\n", use_bold_values);
             Serial.println(F("========================"));
         }
 
@@ -192,6 +202,28 @@ namespace etl
             wifi_password[WIFI_CONFIG_PASSWORD_SIZE - 1] = '\0';
         }
 
+        void server_config_t::set_language(const String& value)
+        {
+            memset(language, 0, WIFI_CONFIG_LANGUAGE_SIZE);
+            strncpy(language, value.c_str(), WIFI_CONFIG_LANGUAGE_SIZE - 1);
+            language[WIFI_CONFIG_LANGUAGE_SIZE - 1] = '\0';
+        }
+
+        void server_config_t::set_dark_theme(bool value)
+        {
+            dark_theme = value;
+        }
+
+        void server_config_t::set_ui_scale(bool value)
+        {
+            ui_scale = value;
+        }
+
+        void server_config_t::set_use_bold_values(bool value)
+        {
+            use_bold_values = value;
+        }
+
         // Getters
         String server_config_t::get_hostname() const
         {
@@ -216,6 +248,26 @@ namespace etl
         String server_config_t::get_wifi_password() const
         {
             return String(wifi_password);
+        }
+
+        String server_config_t::get_language() const
+        {
+            return String(language);
+        }
+
+        bool server_config_t::is_dark_theme() const
+        {
+            return dark_theme;
+        }
+
+        bool server_config_t::is_ui_scale() const
+        {
+            return ui_scale;
+        }
+
+        bool server_config_t::is_use_bold_values() const
+        {
+            return use_bold_values;
         }
 
         // ============================================================================
@@ -978,6 +1030,11 @@ namespace etl
             doc["ap_ssid"] = m_config.get_ap_ssid();
             doc["ap_password"] = m_config.get_ap_password();
             doc["port"] = m_config.port;
+            // Настройки интерфейса
+            doc["language"] = m_config.get_language();
+            doc["dark_theme"] = m_config.is_dark_theme();
+            doc["ui_scale"] = m_config.is_ui_scale();
+            doc["use_bold_values"] = m_config.is_use_bold_values();
 
             String response;
             serializeJson(doc, response);
@@ -1063,6 +1120,44 @@ namespace etl
             }
         }
 
+        void server_setup::handle_api_ui_settings()
+        {
+            Serial.println(F("[WiFiSetup] API: /api/ui_settings"));
+
+            if (m_server->hasArg("plain")) {
+                String body = m_server->arg("plain");
+                JsonDocument doc;
+                DeserializationError error = deserializeJson(doc, body);
+
+                if (error) {
+                    send_error_response("Invalid JSON");
+                    return;
+                }
+
+                // Применение настроек интерфейса через setter'ы
+                if (doc["language"].is<const char*>()) {
+                    m_config.set_language(doc["language"].as<String>());
+                }
+                if (doc["dark_theme"].is<bool>()) {
+                    m_config.set_dark_theme(doc["dark_theme"].as<bool>());
+                }
+                if (doc["ui_scale"].is<bool>()) {
+                    m_config.set_ui_scale(doc["ui_scale"].as<bool>());
+                }
+                if (doc["use_bold_values"].is<bool>()) {
+                    m_config.set_use_bold_values(doc["use_bold_values"].as<bool>());
+                }
+
+                // Сохранение настроек в постоянной памяти
+                save_settings();
+
+                send_success_response("UI settings saved");
+                Serial.println(F("[WiFiSetup] UI settings saved"));
+            } else {
+                send_error_response("No data provided");
+            }
+        }
+
         void server_setup::send_success_response(const String& message, const String& extra_data)
         {
             JsonDocument doc;
@@ -1141,6 +1236,10 @@ namespace etl
             m_server->on("/api/ap_settings", HTTP_POST, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/ap_settings"));
                 handle_api_ap_settings();
+            });
+            m_server->on("/api/ui_settings", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/ui_settings"));
+                handle_api_ui_settings();
             });
 
             // Обработчик для остальных путей - 404

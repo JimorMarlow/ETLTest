@@ -47,6 +47,14 @@
 #define WIFI_CONFIG_HOSTNAME_SIZE     32
 #define WIFI_CONFIG_SSID_SIZE         32
 #define WIFI_CONFIG_PASSWORD_SIZE     64
+#define WIFI_CONFIG_LANGUAGE_SIZE     3
+
+// Список доступных языков интерфейса (ISO 639-1)
+static const char* const WIFI_SETUP_LANGUAGES[] PROGMEM = {
+    "en",
+    "ru"
+};
+static const size_t WIFI_SETUP_LANGUAGE_COUNT = sizeof(WIFI_SETUP_LANGUAGES) / sizeof(WIFI_SETUP_LANGUAGES[0]);
 
 namespace etl
 {
@@ -116,6 +124,12 @@ namespace etl
             uint16_t port = 80;                         // Порт веб-сервера
             uint32_t update_interval = 500;             // Интервал обновления данных (мс)
 
+            // Настройки интерфейса
+            char language[WIFI_CONFIG_LANGUAGE_SIZE] = "en";  // Язык интерфейса (ISO 639-1)
+            bool dark_theme = false;                    // Тёмная тема
+            bool ui_scale = false;                      // Увеличенный шрифт
+            bool use_bold_values = false;               // Bold шрифт для ключевых значений
+
             /**
              * @brief Очистка конфигурации к значениям по умолчанию
              */
@@ -132,6 +146,10 @@ namespace etl
             void set_ap_password(const String& value);
             void set_wifi_ssid(const String& value);
             void set_wifi_password(const String& value);
+            void set_language(const String& value);
+            void set_dark_theme(bool value);
+            void set_ui_scale(bool value);
+            void set_use_bold_values(bool value);
 
             // Getters
             String get_hostname() const;
@@ -139,6 +157,10 @@ namespace etl
             String get_ap_password() const;
             String get_wifi_ssid() const;
             String get_wifi_password() const;
+            String get_language() const;
+            bool is_dark_theme() const;
+            bool is_ui_scale() const;
+            bool is_use_bold_values() const;
         };
 
         /**
@@ -436,6 +458,11 @@ namespace etl
              * @brief Обработчик API настройки точки доступа
              */
             virtual void handle_api_ap_settings();
+
+            /**
+             * @brief Обработчик API сохранения настроек интерфейса
+             */
+            virtual void handle_api_ui_settings();
 
             /**
              * @brief Получить SVG иконку устройства
