@@ -27,7 +27,7 @@ bool start_wifi_server() { // WiFi setup
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
     // В setup() или до начала работы с WiFi
-    etl::wifi::settings::init_config(web_config, simulation_data.reset_wifi_on_start);
+    etl::wifi::settings::init_wifi_config(web_config, simulation_data.reset_wifi_on_start);
 
     // Настройка информации об устройстве
     etl::wifi::device_info_t device_info;  // device information
@@ -46,7 +46,7 @@ bool start_wifi_server() { // WiFi setup
     if(wifi_server && wifi_server->begin(device_info)) {
         // Вывод информации о подключении
         const String& ip_addr = wifi_server->get_ip_address();
-        const String& hostname_cfg = wifi_server->get_config().get_hostname();
+        const String& hostname_cfg = wifi_server->get_wifi_config().has_value() ? wifi_server->get_wifi_config()->get_hostname() : "espdevice";
         const String& mode = wifi_server->get_mode();
 
         Serial.println(F("\n=== WiFi Server Info ==="));

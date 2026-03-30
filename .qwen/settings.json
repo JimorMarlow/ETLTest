@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(c:\\users\\amber\\.platformio\\penv\\scripts\\platformio.exe *)",
+      "Bash(dir *)",
+      "Bash(findstr *)"
+    ]
+  },
+  "$version": 3
+}

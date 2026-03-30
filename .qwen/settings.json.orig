@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(c:\\users\\amber\\.platformio\\penv\\scripts\\platformio.exe *)"
+    ]
+  }
+}

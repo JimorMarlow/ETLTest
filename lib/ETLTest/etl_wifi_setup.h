@@ -33,6 +33,7 @@
 
 #include <ArduinoJson.h>
 #include <etl/etl_memory.h>
+#include <etl/etl_optional.h>
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
 #if defined(ESP8266)
@@ -62,7 +63,7 @@ namespace etl
     {
         /**
          * @brief Информация об устройстве
-         * 
+         *
          * НЕ сохраняется в постоянной памяти, передаётся отдельно при запуске сервера.
          * Использует String для поддержки произвольных размеров (особенно для SVG иконки).
          */
@@ -124,12 +125,6 @@ namespace etl
             uint16_t port = 80;                         // Порт веб-сервера
             uint32_t update_interval = 500;             // Интервал обновления данных (мс)
 
-            // Настройки интерфейса
-            char language[WIFI_CONFIG_LANGUAGE_SIZE] = "en";  // Язык интерфейса (ISO 639-1)
-            bool dark_theme = false;                    // Тёмная тема
-            bool large_font = false;                    // Увеличенный шрифт
-            bool use_bold_values = false;               // Bold шрифт для ключевых значений
-
             /**
              * @brief Очистка конфигурации к значениям по умолчанию
              */
@@ -146,10 +141,6 @@ namespace etl
             void set_ap_password(const String& value);
             void set_wifi_ssid(const String& value);
             void set_wifi_password(const String& value);
-            void set_language(const String& value);
-            void set_dark_theme(bool value);
-            void set_large_font(bool value);
-            void set_use_bold_values(bool value);
 
             // Getters
             String get_hostname() const;
@@ -157,10 +148,100 @@ namespace etl
             String get_ap_password() const;
             String get_wifi_ssid() const;
             String get_wifi_password() const;
+        };
+
+        /**
+         * @brief Конфигурация интерфейса пользователя
+         *
+         * Содержит параметры настройки веб-интерфейса.
+         * Сохраняется в энергонезависимой памяти через FileData.
+         * Использует фиксированные массивы char для корректного бинарного сохранения.
+         */
+        struct ui_config_t
+        {
+            char language[WIFI_CONFIG_LANGUAGE_SIZE] = "en";  // Язык интерфейса (ISO 639-1)
+            bool dark_theme = false;                    // Тёмная тема
+            bool large_font = false;                    // Увеличенный шрифт
+            bool use_bold_values = false;               // Bold шрифт для ключевых значений
+
+            /**
+             * @brief Очистка конфигурации к значениям по умолчанию
+             */
+            void clear();
+
+            /**
+             * @brief Вывод конфигурации в Serial
+             */
+            void trace() const;
+
+            // Setters
+            void set_language(const String& value);
+            void set_dark_theme(bool value);
+            void set_large_font(bool value);
+            void set_use_bold_values(bool value);
+
+            // Getters
             String get_language() const;
             bool is_dark_theme() const;
             bool is_large_font() const;
             bool is_use_bold_values() const;
+        };
+
+        /**
+         * @brief Конфигурация Telegram бота
+         *
+         * Содержит параметры для интеграции с Telegram.
+         * Сохраняется в энергонезависимой памяти через FileData.
+         *
+         * @note TODO: Реализовать функционал Telegram бота
+         */
+        struct telegram_config_t
+        {
+            // TODO: Добавить поля для конфигурации Telegram бота
+            // Например:
+            // char bot_token[64] = "";
+            // char chat_id[32] = "";
+            // bool enabled = false;
+
+            /**
+             * @brief Очистка конфигурации к значениям по умолчанию
+             */
+            void clear();
+
+            /**
+             * @brief Вывод конфигурации в Serial
+             */
+            void trace() const;
+        };
+
+        /**
+         * @brief Конфигурация MQTT сервера
+         *
+         * Содержит параметры для подключения к MQTT брокеру.
+         * Сохраняется в энергонезависимой памяти через FileData.
+         *
+         * @note TODO: Реализовать функционал MQTT клиента
+         */
+        struct mqtt_config_t
+        {
+            // TODO: Добавить поля для конфигурации MQTT
+            // Например:
+            // char broker_host[64] = "";
+            // uint16_t broker_port = 1883;
+            // char username[32] = "";
+            // char password[64] = "";
+            // char client_id[32] = "";
+            // bool enabled = false;
+
+            /**
+             * @brief Очистка конфигурации к значениям по умолчанию
+             */
+            void clear();
+
+            /**
+             * @brief Вывод конфигурации в Serial
+             */
+            void trace() const;
         };
 
         /**
@@ -196,18 +277,76 @@ namespace etl
              * @param default_cfg Конфигурация WiFi сервера по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default = false);
+            bool init_wifi_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default = false);
 
             /**
              * @brief Установить значения подключения к точками доступа
              * @param cfg Конфигурация WiFi сервера
              */
-            bool save_config(const etl::wifi::server_config_t& cfg);
+            bool save_wifi_config(const etl::wifi::server_config_t& cfg);
 
             /**
              * @brief Считать текущие значения подключения к точками доступа
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
              */
-            etl::wifi::server_config_t load_config();
+            etl::optional<etl::wifi::server_config_t> load_wifi_config();
+
+            /**
+             * @brief Инициализация настроек интерфейса
+             * @param default_cfg Конфигурация интерфейса по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_ui_config(const etl::wifi::ui_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Сохранить настройки интерфейса
+             * @param cfg Конфигурация интерфейса
+             */
+            bool save_ui_config(const etl::wifi::ui_config_t& cfg);
+
+            /**
+             * @brief Загрузить настройки интерфейса
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::wifi::ui_config_t> load_ui_config();
+
+            /**
+             * @brief Инициализация настроек Telegram бота
+             * @param default_cfg Конфигурация Telegram бота по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_telegram_config(const etl::wifi::telegram_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Сохранить настройки Telegram бота
+             * @param cfg Конфигурация Telegram бота
+             */
+            bool save_telegram_config(const etl::wifi::telegram_config_t& cfg);
+
+            /**
+             * @brief Загрузить настройки Telegram бота
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::wifi::telegram_config_t> load_telegram_config();
+
+            /**
+             * @brief Инициализация настроек MQTT
+             * @param default_cfg Конфигурация MQTT по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_mqtt_config(const etl::wifi::mqtt_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Сохранить настройки MQTT
+             * @param cfg Конфигурация MQTT
+             */
+            bool save_mqtt_config(const etl::wifi::mqtt_config_t& cfg);
+
+            /**
+             * @brief Загрузить настройки MQTT
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::wifi::mqtt_config_t> load_mqtt_config();
         }
 
         /**
@@ -221,9 +360,9 @@ namespace etl
         public:
             /**
              * @brief Конструктор
-             * @param cfg Конфигурация WiFi сервера
+             * @param cfg Конфигурация WiFi сервера (опционально)
              */
-            explicit server_setup(const server_config_t& cfg = server_config_t());
+            explicit server_setup(const etl::optional<server_config_t>& cfg = {});
 
             /**
              * @brief Деструктор
@@ -238,7 +377,7 @@ namespace etl
              *
              * - Запуск в режиме точки доступа
              * - Настройка сети
-             * 
+             *
              * @param device_info Информация об устройстве (не сохраняется в FS)
              * @return true при успешной инициализации
              */
@@ -319,19 +458,19 @@ namespace etl
             virtual void disconnect();
 
             /**
-             * @brief Сохранение настроек WiFi
+             * @brief Сохранение настроек
              * @return true при успешном сохранении
              */
             virtual bool save_settings();
 
             /**
-             * @brief Загрузка сохранённых настроек WiFi
+             * @brief Загрузка сохранённых настроек
              * @return true если настройки загружены успешно
              */
             virtual bool load_settings();
 
             /**
-             * @brief Сброс настроек WiFi к заводским
+             * @brief Сброс настроек к заводским
              * @return true при успешном сбросе
              */
             virtual bool reset_settings();
@@ -341,13 +480,19 @@ namespace etl
              * @param cfg Новая конфигурация
              * @note Должно быть вызвано до begin() или после stop()
              */
-            virtual void set_config(const server_config_t& cfg);
+            virtual void set_config(const etl::optional<server_config_t>& cfg);
 
             /**
-             * @brief Получить текущую конфигурацию
-             * @return Конфигурация сервера
+             * @brief Получить текущую конфигурацию WiFi
+             * @return Конфигурация сервера (опционально)
              */
-            virtual const server_config_t& get_config() const { return m_config; }
+            virtual const etl::optional<server_config_t>& get_wifi_config() const { return m_config; }
+
+            /**
+             * @brief Получить текущую конфигурацию интерфейса
+             * @return Конфигурация интерфейса (опционально)
+             */
+            virtual etl::optional<ui_config_t> get_ui_config() const;
 
             /**
              * @brief Установить информацию об устройстве
@@ -488,7 +633,8 @@ namespace etl
              */
             virtual void send_error_response(const String& message);
 
-            server_config_t m_config;                   ///< Конфигурация WiFi
+            etl::optional<server_config_t> m_config;    ///< Конфигурация WiFi (опционально)
+            etl::optional<ui_config_t> m_ui_config;     ///< Конфигурация интерфейса (опционально)
             device_info_t m_device_info;                ///< Информация об устройстве
             bool m_initialized = false;                 ///< Флаг инициализации
             connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
