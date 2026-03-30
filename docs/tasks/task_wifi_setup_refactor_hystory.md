@@ -125,6 +125,25 @@ refactor: WiFi Setup - разделение настроек WiFi и UI
 ```
 
 ## Следующие шаги
-- [ ] Обновить веб-интерфейс для работы с опциональными настройками (показывать ui-settings-container только если настройки инициализированы)
+- [x] Обновить веб-интерфейс для работы с опциональными настройками (показывать ui-settings-container только если настройки инициализированы)
 - [ ] Протестировать на реальных устройствах
 - [ ] Обновить документацию
+
+## Исправления (после первоначальной реализации)
+
+### Исправление: Скрытие контейнера UI настроек при неинициализированных настройках
+
+**Проблема:** При `init_ui_settings = false` в симуляции, контейнер настроек интерфейса всё равно показывался.
+
+**Причина:** У контейнера `.ui-settings-container` не было `id`, поэтому переменная `uiSettingsContainer` в JavaScript не была инициализирована.
+
+**Решение:**
+1. В `handle_api_config()` добавлен флаг `ui_config_initialized`, который передаётся клиенту
+2. В HTML добавлен `id="uiSettingsContainer"` к контейнеру
+3. В JavaScript добавлено объявление переменной `uiSettingsContainer`
+4. В JavaScript функции `loadDeviceConfig()` сохранение флага в `window.deviceConfig.ui_config_initialized`
+5. В функции `applyUISettings()` проверка флага и скрытие контейнера через `classList.add('hidden')`
+
+**Изменённые файлы:**
+- `lib/ETLTest/etl_wifi_setup.cpp` — добавлена передача флага `ui_config_initialized`
+- `lib/ETLTest/etl_wifi_setup_html.h` — добавлен `id="uiSettingsContainer"`, обновлены функции `loadDeviceConfig()` и `applyUISettings()`

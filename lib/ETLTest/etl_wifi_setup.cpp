@@ -234,7 +234,8 @@ namespace etl
                 else
                 {
                     Serial.println(F("[wifi::settings] load_ui_config(): ui_cfg not inited, returning empty optional"));
-                    return {};
+                    etl::optional<ui_config_t> empty;
+                    return empty;
                 }
             }
 
@@ -525,9 +526,9 @@ namespace etl
         {
             Serial.println(F("=== ui_config_t settings ==="));
             Serial.printf("language        = %s\n", language);
-            Serial.printf("dark_theme      = %s\n", dark_theme ? "ON" : "OFF");
-            Serial.printf("large_font      = %s\n", large_font ? "ON" : "OFF");
-            Serial.printf("use_bold_values = %s\n", use_bold_values ? "ON" : "OFF");
+            Serial.printf("dark_theme      = %s\n", dark_theme ? "✅" : "⬜");
+            Serial.printf("large_font      = %s\n", large_font ? "✅" : "⬜");
+            Serial.printf("use_bold_values = %s\n", use_bold_values ? "✅" : "⬜");
             Serial.println(F("========================"));
         }
 
@@ -1433,7 +1434,7 @@ namespace etl
             doc["device_name"] = m_device_info.name;
             doc["device_description"] = m_device_info.description;
             doc["device_icon_svg"] = m_device_info.icon_svg;
-            
+
             // WiFi конфигурация (из m_config)
             if (m_config.has_value()) {
                 doc["hostname"] = m_config->get_hostname();
@@ -1442,8 +1443,10 @@ namespace etl
                 doc["port"] = m_config->port;
                 doc["wifi_ssid"] = m_config->get_wifi_ssid();
             }
-            
+
             // Настройки интерфейса (из m_ui_config)
+            // Флаг ui_config_initialized указывает, были ли инициализированы настройки интерфейса
+            doc["ui_config_initialized"] = m_ui_config.has_value();
             if (m_ui_config.has_value()) {
                 doc["language"] = m_ui_config->get_language();
                 doc["dark_theme"] = m_ui_config->is_dark_theme();

@@ -176,7 +176,7 @@ namespace etl
                 <div class="device-description" id="deviceDescription">DEVICE_DESC_PLACEHOLDER</div>
             </div>
         </div>
-        <div class="ui-settings-container">
+        <div class="ui-settings-container" id="uiSettingsContainer">
             <div class="ui-settings-title" data-i18n="ui_settings_title">Interface Settings</div>
             <div class="ui-setting-item">
                 <span class="ui-setting-label" data-i18n="dark_theme_label">Dark Theme</span>
@@ -281,6 +281,7 @@ namespace etl
         const darkThemeToggle = document.getElementById('darkThemeToggle');
         const largeFontToggle = document.getElementById('largeFontToggle');
         const boldValuesToggle = document.getElementById('boldValuesToggle');
+        const uiSettingsContainer = document.getElementById('uiSettingsContainer');
         const apSsidInput = document.getElementById('apSsidInput');
         const apPasswordInput = document.getElementById('apPasswordInput');
         const showApPasswordBtn = document.getElementById('showApPasswordBtn');
@@ -330,21 +331,33 @@ namespace etl
             try {
                 const response = await fetch('/api/config');
                 const config = await response.json();
-                window.deviceConfig = { 
-                    version: config.device_name || 'ESP Device', 
-                    description: config.device_description || '', 
-                    iconSvg: config.device_icon_svg || null, 
-                    hostname: config.hostname || 'espdevice', 
-                    apSsid: config.ap_ssid || 'ESP_Device_AP', 
+                window.deviceConfig = {
+                    version: config.device_name || 'ESP Device',
+                    description: config.device_description || '',
+                    iconSvg: config.device_icon_svg || null,
+                    hostname: config.hostname || 'espdevice',
+                    apSsid: config.ap_ssid || 'ESP_Device_AP',
                     apPassword: config.ap_password || '',
                     dark_theme: config.dark_theme || false,
                     large_font: config.large_font || false,
-                    use_bold_values: config.use_bold_values || false
+                    use_bold_values: config.use_bold_values || false,
+                    ui_config_initialized: config.ui_config_initialized || false
                 };
             } catch (error) { console.error('Failed to load device config:', error); }
         }
         function applyDeviceConfig() { const config = window.deviceConfig || {}; if (config.version) deviceName.textContent = config.version; if (config.description) deviceDescription.textContent = config.description; if (config.iconSvg && config.iconSvg.trim()) { deviceIcon.innerHTML = config.iconSvg; } else { deviceIcon.innerHTML = DEFAULT_DEVICE_ICON; } if (config.apSsid) apSsidInput.value = config.apSsid; if (config.apPassword) apPasswordInput.value = config.apPassword; }
         function applyUISettings() {
+            // Проверка флага инициализации настроек интерфейса
+            // Если настройки не были инициализированы, скрываем контейнер и выходим
+            if (window.deviceConfig && window.deviceConfig.ui_config_initialized === false) {
+                // Скрыть контейнер настроек интерфейса
+                if (uiSettingsContainer) {
+                    uiSettingsContainer.classList.add('hidden');
+                }
+                uiSettingsInitialized = false;
+                return;
+            }
+            
             if (window.deviceConfig) {
                 const config = window.deviceConfig;
                 if (config.dark_theme !== undefined) darkThemeToggle.checked = config.dark_theme;

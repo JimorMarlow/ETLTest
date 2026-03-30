@@ -9,9 +9,13 @@
 //////////////////////////////////////////////////////////////
 // Настройки тестирования
 struct simulation_t {
-    bool reset_wifi_on_start = false;    // Не считывать настройки, а заменить на значения по умолчанию
+    bool reset_wifi_on_start = false;   // Не считывать настройки, а заменить на значения по умолчанию
     bool custom_device_info = true;     // Установить отладочную информацию об устройстве
     bool custom_icon_svg = false;       // Установить отладочную иконку для устройства
+
+    bool init_ui_settings = true;       // Использовать настройки интерфейса в общих настройках
+    bool reset_ui_on_start = false;      // Не считывать настройки, а заменить на значения по умолчанию
+    
 };
 simulation_t simulation_data;
 //////////////////////////////////////////////////////////////
@@ -24,10 +28,17 @@ simulation_t simulation_data;
 #include "etl/etl_littlefs.h"
 etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
 bool start_wifi_server() { // WiFi setup
+
     // setup available wi-fi points
     etl::wifi::server_config_t web_config; // default settings
     // В setup() или до начала работы с WiFi
     etl::wifi::settings::init_wifi_config(web_config, simulation_data.reset_wifi_on_start);
+
+    if(simulation_data.init_ui_settings)
+    {
+        etl::wifi::ui_config_t ui_config; // default UI settings 
+        etl::wifi::settings::init_ui_config(ui_config, simulation_data.reset_ui_on_start);
+    }
 
     // Настройка информации об устройстве
     etl::wifi::device_info_t device_info;  // device information
