@@ -967,8 +967,8 @@ namespace etl
             Serial.println(F("[WiFiSetup] Loading settings..."));
             
             // Загрузка WiFi настроек
-            auto wifi_cfg = settings::load_wifi_config();
-            if (wifi_cfg.has_value()) {
+            if (auto wifi_cfg = settings::load_wifi_config(); wifi_cfg.has_value()) 
+            {
                 m_config = wifi_cfg;
                 Serial.println(F("[WiFiSetup] WiFi settings loaded"));
             } else {
@@ -976,8 +976,8 @@ namespace etl
             }
             
             // Загрузка UI настроек
-            auto ui_cfg = settings::load_ui_config();
-            if (ui_cfg.has_value()) {
+            if (auto ui_cfg = settings::load_ui_config(); ui_cfg.has_value()) 
+            {
                 m_ui_config = ui_cfg;
                 Serial.println(F("[WiFiSetup] UI settings loaded"));
             } else {
