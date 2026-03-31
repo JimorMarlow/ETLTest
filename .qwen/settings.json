@@ -3,7 +3,8 @@
     "allow": [
       "Bash(c:\\users\\amber\\.platformio\\penv\\scripts\\platformio.exe *)",
       "Bash(dir *)",
-      "Bash(findstr *)"
+      "Bash(findstr *)",
+      "Bash(python *)"
     ]
   },
   "$version": 3
