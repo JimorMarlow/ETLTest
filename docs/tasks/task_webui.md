@@ -12,9 +12,11 @@
 
 | Режим | Активация | HTTP порт | mDNS | Поведение |
 |-------|-----------|-----------|------|-----------|
-| **WebUI** | Обычный старт | 80 | `kitchenlight.local` | Сервер управления устройством |
+| **WebUI** | Обычный старт | 80 | `espdevice.local` | Сервер управления устройством |
 | **WiFi Setup** | 3 нажатия кнопки | 80 | `espdevice.local` | Сервер настройки WiFi |
 | **Factory Reset** | Кнопка при старте | - | - | Сброс настроек, запуск WiFi Setup |
+
+Имя для обоих серверов одинаковое, настройки берут тоже одни и теже, сервер забирается в одинаковом режиме для точки доступа.
 
 ### Переключение серверов
 
@@ -27,7 +29,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    etl_web_server_base_t                    │
+│                    etl::web_server_base_t                   │
 │                    (базовый класс)                          │
 │  - hostname, port, mDNS                                     │
 │  - start(), stop(), handle()                                │
@@ -37,15 +39,18 @@
          │                                    │
          ▼                                    ▼
 ┌────────────────────┐            ┌─────────────────────────┐
-│   webui_server_t   │            │  wifi::server_setup_t   │
+│   server_content_t │            │  wifi::server_setup_t   │
 │   (WebUI Server)   │            │  (WiFi Setup Server)    │
 │                    │            │                         │
-│  - KitchenLight UI │            │  - AP режим             │
+│  - Light UI        │            │  - AP режим             │
 │  - LED control API │            │  - Сканирование сетей   │
 │  - Brightness API  │            │  - Подключение к WiFi   │
 │  - Device config   │            │  - Сохранение настроек  │
 └────────────────────┘            └─────────────────────────┘
 ```
+
+Класс настройки подключения и интерфейса уже реализован в файлах lib\ETLTest\etl_wifi_setup*. Использовать его.
+
 
 ### Хранение настроек
 
@@ -54,9 +59,22 @@
 // Общий доступ через etl::wifi::settings
 
 // В main.cpp:
-etl::wifi::server_config_t web_config;
-etl::wifi::settings::init_config(web_config, reset_to_default);
-etl::wifi::settings::load_config();  // Загрузка настроек
+etl::wifi::server_config_t web_config; // default settings
+    // В setup() или до начала работы с WiFi
+etl::wifi::settings::init_wifi_config(web_config, simulation_data.reset_wifi_on_start);
+
+// Для получения 
+etl::optional<etl::wifi::settings::server_config_t> etl::wifi::settings::load_wifi_config();
+```
+
+```cpp
+// Настройки интерфейса
+// Общий доступ через etl::wifi::settings
+etl::wifi::ui_config_t ui_config; // default UI settings 
+etl::wifi::settings::init_ui_config(ui_config, simulation_data.reset_ui_on_start);
+
+// Получение настроек интерфейса
+... etl::wifi::settings::load_ui_config(); // Может отсутствовать, проверять результат
 ```
 
 ### Симуляция в тестовом проекте
@@ -76,20 +94,9 @@ struct simulation_t {
 ## Tasks
 
 ### Этап 1: Макет WebUI
-- [x] **Task 1.1:** Создать HTML макет KitchenLight UI
+- [x] **Task 1.1:** Создан HTML макет для условной подсветки рабочей зоны - это будет главный экран контента
   - Файл: `docs\web-wifi\qwen-webui.001.html`
-  - Элементы:
-    - Название устройства: "Kitchen Light"
-    - Иконка устройства (SVG)
-    - **Индикатор WiFi** (подключено к точке доступа / AP режим / нет подключения)
-    - **Кнопка WiFi Setup** (сверху справа, иконка ⚙)
-    - Переключатель ВКЛ/ВЫКЛ
-    - Слайдер яркости (0-100%)
-    - Индикатор текущего состояния
-  - Стиль: iOS-like (как в WiFi Setup)
-  - Адаптивность: мобильные + десктоп
-  - Языки: EN/RU переключатель
-
+  
 ### Этап 2: Базовый класс Web Server
 - [ ] **Task 2.1:** Создать базовый класс в ETL
   - Файл: `ETL/src/etl/etl_web_server_base.h`
