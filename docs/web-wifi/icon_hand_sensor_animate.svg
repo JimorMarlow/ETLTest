@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64mm" height="64mm" viewBox="0 0 64 64">
+  <style>
+    .lamp-glow{animation:glow 5s ease-in-out infinite}
+    @keyframes glow{0%,100%{fill-opacity:1;stroke-opacity:1}50%{fill-opacity:0.7;stroke-opacity:0.7}}
+  </style>
+  
+  <!-- Полка -->
+  <rect x="14.45" y="2.39" width="36.71" height="6.44" ry="0.18" fill="#a2d6fe" stroke="#20446e" stroke-width="1.465"/>
+  
+  <!-- Лампа с анимацией (полукруг направлен вниз) -->
+  <path class="lamp-glow" fill="#ffffff" stroke="#20446e" stroke-width="1.465" d="M 26.49 9.5 A 6.35 6.16 0 0 0 32.84 15.66 A 6.35 6.16 0 0 0 39.19 9.5"/>
+  
+  <!-- Сенсоры - внешний ряд (левая дуга) -->
+  <path fill="none" stroke="#a2d6fe" stroke-width="0.9" stroke-linecap="round" d="M 17.82 34.35 A 24.41 23.89 0 0 1 8.25 15.38"/>
+  <!-- Сенсоры - внешний ряд (правая дуга) -->
+  <path fill="none" stroke="#a2d6fe" stroke-width="0.9" stroke-linecap="round" d="M 57.22 15.13 A 24.41 23.89 0 0 1 50.98 31.09"/>
+  
+  <!-- Сенсоры - средний ряд (левая дуга) -->
+  <path fill="none" stroke="#a2d6fe" stroke-width="0.965" stroke-linecap="round" d="M 19.98 27.3 A 16.93 16.47 0 0 1 15.6 16.25"/>
+  <!-- Сенсоры - средний ряд (правая дуга) -->
+  <path fill="none" stroke="#a2d6fe" stroke-width="0.979" stroke-linecap="round" d="M 50.33 15.89 A 25.41 16.29 0 0 1 47.26 23.65"/>
+  
+  <!-- Сенсоры - внутренний ряд (левая дуга) -->
+  <path fill="none" stroke="#a2d6fe" stroke-width="0.98" stroke-linecap="round" d="M 25.52 22.96 A 10.11 9.1 0 0 1 22.59 16.55"/>
+  <!-- Сенсоры - внутренний ряд (правая дуга) -->
+  <path fill="none" stroke="#a2d6fe" stroke-width="0.98" stroke-linecap="round" d="M 42.87 16.29 A 10.11 9.1 0 0 1 37.59 24.28"/>
+  
+  <!-- Рука -->
+  <path fill="none" stroke="#1e436d" stroke-width="1.565" stroke-linecap="round" stroke-linejoin="round" d="M 43.52 58.03 L 40.14 54.58 L 36.43 54.32 L 21.47 40.08 L 21.47 37.67 L 22.97 36.43 L 24.66 36.82"/>
+  <path fill="none" stroke="#1e436d" stroke-width="1.565" stroke-linecap="round" stroke-linejoin="round" d="M 30.38 42.81 L 21.34 33.57 L 21.34 31.94 L 22.45 30.84 L 24.27 30.51"/>
+  <path fill="none" stroke="#1e436d" stroke-width="1.565" stroke-linecap="round" stroke-linejoin="round" d="M 33.7 39.56 L 23.29 29.08 L 23.29 27.39 L 24.85 25.89 L 27.39 26.09 L 36.82 35.85"/>
+  <path fill="none" stroke="#1e436d" stroke-width="1.565" stroke-linecap="round" stroke-linejoin="round" d="M 28.43 27.32 L 28.43 25.05 L 29.54 23.94 L 31.55 23.94 L 43.26 35.33"/>
+  <path fill="none" stroke="#1e436d" stroke-width="1.565" stroke-linecap="round" stroke-linejoin="round" d="M 40.34 44.18 L 40.47 40.67 L 43.46 36.5 L 43.46 32.72 L 42.35 31.68 L 42.35 26.87 L 43.52 25.63 L 45.47 25.7 L 48.27 31.88 L 50.48 37.86 L 51.26 40.07 L 51.39 43.78 L 54.45 46.84"/>
+</svg>
