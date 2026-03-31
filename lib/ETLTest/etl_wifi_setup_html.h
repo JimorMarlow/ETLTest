@@ -160,6 +160,59 @@ namespace etl
         .modal-btn-cancel { background: #F2F2F7; color: #1C1C1E; }
         .modal-btn-confirm { background: #FF3B30; color: #FFFFFF; }
         .hidden { display: none !important; }
+
+        /* Dark Theme Styles */
+        body.dark-theme { background: #1C1C1E; color: #FFFFFF; }
+        body.dark-theme .header { border-bottom-color: #38383A; }
+        body.dark-theme .header-title { color: #FFFFFF; }
+        body.dark-theme .lang-btn { background: #1C1C1E; border-color: #38383A; color: #FFFFFF; }
+        body.dark-theme .lang-btn:hover { border-color: #007AFF; }
+        body.dark-theme .lang-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
+        body.dark-theme .ui-settings-container { background: #2C2C2E; }
+        body.dark-theme .ui-settings-title { color: #FFFFFF; }
+        body.dark-theme .ui-setting-label { color: #FFFFFF; }
+        body.dark-theme .device-info-container { background: #2C2C2E; }
+        body.dark-theme .device-name { color: #FFFFFF; }
+        body.dark-theme .device-description { color: #98989D; }
+        body.dark-theme .status-section { background: #2C2C2E; }
+        body.dark-theme .status-text { color: #FFFFFF; }
+        body.dark-theme .status-details { color: #98989D; }
+        body.dark-theme .section-title { color: #FFFFFF; }
+        body.dark-theme .networks-list { background: #2C2C2E; }
+        body.dark-theme .network-item { border-bottom-color: #38383A; }
+        body.dark-theme .network-item:hover { background: #3A3A3C; }
+        body.dark-theme .network-name { color: #FFFFFF; }
+        body.dark-theme .network-signal { color: #98989D; }
+        body.dark-theme .network-lock { color: #98989D; }
+        body.dark-theme .network-checkmark { color: #30D158; }
+        body.dark-theme .inline-password-section { background: #2C2C2E; border-left-color: #007AFF; border-right-color: #007AFF; border-bottom-color: #007AFF; }
+        body.dark-theme .inline-password-input { background: #1C1C1E; border-color: #38383A; color: #FFFFFF; }
+        body.dark-theme .inline-password-input:focus { border-color: #007AFF; }
+        body.dark-theme .inline-password-input::placeholder { color: #636366; }
+        body.dark-theme .inline-show-password-btn { color: #0A84FF; }
+        body.dark-theme .inline-join-btn { background: #007AFF; color: #FFFFFF; }
+        body.dark-theme .inline-join-btn:hover { background: #0056CC; }
+        body.dark-theme .inline-disconnect-btn { background: #FF453A; color: #FFFFFF; }
+        body.dark-theme .inline-disconnect-btn:hover { background: #D63026; }
+        body.dark-theme .ap-settings-section { background: #2C2C2E; }
+        body.dark-theme .ap-settings-title { color: #FFFFFF; border-bottom-color: #38383A; }
+        body.dark-theme .input-label { color: #98989D; }
+        body.dark-theme .input-field { background: #1C1C1E; border-color: #38383A; color: #FFFFFF; }
+        body.dark-theme .input-field:focus { border-color: #007AFF; }
+        body.dark-theme .input-field::placeholder { color: #636366; }
+        body.dark-theme .show-password-btn { color: #0A84FF; }
+        body.dark-theme .btn-secondary { background: #1C1C1E; color: #0A84FF; border-color: #0A84FF; }
+        body.dark-theme .btn-secondary:hover { background: #0A84FF; color: #FFFFFF; }
+        body.dark-theme .refresh-btn { background: #1C1C1E; border-color: #0A84FF; color: #0A84FF; }
+        body.dark-theme .refresh-btn:hover { background: #0A84FF; color: #FFFFFF; }
+        body.dark-theme .refresh-spinner { border-color: #0A84FF; border-top-color: transparent; }
+        body.dark-theme .spinner { border-color: #FFFFFF; border-top-color: transparent; }
+        body.dark-theme .modal { background: #2C2C2E; }
+        body.dark-theme .modal-title { color: #FFFFFF; }
+        body.dark-theme .modal-message { color: #FFFFFF; }
+        body.dark-theme .modal-btn-cancel { background: #3A3A3C; color: #FFFFFF; }
+        body.dark-theme .modal-btn-confirm { background: #FF453A; color: #FFFFFF; }
+
         @media (max-width: 480px) { body { padding: 12px; } .device-info-container { padding: 12px; } .device-icon { width: 60px; height: 60px; } .device-info-content { padding-left: 4px; } .device-name { font-size: 18px; } .device-description { font-size: 14px; } }
     </style>
 </head>
@@ -760,8 +813,12 @@ namespace etl
         });
         darkThemeToggle.addEventListener('change', function() {
             if (!uiSettingsInitialized) return;
-            // Применяем класс, но не сохраняем на сервер
-            // Класс dark-theme будет применяться в applyUISettings()
+            // Применяем класс сразу при переключении
+            if (this.checked) {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
         });
         largeFontToggle.addEventListener('change', function() {
             if (!uiSettingsInitialized) return;

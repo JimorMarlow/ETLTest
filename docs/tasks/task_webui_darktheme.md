@@ -39,14 +39,14 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя_конфи
 ┌─────────────────────────────────────────────────────┐
 │ Settings / Настройки                        [RU]    │ ← header (data-i18n="title")
 ├─────────────────────────────────────────────────────┤
-│ [Device Icon]  Device Name                           │
-│                Description                           │ ← device-info-container
+│ [Device Icon]  Device Name                          │
+│                Description                          │ ← device-info-container
 ├─────────────────────────────────────────────────────┤
 │ Настройки интерфейса                                │ ← ui-settings-container
 │ ┌─────────────────────────────────────────────────┐ │
-│ │ Тёмная тема                              [toggle]│ │
-│ │ Увеличенный шрифт                        [toggle]│ │
-│ │ Ключевые значения (Bold)                 [toggle]│ │
+│ │ Тёмная тема                             [toggle]│ │
+│ │ Увеличенный шрифт                       [toggle]│ │
+│ │ Ключевые значения (Bold)                [toggle]│ │
 │ └─────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────┤
 │ WiFi Setup / Настройки WiFi                         │ ← section-title (data-i18n="main_title")
@@ -56,7 +56,7 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя_конфи
 ├─────────────────────────────────────────────────────┤
 │ Select Network / Выберите сеть                      │ ← section-title
 │ ┌─────────────────────────────────────────────────┐ │
-│ │ 📶 Network Name           🔒                    │ │ ← networks-list
+│ │ 📶 Network Name           🔒                   │ │ ← networks-list
 │ │     Excellent • WPA2                            │ │
 │ └─────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────┤
