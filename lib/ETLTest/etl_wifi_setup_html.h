@@ -8,7 +8,7 @@
 
 namespace etl
 {
-    namespace wifi
+    namespace webui
     {
         // HTML шаблон в PROGMEM
         const char HTML_TEMPLATE[] PROGMEM = R"rawliteral(
@@ -853,5 +853,5 @@ namespace etl
 </html>
 )rawliteral";
 
-    } // namespace wifi
+    } // namespace webui
 } // namespace etl

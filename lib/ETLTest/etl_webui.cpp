@@ -7,7 +7,7 @@
 
 #if defined(ESP8266) || defined(ESP32)
 
-#include "etl_wifi_setup.h"
+#include "etl_webui.h"
 #include "etl_wifi_setup_html.h"
 
 #include "etl/etl_littlefs.h"
@@ -15,7 +15,7 @@
 
 namespace etl
 {
-    namespace wifi
+    namespace webui
     {
         // Константы для хранения настроек
         static const uint32_t WIFI_CONNECT_TIMEOUT = 10000;  // 10 секунд
@@ -26,25 +26,25 @@ namespace etl
             const String    wifi_data_path = "/settings/wifi.cfg";
             const uint16_t  wifi_data_update_delay = 0;  // 0ms - Immediately update
             server_config_t default_wifi_cfg;            // Значение по-умолчанию для сброса к заводским значениям
-            etl::shared_ptr<etl::settings::data<etl::wifi::server_config_t>> wifi_cfg;
+            etl::shared_ptr<etl::settings::data<etl::webui::server_config_t>> wifi_cfg;
 
             // UI настройки
             const String    ui_data_path = "/settings/ui.cfg";
             const uint16_t  ui_data_update_delay = 0;  // 0ms - Immediately update
             ui_config_t     default_ui_cfg;            // Значение по-умолчанию для сброса к заводским значениям
-            etl::shared_ptr<etl::settings::data<etl::wifi::ui_config_t>> ui_cfg;
+            etl::shared_ptr<etl::settings::data<etl::webui::ui_config_t>> ui_cfg;
 
             // Telegram настройки
             const String    telegram_data_path = "/settings/telegram.cfg";
             const uint16_t  telegram_data_update_delay = 0;  // 0ms - Immediately update
             telegram_config_t default_telegram_cfg;          // Значение по-умолчанию для сброса к заводским значениям
-            etl::shared_ptr<etl::settings::data<etl::wifi::telegram_config_t>> telegram_cfg;
+            etl::shared_ptr<etl::settings::data<etl::webui::telegram_config_t>> telegram_cfg;
 
             // MQTT настройки
             const String    mqtt_data_path = "/settings/mqtt.cfg";
             const uint16_t  mqtt_data_update_delay = 0;  // 0ms - Immediately update
             mqtt_config_t   default_mqtt_cfg;            // Значение по-умолчанию для сброса к заводским значениям
-            etl::shared_ptr<etl::settings::data<etl::wifi::mqtt_config_t>> mqtt_cfg;
+            etl::shared_ptr<etl::settings::data<etl::webui::mqtt_config_t>> mqtt_cfg;
 
             // ============================================================================
             // WiFi настройки
@@ -55,7 +55,7 @@ namespace etl
              * @param cfg Конфигурация WiFi сервера по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_wifi_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default /*= false*/)
+            bool init_wifi_config(const etl::webui::server_config_t& default_cfg, bool reset_to_default /*= false*/)
             {
                 Serial.println(F("[wifi::settings] init_wifi_config()"));
 
@@ -68,7 +68,7 @@ namespace etl
                 // Сохранение настроек в постоянной памяти
                 if(!wifi_cfg)
                 {
-                    wifi_cfg = etl::make_shared<etl::settings::data<etl::wifi::server_config_t>>(settings::wifi_data_path, settings::wifi_data_update_delay, default_cfg);
+                    wifi_cfg = etl::make_shared<etl::settings::data<etl::webui::server_config_t>>(settings::wifi_data_path, settings::wifi_data_update_delay, default_cfg);
                     bool result = wifi_cfg->init();
                     Serial.print(F("[wifi::settings] init_wifi_config() result: "));
                     Serial.println(result ? F("OK") : F("FAILED"));
@@ -151,7 +151,7 @@ namespace etl
              * @param default_cfg Конфигурация интерфейса по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_ui_config(const etl::wifi::ui_config_t& default_cfg, bool reset_to_default /*= false*/)
+            bool init_ui_config(const etl::webui::ui_config_t& default_cfg, bool reset_to_default /*= false*/)
             {
                 Serial.println(F("[wifi::settings] init_ui_config()"));
 
@@ -164,7 +164,7 @@ namespace etl
                 // Сохранение настроек в постоянной памяти
                 if(!ui_cfg)
                 {
-                    ui_cfg = etl::make_shared<etl::settings::data<etl::wifi::ui_config_t>>(settings::ui_data_path, settings::ui_data_update_delay, default_cfg);
+                    ui_cfg = etl::make_shared<etl::settings::data<etl::webui::ui_config_t>>(settings::ui_data_path, settings::ui_data_update_delay, default_cfg);
                     bool result = ui_cfg->init();
                     Serial.print(F("[wifi::settings] init_ui_config() result: "));
                     Serial.println(result ? F("OK") : F("FAILED"));
@@ -248,7 +248,7 @@ namespace etl
              * @param default_cfg Конфигурация Telegram бота по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_telegram_config(const etl::wifi::telegram_config_t& default_cfg, bool reset_to_default /*= false*/)
+            bool init_telegram_config(const etl::webui::telegram_config_t& default_cfg, bool reset_to_default /*= false*/)
             {
                 Serial.println(F("[wifi::settings] init_telegram_config()"));
 
@@ -259,7 +259,7 @@ namespace etl
 
                 if(!telegram_cfg)
                 {
-                    telegram_cfg = etl::make_shared<etl::settings::data<etl::wifi::telegram_config_t>>(settings::telegram_data_path, settings::telegram_data_update_delay, default_cfg);
+                    telegram_cfg = etl::make_shared<etl::settings::data<etl::webui::telegram_config_t>>(settings::telegram_data_path, settings::telegram_data_update_delay, default_cfg);
                     bool result = telegram_cfg->init();
                     Serial.print(F("[wifi::settings] init_telegram_config() result: "));
                     Serial.println(result ? F("OK") : F("FAILED"));
@@ -332,7 +332,7 @@ namespace etl
              * @param default_cfg Конфигурация MQTT по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_mqtt_config(const etl::wifi::mqtt_config_t& default_cfg, bool reset_to_default /*= false*/)
+            bool init_mqtt_config(const etl::webui::mqtt_config_t& default_cfg, bool reset_to_default /*= false*/)
             {
                 Serial.println(F("[wifi::settings] init_mqtt_config()"));
 
@@ -343,7 +343,7 @@ namespace etl
 
                 if(!mqtt_cfg)
                 {
-                    mqtt_cfg = etl::make_shared<etl::settings::data<etl::wifi::mqtt_config_t>>(settings::mqtt_data_path, settings::mqtt_data_update_delay, default_cfg);
+                    mqtt_cfg = etl::make_shared<etl::settings::data<etl::webui::mqtt_config_t>>(settings::mqtt_data_path, settings::mqtt_data_update_delay, default_cfg);
                     bool result = mqtt_cfg->init();
                     Serial.print(F("[wifi::settings] init_mqtt_config() result: "));
                     Serial.println(result ? F("OK") : F("FAILED"));
@@ -1675,7 +1675,7 @@ namespace etl
             });
         }
 
-    } // namespace wifi
+    } // namespace webui
 } // namespace etl
 
 #else

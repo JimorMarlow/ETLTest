@@ -24,24 +24,24 @@ simulation_t simulation_data;
 //////////////////////////////////////////////////////////////
 // WEB-UI
 #ifdef USE_WIFI_UI_SERVER
-#include "etl_wifi_setup.h"
+#include "etl_webui.h"
 #include "etl/etl_littlefs.h"
-etl::unique_ptr<etl::wifi::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
+etl::unique_ptr<etl::webui::server_setup> wifi_server;   // Страница для выбора и настройки wifi сети и режима точки доступа
 bool start_wifi_server() { // WiFi setup
 
     // setup available wi-fi points
-    etl::wifi::server_config_t web_config; // default settings
+    etl::webui::server_config_t web_config; // default settings
     // В setup() или до начала работы с WiFi
-    etl::wifi::settings::init_wifi_config(web_config, simulation_data.reset_wifi_on_start);
+    etl::webui::settings::init_wifi_config(web_config, simulation_data.reset_wifi_on_start);
 
     if(simulation_data.init_ui_settings)
     {
-        etl::wifi::ui_config_t ui_config; // default UI settings 
-        etl::wifi::settings::init_ui_config(ui_config, simulation_data.reset_ui_on_start);
+        etl::webui::ui_config_t ui_config; // default UI settings
+        etl::webui::settings::init_ui_config(ui_config, simulation_data.reset_ui_on_start);
     }
 
     // Настройка информации об устройстве
-    etl::wifi::device_info_t device_info;  // device information
+    etl::webui::device_info_t device_info;  // device information
     if(simulation_data.custom_device_info)
     {
         device_info.name = F("ETL Test v" APP_VERSION_STRING);
@@ -53,7 +53,7 @@ bool start_wifi_server() { // WiFi setup
         device_info.icon_svg = F("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><style>.led{animation:blink 1.5s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}</style><path d='M8 32c0-8 6-14 14-14s14 6 14 14-6 14-14 14-14-6-14-14zm8 0c0 3 3 6 6 6s6-3 6-6-3-6-6-6-6 3-6 6z' fill='#1d436d'/><path d='M28 32c0-8 6-14 14-14s14 6 14 14-6 14-14 14-14-6-14-14zm8 0c0 3 3 6 6 6s6-3 6-6-3-6-6-6-6 3-6 6z' fill='#1d436d'/><path d='M48 32c0-8 6-14 14-14v28c-8 0-14-6-14-14z' fill='#1d436d'/><circle class='led' cx='22' cy='32' r='3' fill='#a2d6fd'/><circle class='led' cx='42' cy='32' r='3' fill='#a2d6fd'/><circle class='led' cx='62' cy='32' r='3' fill='#a2d6fd'/></svg>");
     }
 
-    wifi_server = etl::make_unique<etl::wifi::server_setup>(web_config);
+    wifi_server = etl::make_unique<etl::webui::server_setup>(web_config);
     if(wifi_server && wifi_server->begin(device_info)) {
         // Вывод информации о подключении
         const String& ip_addr = wifi_server->get_ip_address();

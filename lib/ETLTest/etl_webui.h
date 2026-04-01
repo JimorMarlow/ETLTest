@@ -59,7 +59,7 @@ static const size_t WIFI_SETUP_LANGUAGE_COUNT = sizeof(WIFI_SETUP_LANGUAGES) / s
 
 namespace etl
 {
-    namespace wifi
+    namespace webui
     {
         /**
          * @brief Информация об устройстве
@@ -277,76 +277,76 @@ namespace etl
              * @param default_cfg Конфигурация WiFi сервера по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_wifi_config(const etl::wifi::server_config_t& default_cfg, bool reset_to_default = false);
+            bool init_wifi_config(const etl::webui::server_config_t& default_cfg, bool reset_to_default = false);
 
             /**
              * @brief Установить значения подключения к точками доступа
              * @param cfg Конфигурация WiFi сервера
              */
-            bool save_wifi_config(const etl::wifi::server_config_t& cfg);
+            bool save_wifi_config(const etl::webui::server_config_t& cfg);
 
             /**
              * @brief Считать текущие значения подключения к точками доступа
              * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
              */
-            etl::optional<etl::wifi::server_config_t> load_wifi_config();
+            etl::optional<etl::webui::server_config_t> load_wifi_config();
 
             /**
              * @brief Инициализация настроек интерфейса
              * @param default_cfg Конфигурация интерфейса по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_ui_config(const etl::wifi::ui_config_t& default_cfg, bool reset_to_default = false);
+            bool init_ui_config(const etl::webui::ui_config_t& default_cfg, bool reset_to_default = false);
 
             /**
              * @brief Сохранить настройки интерфейса
              * @param cfg Конфигурация интерфейса
              */
-            bool save_ui_config(const etl::wifi::ui_config_t& cfg);
+            bool save_ui_config(const etl::webui::ui_config_t& cfg);
 
             /**
              * @brief Загрузить настройки интерфейса
              * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
              */
-            etl::optional<etl::wifi::ui_config_t> load_ui_config();
+            etl::optional<etl::webui::ui_config_t> load_ui_config();
 
             /**
              * @brief Инициализация настроек Telegram бота
              * @param default_cfg Конфигурация Telegram бота по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_telegram_config(const etl::wifi::telegram_config_t& default_cfg, bool reset_to_default = false);
+            bool init_telegram_config(const etl::webui::telegram_config_t& default_cfg, bool reset_to_default = false);
 
             /**
              * @brief Сохранить настройки Telegram бота
              * @param cfg Конфигурация Telegram бота
              */
-            bool save_telegram_config(const etl::wifi::telegram_config_t& cfg);
+            bool save_telegram_config(const etl::webui::telegram_config_t& cfg);
 
             /**
              * @brief Загрузить настройки Telegram бота
              * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
              */
-            etl::optional<etl::wifi::telegram_config_t> load_telegram_config();
+            etl::optional<etl::webui::telegram_config_t> load_telegram_config();
 
             /**
              * @brief Инициализация настроек MQTT
              * @param default_cfg Конфигурация MQTT по умолчанию
              * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
              */
-            bool init_mqtt_config(const etl::wifi::mqtt_config_t& default_cfg, bool reset_to_default = false);
+            bool init_mqtt_config(const etl::webui::mqtt_config_t& default_cfg, bool reset_to_default = false);
 
             /**
              * @brief Сохранить настройки MQTT
              * @param cfg Конфигурация MQTT
              */
-            bool save_mqtt_config(const etl::wifi::mqtt_config_t& cfg);
+            bool save_mqtt_config(const etl::webui::mqtt_config_t& cfg);
 
             /**
              * @brief Загрузить настройки MQTT
              * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
              */
-            etl::optional<etl::wifi::mqtt_config_t> load_mqtt_config();
+            etl::optional<etl::webui::mqtt_config_t> load_mqtt_config();
         }
 
         /**
@@ -640,7 +640,7 @@ namespace etl
             connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
         };
 
-    } // namespace wifi
+    } // namespace webui
 } // namespace etl
 
 #else
@@ -655,9 +655,9 @@ namespace etl
  * #include "etl_wifi_setup.h"
  *
  * // Глобальный экземпляр
- * etl::wifi::server_setup wifi_server;
- * etl::wifi::server_config_t wifi_config;
- * etl::wifi::device_info_t device_info;
+ * etl::webui::server_setup wifi_server;
+ * etl::webui::server_config_t wifi_config;
+ * etl::webui::device_info_t device_info;
  *
  * void setup() {
  *     Serial.begin(115200);
@@ -709,7 +709,7 @@ namespace etl
  *
  * // Пример сканирования сетей
  * void scan_wifi_networks() {
- *     std::vector<etl::wifi::scan_result_t> networks;
+ *     std::vector<etl::webui::scan_result_t> networks;
  *     int32_t count = wifi_server.scan_networks(networks);
  *
  *     Serial.printf("Found %d networks\n", count);
