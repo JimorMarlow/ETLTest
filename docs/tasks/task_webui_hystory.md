@@ -57,3 +57,9 @@
   - ✅ nodemcuv3 (ESP8266)
   - ✅ esp32c3 (ESP32-C3)
   - ✅ esp32-wroom-32u (ESP32)
+
+**Изменение цветовой схемы power-button и brightness:**
+- Power-button: зелёный (#34C759) → синий неоновый (#007AFF)
+  - border-color: #007AFF
+  - box-shadow: rgba(0, 122, 255, 0.4/0.5)
+- Brightness-fill: зелёный (#34C759/#30D158) → синий (#007AFF/#0A84FF)

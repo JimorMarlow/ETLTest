@@ -24,11 +24,11 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
 - [x] переименовать: 
        lib\ETLTest\etl_wifi_setup.h -> lib\ETLTest\etl_webui.h
        lib\ETLTest\etl_wifi_setup.cpp -> lib\ETLTest\etl_webui.cpp
-- [ ] проверь компиляцию всех env в platformio
+- [x] проверь компиляцию всех env в platformio
+- [x] в макете интерфейса сервера контента docs\web-wifi\qwen-webui.002.html нужно изменить цвет для включенной power-button и полоски с текущей brightness с зеленого на синий
 
 [STOP] - дальше не читай, это еще в процессе продумывания и разработки. После детализации будем двигаться дальше
 
-- [ ] в макете интерфейса сервера контента docs\web-wifi\qwen-webui.002.html нужно изменить цвет для включенной power-button и полоски с текущей brightness с зеленого на синий
 - [ ] создать класс базовый класс с виртуальными методами для сервера etl::webui::web_server_base_t в 
 - [ ] server_setup унаследовать public от web_server_base_t
 
