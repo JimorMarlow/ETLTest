@@ -698,11 +698,15 @@
             brightnessUp.addEventListener('click', () => adjustBrightness(5));
             brightnessDown.addEventListener('click', () => adjustBrightness(-5));
 
-            // Кнопка настроек (заглушка)
-            settingsBtn.addEventListener('click', () => {
-                console.log('Settings button clicked');
-                // TODO: Открыть настройки
-            });
+            // Кнопка настроек - переключение темной темы
+            settingsBtn.addEventListener('click', toggleDarkTheme);
+        }
+
+        // Переключение темной темы
+        function toggleDarkTheme() {
+            document.body.classList.toggle('dark-theme');
+            // Сохранение состояния темы (для будущей реализации)
+            // localStorage.setItem('darkTheme', document.body.classList.contains('dark-theme'));
         }
 
         // Переключение питания
