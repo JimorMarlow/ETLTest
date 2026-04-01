@@ -1,6 +1,6 @@
 #pragma once
 /**
- * @file etl_wifi_setup.h
+ * @file etl_webui.h
  * @brief WiFi Setup Server для первичной настройки WiFi подключения
  *
  * Платформа: ESP8266 (NodeMCU v3), ESP32
@@ -17,6 +17,8 @@
  * @note Класс предоставляет серверную часть для настройки WiFi с веб-интерфейсом.
  *       Веб-страница доступна по http://hostname.local (где hostname из конфигурации)
  */
+
+#include "etl_webui_base.h"
 
 // Для включения нужной wi-fi библиотеки
 #if defined(ESP8266)
@@ -61,51 +63,7 @@ namespace etl
 {
     namespace webui
     {
-        /**
-         * @brief Информация об устройстве
-         *
-         * НЕ сохраняется в постоянной памяти, передаётся отдельно при запуске сервера.
-         * Использует String для поддержки произвольных размеров (особенно для SVG иконки).
-         */
-        struct device_info_t
-        {
-            String name = "ESP Device v1.0.0";          // Название устройства
-            String description = "Smart home device based on ESP8266/ESP32";  // Описание
-            String icon_svg = "";                       // SVG иконка устройства (опционально)
-
-            /**
-             * @brief Очистка информации об устройстве
-             */
-            void clear() {
-                name.clear();
-                description.clear();
-                icon_svg.clear();
-            }
-
-            /**
-             * @brief Оператор присвоения
-             * @param other Другой объект device_info_t
-             * @return Ссылка на текущий объект
-             */
-            device_info_t& operator=(const device_info_t& other) {
-                if (this != &other) {
-                    name = other.name;
-                    description = other.description;
-                    icon_svg = other.icon_svg;
-                }
-                return *this;
-            }
-
-            /**
-             * @brief Вывод информации об устройстве в Serial
-             */
-            void trace() const {
-                Serial.println(F("--- device info ---"));
-                Serial.printf("name            = %s\n", name.c_str());
-                Serial.printf("description     = %s\n", description.c_str());
-                Serial.printf("icon_svg        = %s\n", icon_svg.c_str());
-            }
-        };
+        // device_info_t определён в etl_webui_base.h
 
         /**
          * @brief Конфигурация WiFi сервера
@@ -256,16 +214,7 @@ namespace etl
             bool connected = false;                     // Флаг: подключено к этой сети
         };
 
-        /**
-         * @brief Статус подключения WiFi
-         */
-        enum class connection_status_t
-        {
-            disconnected,                               // Не подключено
-            connecting,                                 // Подключение
-            connected,                                  // Подключено
-            error                                       // Ошибка
-        };
+        // connection_status_t определён в etl_webui_base.h
 
         /**
          * @brief Значение текущих настроек WiFi
@@ -354,8 +303,10 @@ namespace etl
          *
          * Предоставляет функционал для первичной настройки WiFi подключения.
          * Работает в режиме точки доступа или подключается к внешней сети.
+         * 
+         * Наследуется от web_server_base_t для поддержки полиморфизма.
          */
-        class server_setup
+        class server_setup : public web_server_base_t
         {
         public:
             /**
@@ -505,6 +456,18 @@ namespace etl
              * @return Информация об устройстве
              */
             virtual const device_info_t& get_device_info() const { return m_device_info; }
+
+            /**
+             * @brief Получить имя хоста для mDNS
+             * @return Имя хоста
+             */
+            virtual String get_hostname() const override;
+
+            /**
+             * @brief Получить порт веб-сервера
+             * @return Порт
+             */
+            virtual uint16_t get_port() const override;
 
             /**
              * @brief Перезагрузка устройства

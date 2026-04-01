@@ -63,3 +63,17 @@
   - border-color: #007AFF
   - box-shadow: rgba(0, 122, 255, 0.4/0.5)
 - Brightness-fill: зелёный (#34C759/#30D158) → синий (#007AFF/#0A84FF)
+
+**Создание базового класса web_server_base_t:**
+- Создан файл `lib\ETLTest\etl_webui_base.h` с базовым классом `etl::webui::web_server_base_t`
+- Базовый класс включает:
+  - Виртуальный деструктор
+  - Чистые виртуальные методы: begin(), stop(), handle(), is_initialized(), get_connection_status(), is_connected(), get_ip_address(), get_mode(), get_hostname(), get_port()
+  - protected-члены: m_initialized, m_connection_status
+  - device_info_t и connection_status_t перенесены в базовый класс
+- `server_setup` унаследован от `web_server_base_t`
+- Реализованы методы get_hostname() и get_port() в server_setup
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266)
+  - ✅ esp32c3 (ESP32-C3)
+  - ✅ esp32-wroom-32u (ESP32)

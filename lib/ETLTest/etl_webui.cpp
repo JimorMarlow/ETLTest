@@ -622,6 +622,16 @@ namespace etl
             stop();
         }
 
+        String server_setup::get_hostname() const
+        {
+            return m_config.has_value() ? String(m_config->hostname) : "espdevice";
+        }
+
+        uint16_t server_setup::get_port() const
+        {
+            return m_config.has_value() ? m_config->port : 80;
+        }
+
         bool server_setup::begin(const device_info_t& device_info)
         {
             Serial.println(F("[WiFiSetup] Initializing..."));
