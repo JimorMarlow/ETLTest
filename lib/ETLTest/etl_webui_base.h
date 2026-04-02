@@ -25,6 +25,7 @@
 #endif
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <etl/etl_memory.h>
 #include <etl/etl_optional.h>
 #include "etl_webui_settings.h"
@@ -135,11 +136,23 @@ namespace etl
         protected:
             /**
              * @brief Защищённый конструктор для использования в наследниках
+             * @param cfg Конфигурация WiFi сервера (опционально)
              */
-            web_server_base_t() = default;
+            explicit web_server_base_t(const etl::optional<server_config_t>& cfg = {});
 
-            bool m_initialized = false;                 ///< Флаг инициализации
+            /**
+             * @brief Инициализация mDNS
+             * @param hostname Имя хоста для mDNS
+             * @return true при успешной инициализации
+             */
+            bool init_mdns(const String& hostname);
+
+            etl::optional<server_config_t> m_config;                ///< Конфигурация WiFi (опционально)
+            etl::optional<ui_config_t> m_ui_config;                 ///< Конфигурация интерфейса (опционально)
+            device_info_t m_device_info;                            ///< Информация об устройстве
+            bool m_initialized = false;                             ///< Флаг инициализации
             connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
+            etl::shared_ptr<etl_web_server_t> m_server;             ///< HTTP сервер
         };
 
     } // namespace webui

@@ -80,6 +80,36 @@
 
 ### 2 апреля 2026 г.
 
+**Перенос общих частей из server_setup в web_server_base_t:**
+- Обновлён `lib\ETLTest\etl_webui_base.h`:
+  - Добавлен конструктор `explicit web_server_base_t(const etl::optional<server_config_t>& cfg = {})`
+  - Добавлен метод `bool init_mdns(const String& hostname)` для инициализации mDNS
+  - Перенесены protected-поля:
+    - `etl::optional<server_config_t> m_config`
+    - `etl::optional<ui_config_t> m_ui_config`
+    - `device_info_t m_device_info`
+    - `bool m_initialized`
+    - `connection_status_t m_connection_status`
+    - `etl::shared_ptr<etl_web_server_t> m_server`
+
+- Создан `lib\ETLTest\etl_webui_base.cpp` с реализацией:
+  - Конструктор базового класса
+  - Метод `init_mdns()` для инициализации mDNS сервиса
+
+- Обновлён `lib\ETLTest\etl_webui.h`:
+  - Удалены дублирующие поля из `server_setup` (перенесены в базовый класс)
+  - Удалён `m_server` из protected-секции `server_setup`
+  - Оставлены только специфические поля: `m_scan_cache`, `m_scan_timestamp`, `SCAN_CACHE_TIME`
+
+- Обновлён `lib\ETLTest\etl_webui.cpp`:
+  - Добавлен `#include "etl_webui_base.cpp"`
+  - Обновлён конструктор `server_setup` для передачи конфигурации в базовый класс: `: web_server_base_t(cfg)`
+
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 11.54 сек
+  - ✅ esp32c3 (ESP32-C3) — 18.75 сек
+  - ✅ esp32-wroom-32u (ESP32) — 20.27 сек
+
 **Вынос настроек в отдельный файл etl_webui_settings.h:**
 - Создан файл `lib\ETLTest\etl_webui_settings.h` с конфигурационными структурами:
   - `server_config_t` — настройки WiFi сервера (hostname, AP/STA credentials, port, update_interval)

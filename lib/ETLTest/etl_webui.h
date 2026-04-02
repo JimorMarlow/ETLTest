@@ -19,11 +19,6 @@
  */
 
 #include "etl_webui_base.h"
-#include "etl_webui_settings.h"
-
-#include <ArduinoJson.h>
-#include <etl/etl_memory.h>
-#include <etl/etl_optional.h>
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
 #if defined(ESP8266)
@@ -304,7 +299,7 @@ namespace etl
             virtual void handle_client();
 
         protected:
-            etl::shared_ptr<etl_web_server_t> m_server; ///< HTTP сервер
+            // m_server перенесён в web_server_base_t
             std::vector<scan_result_t> m_scan_cache;    ///< Кэш результатов сканирования
             uint32_t m_scan_timestamp = 0;              ///< Время последнего сканирования
             static const uint32_t SCAN_CACHE_TIME = 30000;  ///< Время кэширования сканирования (30 сек)
@@ -418,11 +413,16 @@ namespace etl
              */
             virtual void send_error_response(const String& message);
 
-            etl::optional<server_config_t> m_config;    ///< Конфигурация WiFi (опционально)
-            etl::optional<ui_config_t> m_ui_config;     ///< Конфигурация интерфейса (опционально)
-            device_info_t m_device_info;                ///< Информация об устройстве
-            bool m_initialized = false;                 ///< Флаг инициализации
-            connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
+            // protected-поля перенесены в web_server_base_t:
+            // etl::optional<server_config_t> m_config;
+            // etl::optional<ui_config_t> m_ui_config;
+            // device_info_t m_device_info;
+            // bool m_initialized;
+            // connection_status_t m_connection_status;
+            // etl::shared_ptr<etl_web_server_t> m_server;
+            // std::vector<scan_result_t> m_scan_cache;
+            // uint32_t m_scan_timestamp;
+            // static const uint32_t SCAN_CACHE_TIME;
         };
 
     } // namespace webui

@@ -39,12 +39,23 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
   - [x] mqtt_config_t
   - [x] scan_result_t
   - [x] device_info_t определён в etl_webui_base.h, перенести в etl_webui_settings.h
+- [x] server_setup унаследовать public от web_server_base_t
+- [x] Перенос общих частей из  server_setup в web_server_base_t
+  - [x] Перенести все поля в protected часть
+    - etl::optional<server_config_t> m_config;    ///< Конфигурация WiFi (опционально)
+    - etl::optional<ui_config_t> m_ui_config;     ///< Конфигурация интерфейса (опционально)
+    - device_info_t m_device_info;                ///< Информация об устройстве
+    - bool m_initialized = false;                 ///< Флаг инициализации
+    - connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
+  - [x] Перенести реализацию всех функций и конструктора, которые достаточны, чтобы обрабатывать работу с данными без установки в интерфейс
+  - [x] Передавать в конструкторе server_setup настройки конфигурации в базовый класс
+  - [ ] Добавить виртуальные абстрактные методы для реализации интерфейса в server_setup, реализовать их в server_setup, а в базовом классе сделать вызов нужных функций как обработчики событий
 - [x] проверь компиляцию всех env в platformio
 
 [STOP] - дальше не читай, это еще в процессе продумывания и разработки. После детализации будем двигаться дальше
 
 
-- [ ] server_setup унаследовать public от web_server_base_t
+
 
 
 ## Архитектура

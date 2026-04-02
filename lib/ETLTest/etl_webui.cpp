@@ -9,6 +9,7 @@
 
 #include "etl_webui.h"
 #include "etl_wifi_setup_html.h"
+// #include "etl_webui_base.cpp"
 
 #include "etl/etl_littlefs.h"
 #include "etl/etl_settings.h"
@@ -413,7 +414,7 @@ namespace etl
         // ============================================================================
 
         server_setup::server_setup(const etl::optional<server_config_t>& cfg)
-            : m_config(cfg)
+            : web_server_base_t(cfg)
         {
         }
 
