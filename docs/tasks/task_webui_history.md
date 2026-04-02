@@ -80,6 +80,17 @@
 
 ### 2 апреля 2026 г.
 
+**Завершение переноса методов в web_server_base_t:**
+- Обновлён `lib\ETLTest\etl_webui_base.h`:
+  * Добавлены protected virtual методы: start_ap(), connect_to_sta(), update_connection_status(), get_encryption_type()
+- Обновлён `lib\ETLTest\etl_webui.cpp`:
+  * Удалены методы-обёртки из server_setup, которые вызывали базовый класс
+  * Оставлены только методы со специфичной реализацией
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 7.65 сек
+  - ✅ esp32c3 (ESP32-C3) — 9.70 сек
+  - ✅ esp32-wroom-32u (ESP32) — 13.23 сек
+
 **Перенос методов управления настройками в web_server_base_t:**
 - Обновлён `lib\ETLTest\etl_webui_base.h`:
   * Добавлены чисто виртуальные методы: scan_networks(), connect_to_network(), connect_to_network_async(), disconnect(), set_config(), get_device_icon()

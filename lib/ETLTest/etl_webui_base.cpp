@@ -28,6 +28,11 @@ namespace etl
         {
         }
 
+        web_server_base_t::~web_server_base_t()
+        {
+            stop();
+        }
+
         bool web_server_base_t::init_mdns(const String& hostname)
         {
             Serial.println(F("[WebUI] Initializing mDNS..."));
@@ -61,15 +66,180 @@ namespace etl
             return true;
         }
 
+        bool web_server_base_t::is_initialized() const
+        {
+            return m_initialized;
+        }
+
+         connection_status_t web_server_base_t::get_connection_status() const
+        {
+            return m_connection_status;
+        }
+
+        bool web_server_base_t::is_connected() const
+        {
+            return WiFi.status() == WL_CONNECTED;
+        }
+
+        String web_server_base_t::get_ip_address() const
+        {
+            if (WiFi.status() == WL_CONNECTED) {
+                return WiFi.localIP().toString();
+            }
+            return WiFi.softAPIP().toString();
+        }
+
+        String web_server_base_t::get_mode() const
+        {
+            // Проверяем активные интерфейсы напрямую
+            WiFiMode_t mode = WiFi.getMode();
+            bool ap_active = (mode == WIFI_AP || mode == WIFI_AP_STA);
+            bool sta_connected = (WiFi.status() == WL_CONNECTED);
+
+            if (ap_active && sta_connected) return "AP+STA";
+            if (sta_connected) return "STA";
+            if (ap_active) return "AP";
+            return "OFF";
+        }
+
+        String web_server_base_t::get_hostname() const
+        {
+            return m_config.has_value() ? String(m_config->hostname) : "espdevice";
+        }
+
+        uint16_t web_server_base_t::get_port() const
+        {
+            return m_config.has_value() ? m_config->port : 80;
+        }
+
+        bool web_server_base_t::begin(const device_info_t& device_info)
+        {
+            Serial.println(F("[WiFiSetup] Initializing..."));
+
+            // Сохранение информации об устройстве
+            m_device_info = device_info;
+
+            // Попытка загрузки сохранённых настроек
+            if (load_settings()) {
+                Serial.println(F("[WiFiSetup] Loaded saved settings"));
+
+                // Если есть сохранённые настройки, пробуем подключиться
+                if (m_config.has_value() && m_config->wifi_ssid[0] != '\0') {
+                    Serial.print(F("[WiFiSetup] Connecting to saved network: "));
+                    Serial.println(m_config->get_wifi_ssid());
+
+                    if (connect_to_sta(WIFI_CONNECT_TIMEOUT)) {
+                        Serial.println(F("[WiFiSetup] Connected to saved network"));
+                        m_initialized = true;
+                        start_http_server();
+                        return true;
+                    } else {
+                        Serial.println(F("[WiFiSetup] Failed to connect to saved network"));
+                    }
+                }
+            }
+
+            // Запуск в режиме точки доступа
+            Serial.println(F("[WiFiSetup] Starting AP mode..."));
+            if (start_ap()) {
+                Serial.println(F("[WiFiSetup] AP started successfully"));
+                m_initialized = true;
+                start_http_server();
+                return true;
+            }
+
+            Serial.println(F("[WiFiSetup] Failed to start AP"));
+            return false;
+        }
+
+        void web_server_base_t::stop()
+        {
+            if (!m_initialized) {
+                return;
+            }
+
+            Serial.println(F("[WiFiSetup] Stopping..."));
+
+            // Остановка mDNS
+            MDNS.end();
+
+            // Остановка HTTP сервера (shared_ptr автоматически освободит ресурсы)
+            if (m_server) {
+                m_server->stop();
+                m_server.reset();
+            }
+
+            // Отключение от WiFi
+            WiFi.disconnect(true);
+
+            // Остановка точки доступа
+            WiFi.softAPdisconnect(true);
+
+            // Отключение WiFi
+            WiFi.mode(WIFI_OFF);
+
+            m_initialized = false;
+            m_connection_status = connection_status_t::disconnected;
+
+            Serial.println(F("[WiFiSetup] Stopped"));
+        }
+
         void web_server_base_t::tick()
         {
             handle();
             handle_client();
         }
 
+        void web_server_base_t::handle()
+        {
+            if (!m_initialized) {
+                return;
+            }
+
+            // Обновление статуса подключения
+            update_connection_status();
+
+            // Перезапуск HTTP сервера после подключения к STA (если нужно)
+            static bool http_server_restarted = false;
+            static uint32_t connection_time = 0;
+
+            if (is_connected() && !http_server_restarted) {
+                // Запоминаем время подключения для задержки
+                if (connection_time == 0) {
+                    connection_time = millis();
+                }
+
+                // Ждем 5 секунд после подключения перед перезапуском сервера
+                // Это даст время клиенту получить ответ и завершить текущие запросы
+                // Клиент успеет получить ответ и перерисовать UI
+                if (millis() - connection_time > 5000) {
+                    Serial.println(F("[WiFiSetup] Restarting HTTP server after STA connection..."));
+
+                    // Перезапуск сервера в режиме AP+STA
+                    if (m_server) {
+                        m_server->stop();
+                        m_server.reset();
+                    }
+                    start_http_server();
+
+                    http_server_restarted = true;
+                    connection_time = 0;
+                }
+            }
+
+            // Сброс флага при отключении
+            if (!is_connected()) {
+                http_server_restarted = false;
+                connection_time = 0;
+            }
+        }
+
         void web_server_base_t::handle_client()
         {
             if (m_server) {
+#ifdef ESP8266
+                MDNS.update();
+#endif
                 m_server->handleClient();
             }
         }
@@ -191,6 +361,295 @@ namespace etl
             m_config = cfg;
         }
 
+        int32_t web_server_base_t::scan_networks(std::vector<scan_result_t>& results)
+        {
+            Serial.println(F("[WiFiSetup] Scanning networks..."));
+
+            results.clear();
+
+            // Сохранение текущего режима
+            WiFiMode_t current_mode = WiFi.getMode();
+
+            // Для сканирования нужен режим STA, но если мы в AP, переключаемся в AP+STA
+            if (current_mode == WIFI_AP) {
+                WiFi.mode(WIFI_AP_STA);
+                delay(50);  // Ждём переключения режима
+            } else if (current_mode == WIFI_STA) {
+                // Уже в STA, ничего не делаем
+            }
+            // Если уже AP_STA или OFF, оставляем как есть
+
+            // Асинхронное сканирование с ожиданием
+            int32_t count = WiFi.scanNetworks(false, true);  // async=false, show_hidden=true
+
+            // Небольшая задержка для завершения сканирования
+            delay(100);
+
+            if (count == 0) {
+                Serial.println(F("[WiFiSetup] No networks found"));
+                return 0;
+            }
+
+            Serial.printf("[WiFiSetup] Found %d networks\n", count);
+
+            for (int32_t i = 0; i < count; ++i) {
+                scan_result_t result;
+                result.ssid = WiFi.SSID(i);
+                result.rssi = WiFi.RSSI(i);
+                result.encryption = get_encryption_type(WiFi.encryptionType(i));
+                result.channel = WiFi.channel(i);
+
+                results.push_back(result);
+
+                Serial.printf("[WiFiSetup] Network %d: %s (RSSI: %d, Encryption: %s)\n",
+                              i + 1, result.ssid.c_str(), result.rssi, result.encryption.c_str());
+            }
+
+            // Сортировка по уровню сигнала (убывание)
+            std::sort(results.begin(), results.end(),
+                      [](const scan_result_t& a, const scan_result_t& b) {
+                          return a.rssi > b.rssi;
+                      });
+
+            WiFi.scanDelete();
+            return count;
+        }
+
+        bool web_server_base_t::connect_to_network(const String& ssid, const String& password, uint32_t timeout)
+        {
+            Serial.print(F("[WiFiSetup] Connecting to network: "));
+            Serial.println(ssid);
+
+            // Сохранение настроек через setter'ы
+            if (!m_config.has_value()) {
+                m_config = server_config_t();
+            }
+            m_config->set_wifi_ssid(ssid);
+            m_config->set_wifi_password(password);
+
+            return connect_to_sta(timeout);
+        }
+
+        void web_server_base_t::connect_to_network_async(const String& ssid, const String& password)
+        {
+            Serial.print(F("[WiFiSetup] Starting async connection to: "));
+            Serial.println(ssid);
+
+            // Сохранение настроек через setter'ы
+            if (!m_config.has_value()) {
+                m_config = server_config_t();
+            }
+            m_config->set_wifi_ssid(ssid);
+            m_config->set_wifi_password(password);
+
+            // Установка режима STA для подключения
+            WiFi.mode(WIFI_STA);
+
+            // Начинаем подключение (не ждём завершения)
+            WiFi.begin(m_config->get_wifi_ssid().c_str(), m_config->get_wifi_password().c_str());
+
+            Serial.println(F("[WiFiSetup] Async connection started"));
+        }
+
+        String web_server_base_t::get_device_icon() const
+        {
+            if (m_device_info.icon_svg.length() > 0) {
+                return m_device_info.icon_svg;
+            }
+
+            // Иконка умного устройства по умолчанию
+            return F("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><path d=\"M 256 0 C 114.6 0 0 114.6 0 256 S 114.6 512 256 512 S 512 397.4 512 256 S 397.4 0 256 0 Z M 256 480 C 132.3 480 32 379.7 32 256 S 132.3 32 256 32 S 480 132.3 480 256 S 379.7 480 256 480 Z\" fill=\"#007AFF\"/><path d=\"M 256 128 C 203.1 128 160 171.1 160 224 V 320 C 160 353.1 186.9 380 220 380 H 292 C 325.1 380 352 353.1 352 320 V 224 C 352 171.1 308.9 128 256 128 Z M 320 320 C 320 335.4 307.4 348 292 348 H 220 C 204.6 348 192 335.4 192 320 V 224 C 192 188.8 220.8 160 256 160 S 320 188.8 320 224 V 320 Z\" fill=\"#007AFF\"/><circle cx=\"256\" cy=\"256\" r=\"48\" fill=\"#007AFF\"/></svg>");
+        }
+
+        void web_server_base_t::update_connection_status()
+        {
+            wl_status_t status = WiFi.status();
+
+            switch (status) {
+                case WL_CONNECTED:
+                    m_connection_status = connection_status_t::connected;
+                    break;
+
+                case WL_DISCONNECTED:
+                case WL_IDLE_STATUS:
+                    m_connection_status = connection_status_t::disconnected;
+                    break;
+
+                case WL_CONNECT_FAILED:
+                case WL_CONNECTION_LOST:
+                    m_connection_status = connection_status_t::error;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        String web_server_base_t::get_encryption_type(uint8_t type) const
+        {
+#ifdef ESP8266
+            switch (type) {
+                case ENC_TYPE_NONE:
+                    return "Open";
+                case ENC_TYPE_WEP:
+                    return "WEP";
+                case ENC_TYPE_TKIP:
+                    return "WPA";
+                case ENC_TYPE_CCMP:
+                    return "WPA2";
+                case ENC_TYPE_AUTO:
+                    return "WPA/WPA2";
+                default:
+                    return "Unknown";
+            }
+#elif defined(ESP32)
+            switch (type) {
+                case WIFI_AUTH_OPEN:
+                    return "Open";
+                case WIFI_AUTH_WEP:
+                    return "WEP";
+                case WIFI_AUTH_WPA_PSK:
+                    return "WPA";
+                case WIFI_AUTH_WPA2_PSK:
+                    return "WPA2";
+                case WIFI_AUTH_WPA_WPA2_PSK:
+                    return "WPA/WPA2";
+                case WIFI_AUTH_WPA2_ENTERPRISE:
+                    return "WPA2-Enterprise";
+                default:
+                    return "Unknown";
+            }
+#endif
+        }
+
+        bool web_server_base_t::start_ap()
+        {
+            Serial.print(F("[WiFiSetup] Starting AP: "));
+            Serial.println(m_config.has_value() ? m_config->get_ap_ssid() : "ESP_Device_AP");
+
+            // Установка режима AP
+            WiFi.mode(WIFI_AP);
+
+            // Запуск точки доступа
+            if (!WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
+                             m_config.has_value() ? m_config->get_ap_password().c_str() : "password123")) {
+                Serial.println(F("[WiFiSetup] Failed to start AP"));
+                return false;
+            }
+
+            Serial.print(F("[WiFiSetup] AP IP address: "));
+            Serial.println(WiFi.softAPIP());
+
+            m_connection_status = connection_status_t::disconnected;
+            return true;
+        }
+
+        bool web_server_base_t::connect_to_sta(uint32_t timeout)
+        {
+            if (!m_config.has_value() || m_config->wifi_ssid[0] == '\0') {
+                Serial.println(F("[WiFiSetup] No SSID configured"));
+                return false;
+            }
+
+            Serial.print(F("[WiFiSetup] Connecting to "));
+            Serial.println(m_config->get_wifi_ssid());
+
+            // Сохранение текущего режима
+            WiFiMode_t previous_mode = WiFi.getMode();
+
+            // Установка режима STA для подключения
+            WiFi.mode(WIFI_STA);
+
+            // Подключение к сети
+            WiFi.begin(m_config->get_wifi_ssid().c_str(), m_config->get_wifi_password().c_str());
+
+            // Ожидание подключения
+            uint32_t start_time = millis();
+            while (WiFi.status() != WL_CONNECTED && (millis() - start_time) < timeout) {
+                delay(500);
+                Serial.print(F("."));
+            }
+
+            if (WiFi.status() == WL_CONNECTED) {
+                Serial.println(F("\n[WiFiSetup] Connected"));
+                Serial.print(F("[WiFiSetup] IP address: "));
+                Serial.println(WiFi.localIP());
+
+                // Переключение в режим AP+STA для одновременной работы AP и STA
+                // Это нужно для работы HTTP сервера в режиме точки доступа
+                WiFi.mode(WIFI_AP_STA);
+
+                // Запуск точки доступа, если она не была активна
+                if (previous_mode != WIFI_AP && previous_mode != WIFI_AP_STA) {
+                    WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
+                                m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
+                }
+
+                m_connection_status = connection_status_t::connected;
+                return true;
+            }
+
+            Serial.println(F("\n[WiFiSetup] Connection timeout"));
+            m_connection_status = connection_status_t::error;
+
+            // Возврат в предыдущий режим
+            WiFi.mode(previous_mode);
+            if (previous_mode == WIFI_AP || previous_mode == WIFI_AP_STA) {
+                if (!WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
+                                 m_config.has_value() ? m_config->get_ap_password().c_str() : "password123")) {
+                    Serial.println(F("[WiFiSetup] Failed to restart AP"));
+                } else {
+                    Serial.println(F("[WiFiSetup] AP restarted"));
+                }
+            }
+
+            return false;
+        }
+
+        void web_server_base_t::send_scan_response()
+        {
+            JsonDocument doc;
+            JsonArray networks = doc["networks"].to<JsonArray>();
+
+            for (const auto& network : m_scan_cache) {
+                JsonObject net = networks.add<JsonObject>();
+                net["ssid"] = network.ssid;
+                net["rssi"] = network.rssi;
+                net["encryption"] = network.encryption;
+                net["channel"] = network.channel;
+                // Помечаем текущую подключенную сеть
+                net["connected"] = (network.ssid == (m_config.has_value() ? m_config->get_wifi_ssid() : "")) && is_connected();
+            }
+
+            String response;
+            serializeJson(doc, response);
+            m_server->send(200, "application/json", response);
+        }
+
+        void web_server_base_t::send_success_response(const String& message, const String& extra_data)
+        {
+            JsonDocument doc;
+            doc["success"] = true;
+            doc["message"] = message;
+            if (extra_data.length() > 0) {
+                doc["data"] = extra_data;
+            }
+
+            String response;
+            serializeJson(doc, response);
+            m_server->send(200, "application/json", response);
+        }
+
+        void web_server_base_t::send_error_response(const String& message)
+        {
+            JsonDocument doc;
+            doc["success"] = false;
+            doc["message"] = message;
+
+            String response;
+            serializeJson(doc, response);
+            m_server->send(200, "application/json", response);
+        }
     } // namespace webui
 } // namespace etl
 

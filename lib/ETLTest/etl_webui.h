@@ -33,10 +33,6 @@ namespace etl
 {
     namespace webui
     {
-        // device_info_t и connection_status_t определены в etl_webui_settings.h
-        // server_config_t, ui_config_t, telegram_config_t, mqtt_config_t, scan_result_t также определены в etl_webui_settings.h
-        // namespace settings перенесён в etl_webui_settings.h
-
         /**
          * @brief Класс WiFi Setup Server
          *
@@ -60,201 +56,14 @@ namespace etl
              * Виртуальный деструктор для корректного наследования.
              * Вызывает stop() для освобождения ресурсов.
              */
-            virtual ~server_setup();
-
-            /**
-             * @brief Инициализация WiFi сервера
-             *
-             * - Запуск в режиме точки доступа
-             * - Настройка сети
-             *
-             * @param device_info Информация об устройстве (не сохраняется в FS)
-             * @return true при успешной инициализации
-             */
-            virtual bool begin(const device_info_t& device_info);
-
-            /**
-             * @brief Остановка WiFi сервера
-             *
-             * - Отключение от WiFi сети
-             * - Остановка точки доступа
-             * - Сброс флага инициализации
-             */
-            virtual void stop();
-
-            /**
-             * @brief Основной цикл обработки
-             *
-             * Вызывать регулярно из loop() для обработки событий WiFi
-             */
-            virtual void handle();
-
-            /**
-             * @brief Проверка инициализации
-             * @return true если сервер инициализирован
-             */
-            virtual bool is_initialized() const;
-
-            /**
-             * @brief Получить статус подключения
-             * @return Статус подключения
-             */
-            virtual connection_status_t get_connection_status() const;
-
-            /**
-             * @brief Проверка подключения к WiFi сети
-             * @return true если подключено к внешней сети
-             */
-            virtual bool is_connected() const;
-
-            /**
-             * @brief Получить IP адрес
-             * @return IP адрес в формате String
-             */
-            virtual String get_ip_address() const;
-
-            /**
-             * @brief Получить режим работы
-             * @return "AP" если точка доступа, "STA" если клиент, "AP+STA" если оба режима
-             */
-            virtual String get_mode() const;
-
-            /**
-             * @brief Сканирование доступных WiFi сетей
-             * @param results Вектор для результатов сканирования
-             * @return Количество найденных сетей
-             */
-            virtual int32_t scan_networks(std::vector<scan_result_t>& results);
-
-            /**
-             * @brief Подключение к WiFi сети
-             * @param ssid SSID сети
-             * @param password Пароль сети
-             * @param timeout Таймаут подключения (мс, по умолчанию 10000)
-             * @return true при успешном подключении
-             */
-            virtual bool connect_to_network(const String& ssid, const String& password, uint32_t timeout = 10000);
-
-            /**
-             * @brief Начать подключение к WiFi сети (асинхронно, без ожидания)
-             * @param ssid SSID сети
-             * @param password Пароль сети
-             */
-            virtual void connect_to_network_async(const String& ssid, const String& password);
-
-            /**
-             * @brief Отключение от WiFi сети
-             */
-            virtual void disconnect();
-
-            /**
-             * @brief Сохранение настроек
-             * @return true при успешном сохранении
-             */
-            virtual bool save_settings();
-
-            /**
-             * @brief Загрузка сохранённых настроек
-             * @return true если настройки загружены успешно
-             */
-            virtual bool load_settings();
-
-            /**
-             * @brief Сброс настроек к заводским
-             * @return true при успешном сбросе
-             */
-            virtual bool reset_settings();
-
-            /**
-             * @brief Установить конфигурацию сервера
-             * @param cfg Новая конфигурация
-             * @note Должно быть вызвано до begin() или после stop()
-             */
-            virtual void set_config(const etl::optional<server_config_t>& cfg);
-
-            /**
-             * @brief Получить текущую конфигурацию WiFi
-             * @return Конфигурация сервера (опционально)
-             */
-            virtual const etl::optional<server_config_t>& get_wifi_config() const { return m_config; }
-
-            /**
-             * @brief Получить текущую конфигурацию интерфейса
-             * @return Конфигурация интерфейса (опционально)
-             */
-            virtual etl::optional<ui_config_t> get_ui_config() const;
-
-            /**
-             * @brief Установить информацию об устройстве
-             * @param info Информация об устройстве
-             */
-            virtual void set_device_info(const device_info_t& info);
-
-            /**
-             * @brief Получить информацию об устройстве
-             * @return Информация об устройстве
-             */
-            virtual const device_info_t& get_device_info() const { return m_device_info; }
-
-            /**
-             * @brief Получить имя хоста для mDNS
-             * @return Имя хоста
-             */
-            virtual String get_hostname() const override;
-
-            /**
-             * @brief Получить порт веб-сервера
-             * @return Порт
-             */
-            virtual uint16_t get_port() const override;
-
-            /**
-             * @brief Перезагрузка устройства
-             * @note Вызывает ESP.reset()
-             */
-            virtual void reboot();
-
-            /**
-             * @brief Обработка HTTP запросов сервера
-             * @note Вызывать из loop() вместе с handle()
-             */
-            virtual void handle_client();
+            virtual ~server_setup() = default;
 
         protected:
-            // m_server перенесён в web_server_base_t
-            std::vector<scan_result_t> m_scan_cache;    ///< Кэш результатов сканирования
-            uint32_t m_scan_timestamp = 0;              ///< Время последнего сканирования
-            static const uint32_t SCAN_CACHE_TIME = 30000;  ///< Время кэширования сканирования (30 сек)
-
+            
             /**
              * @brief Запуск HTTP сервера
              */
-            virtual void start_http_server();
-
-            /**
-             * @brief Запуск точки доступа
-             * @return true при успешном запуске
-             */
-            virtual bool start_ap();
-
-            /**
-             * @brief Подключение к внешней сети
-             * @param timeout Таймаут подключения (мс)
-             * @return true при успешном подключении
-             */
-            virtual bool connect_to_sta(uint32_t timeout);
-
-            /**
-             * @brief Обновление статуса подключения
-             */
-            virtual void update_connection_status();
-
-            /**
-             * @brief Получить тип шифрования из WiFi.encryptionType()
-             * @param type Тип шифрования
-             * @return Строковое представление типа шифрования
-             */
-            virtual String get_encryption_type(uint8_t type) const;
+            virtual void start_http_server() override;
 
             /**
              * @brief Настройка HTTP роутинга
@@ -311,40 +120,6 @@ namespace etl
              */
             virtual void handle_api_ui_settings();
 
-            /**
-             * @brief Получить SVG иконку устройства
-             * @return SVG строка или иконка по умолчанию
-             */
-            virtual String get_device_icon() const;
-
-            /**
-             * @brief Отправить ответ с результатами сканирования
-             */
-            virtual void send_scan_response();
-
-            /**
-             * @brief Отправить успешный ответ
-             * @param message Сообщение
-             * @param extra_data Дополнительные данные
-             */
-            virtual void send_success_response(const String& message, const String& extra_data = "");
-
-            /**
-             * @brief Отправить ответ с ошибкой
-             * @param message Сообщение об ошибке
-             */
-            virtual void send_error_response(const String& message);
-
-            // protected-поля перенесены в web_server_base_t:
-            // etl::optional<server_config_t> m_config;
-            // etl::optional<ui_config_t> m_ui_config;
-            // device_info_t m_device_info;
-            // bool m_initialized;
-            // connection_status_t m_connection_status;
-            // etl::shared_ptr<etl_web_server_t> m_server;
-            // std::vector<scan_result_t> m_scan_cache;
-            // uint32_t m_scan_timestamp;
-            // static const uint32_t SCAN_CACHE_TIME;
         };
 
     } // namespace webui
