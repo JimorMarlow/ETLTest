@@ -29,7 +29,7 @@
 
 ### Обновленные файлы
 - `docs/web-wifi/qwen-webui.001.html` — добавлена статусная панель
-- `docs/tasks/task_light_webui_hystory.md` — обновлена история
+- `docs/tasks/task_light_webui_history.md` — обновлена история
 
 ## Этап 1: Базовый макет (qwen-webui.001.html)
 

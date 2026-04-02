@@ -10,7 +10,7 @@ lib\ETLTest\etl_wifi_setup.h (как сейчас для тестировани�
 C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфигурации> -d c:\Projects\Arduino\ETLTest
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
-- Все изменения записывай для себя в docs\tasks\task_webui_hystory.md, чтобы потом можно было продолжить
+- Все изменения записывай для себя в docs\tasks\task_webui_history.md, чтобы потом можно было продолжить
 - [ ] - так будут отмечаться задачи, требующие решения, отмечай как выполные, только после того, как я проверю и скажу, что готово
 
 ### Подготовка к разделению на базовый класс для сервера настроек и клиента
@@ -19,7 +19,7 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
 
 - [x] добавить изменить namespace etl::wifi на etl::webui
 - [x] проверить сборку всех проектов, устранить замечания
-- [x] Переменуй ошибочный docs\tasks\task_wifi_setup_esp32_hystory.md в docs\tasks\task_webui_hystory.md
+- [x] Переменуй ошибочный docs\tasks\task_wifi_setup_esp32_hystory.md в docs\tasks\task_webui_history.md
 - [x] в коде lib\ETLTest\etl_wifi_setup* переименуй namespace wifi -> webui
 - [x] переименовать: 
        lib\ETLTest\etl_wifi_setup.h -> lib\ETLTest\etl_webui.h
@@ -31,6 +31,14 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
   - виртуальный деструктор и методы для нааследников
   - взять из server_setup все, что относится к запуску и работе сервера
   - server_setup унаследовать public от web_server_base_t и восстановить полуную работоспособность кода в текущем виде, релизовать весь специфический функционал в виде перегруженных виртуальных методов.
+- [x] Вынести настройки в отдельный файл: lib\ETLTest\etl_webui_settings.h
+Из lib\ETLTest\etl_webui.h вынести namespace settings в отдельный файл
+  - [x] server_config_t
+  - [x] ui_config_t
+  - [x] telegram_config_t
+  - [x] mqtt_config_t
+  - [x] scan_result_t
+  - [x] device_info_t определён в etl_webui_base.h, перенести в etl_webui_settings.h
 - [x] проверь компиляцию всех env в platformio
 
 [STOP] - дальше не читай, это еще в процессе продумывания и разработки. После детализации будем двигаться дальше

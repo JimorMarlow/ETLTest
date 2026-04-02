@@ -27,6 +27,7 @@
 #include <Arduino.h>
 #include <etl/etl_memory.h>
 #include <etl/etl_optional.h>
+#include "etl_webui_settings.h"
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
 #if defined(ESP8266)
@@ -41,63 +42,7 @@ namespace etl
 {
     namespace webui
     {
-        /**
-         * @brief Информация об устройстве
-         *
-         * НЕ сохраняется в постоянной памяти, передаётся отдельно при запуске сервера.
-         * Использует String для поддержки произвольных размеров (особенно для SVG иконки).
-         */
-        struct device_info_t
-        {
-            String name = "ESP Device v1.0.0";          // Название устройства
-            String description = "Smart home device based on ESP8266/ESP32";  // Описание
-            String icon_svg = "";                       // SVG иконка устройства (опционально)
-
-            /**
-             * @brief Очистка информации об устройстве
-             */
-            void clear() {
-                name.clear();
-                description.clear();
-                icon_svg.clear();
-            }
-
-            /**
-             * @brief Оператор присвоения
-             * @param other Другой объект device_info_t
-             * @return Ссылка на текущий объект
-             */
-            device_info_t& operator=(const device_info_t& other) {
-                if (this != &other) {
-                    name = other.name;
-                    description = other.description;
-                    icon_svg = other.icon_svg;
-                }
-                return *this;
-            }
-
-            /**
-             * @brief Вывод информации об устройстве в Serial
-             */
-            void trace() const {
-                Serial.println(F("--- device info ---"));
-                Serial.printf("name            = %s\n", name.c_str());
-                Serial.printf("description     = %s\n", description.c_str());
-                Serial.printf("icon_svg        = %s\n", icon_svg.c_str());
-            }
-        };
-
-        /**
-         * @brief Статус подключения к WiFi
-         */
-        enum class connection_status_t : uint8_t
-        {
-            disconnected,     // Не подключено
-            connecting,       // В процессе подключения
-            connected,        // Подключено к WiFi
-            ap_mode,          // Режим точки доступа
-            error             // Ошибка подключения
-        };
+        // device_info_t и connection_status_t определены в etl_webui_settings.h
 
         /**
          * @brief Базовый класс для веб-серверов

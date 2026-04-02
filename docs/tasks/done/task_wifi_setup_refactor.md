@@ -27,11 +27,11 @@ PS. Я на всякий случай сохранил коммит "feat: task_
 C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя_конфигурации> -d c:\Projects\Arduino\ETLTest
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
-- Все изменения записывай для себя в docs\tasks\task_webui_darktheme_hystory.md, чтобы потом можно было продолжить
+- Все изменения записывай для себя в docs\tasks\task_webui_darktheme_history.md, чтобы потом можно было продолжить
 
 ## Изучить историю разработки
 
-В ходе работ над задачей docs\tasks\task_webui_darktheme.md были добавлены поля в структуру server_config_t, отвечающие за настройки интерфейса. История действий была записана в docs\tasks\task_webui_darktheme_hystory.md
+В ходе работ над задачей docs\tasks\task_webui_darktheme.md были добавлены поля в структуру server_config_t, отвечающие за настройки интерфейса. История действий была записана в docs\tasks\task_webui_darktheme_history.md
 
 ## Вынести настройки интерфейса в отдельную структуру
 
@@ -106,7 +106,7 @@ virtual bool load_settings();
 
 ## Файл истории
 
-Создай файл docs\tasks\task_wifi_setup_refactor_hystory.md и записывай туда все изменения, чтобы ты потом прочитать и восстановить контекст в следующей сессии
+Создай файл docs\tasks\task_wifi_setup_refactor_history.md и записывай туда все изменения, чтобы ты потом прочитать и восстановить контекст в следующей сессии
 
 ## Файл испавлений
 

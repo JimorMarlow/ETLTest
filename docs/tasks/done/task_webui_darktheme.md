@@ -25,7 +25,7 @@
 C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя_конфигурации> -d c:\Projects\Arduino\ETLTest
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
-- Все изменения записывай для себя в docs\tasks\task_webui_darktheme_hystory.md, чтобы потом можно было продолжить
+- Все изменения записывай для себя в docs\tasks\task_webui_darktheme_history.md, чтобы потом можно было продолжить
 
 ### Светлая/темная тема
 

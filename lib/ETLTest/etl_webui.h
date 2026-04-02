@@ -19,19 +19,7 @@
  */
 
 #include "etl_webui_base.h"
-
-// Для включения нужной wi-fi библиотеки
-#if defined(ESP8266)
-  #include <ESP8266WiFi.h>
-  #include <ESP8266WebServer.h>
-  #include <ESP8266mDNS.h>
-#elif defined(ESP32)
-  #include <WiFi.h>
-  #include <WebServer.h>
-  #include <ESPmDNS.h>
-#else
-  #pragma message("ERROR: no Wi-Fi lib specified")
-#endif
+#include "etl_webui_settings.h"
 
 #include <ArduinoJson.h>
 #include <etl/etl_memory.h>
@@ -46,179 +34,13 @@
 
 #if defined(ESP8266) || defined(ESP32)
 
-// Размеры буферов для строк в server_config_t
-#define WIFI_CONFIG_HOSTNAME_SIZE     32
-#define WIFI_CONFIG_SSID_SIZE         32
-#define WIFI_CONFIG_PASSWORD_SIZE     64
-#define WIFI_CONFIG_LANGUAGE_SIZE     3
-
-// Список доступных языков интерфейса (ISO 639-1)
-static const char* const WIFI_SETUP_LANGUAGES[] PROGMEM = {
-    "en",
-    "ru"
-};
-static const size_t WIFI_SETUP_LANGUAGE_COUNT = sizeof(WIFI_SETUP_LANGUAGES) / sizeof(WIFI_SETUP_LANGUAGES[0]);
-
 namespace etl
 {
     namespace webui
     {
-        // device_info_t определён в etl_webui_base.h
+        // device_info_t и connection_status_t определены в etl_webui_settings.h
+        // server_config_t, ui_config_t, telegram_config_t, mqtt_config_t, scan_result_t также определены в etl_webui_settings.h
 
-        /**
-         * @brief Конфигурация WiFi сервера
-         *
-         * Содержит параметры для точки доступа и внешней сети.
-         * Сохраняется в энергонезависимой памяти через FileData.
-         * Использует фиксированные массивы char для корректного бинарного сохранения.
-         */
-        struct server_config_t
-        {
-            // Конфигурация сети
-            char hostname[WIFI_CONFIG_HOSTNAME_SIZE] = "espdevice";
-            char ap_ssid[WIFI_CONFIG_SSID_SIZE] = "ESP_Device_AP";
-            char ap_password[WIFI_CONFIG_PASSWORD_SIZE] = "password123";
-            char wifi_ssid[WIFI_CONFIG_SSID_SIZE] = "";
-            char wifi_password[WIFI_CONFIG_PASSWORD_SIZE] = "";
-            uint16_t port = 80;                         // Порт веб-сервера
-            uint32_t update_interval = 500;             // Интервал обновления данных (мс)
-
-            /**
-             * @brief Очистка конфигурации к значениям по умолчанию
-             */
-            void clear();
-
-            /**
-             * @brief Вывод конфигурации в Serial
-             */
-            void trace() const;
-
-            // Setters
-            void set_hostname(const String& value);
-            void set_ap_ssid(const String& value);
-            void set_ap_password(const String& value);
-            void set_wifi_ssid(const String& value);
-            void set_wifi_password(const String& value);
-
-            // Getters
-            String get_hostname() const;
-            String get_ap_ssid() const;
-            String get_ap_password() const;
-            String get_wifi_ssid() const;
-            String get_wifi_password() const;
-        };
-
-        /**
-         * @brief Конфигурация интерфейса пользователя
-         *
-         * Содержит параметры настройки веб-интерфейса.
-         * Сохраняется в энергонезависимой памяти через FileData.
-         * Использует фиксированные массивы char для корректного бинарного сохранения.
-         */
-        struct ui_config_t
-        {
-            char language[WIFI_CONFIG_LANGUAGE_SIZE] = "en";  // Язык интерфейса (ISO 639-1)
-            bool dark_theme = false;                    // Тёмная тема
-            bool large_font = false;                    // Увеличенный шрифт
-            bool use_bold_values = false;               // Bold шрифт для ключевых значений
-
-            /**
-             * @brief Очистка конфигурации к значениям по умолчанию
-             */
-            void clear();
-
-            /**
-             * @brief Вывод конфигурации в Serial
-             */
-            void trace() const;
-
-            // Setters
-            void set_language(const String& value);
-            void set_dark_theme(bool value);
-            void set_large_font(bool value);
-            void set_use_bold_values(bool value);
-
-            // Getters
-            String get_language() const;
-            bool is_dark_theme() const;
-            bool is_large_font() const;
-            bool is_use_bold_values() const;
-        };
-
-        /**
-         * @brief Конфигурация Telegram бота
-         *
-         * Содержит параметры для интеграции с Telegram.
-         * Сохраняется в энергонезависимой памяти через FileData.
-         *
-         * @note TODO: Реализовать функционал Telegram бота
-         */
-        struct telegram_config_t
-        {
-            // TODO: Добавить поля для конфигурации Telegram бота
-            // Например:
-            // char bot_token[64] = "";
-            // char chat_id[32] = "";
-            // bool enabled = false;
-
-            /**
-             * @brief Очистка конфигурации к значениям по умолчанию
-             */
-            void clear();
-
-            /**
-             * @brief Вывод конфигурации в Serial
-             */
-            void trace() const;
-        };
-
-        /**
-         * @brief Конфигурация MQTT сервера
-         *
-         * Содержит параметры для подключения к MQTT брокеру.
-         * Сохраняется в энергонезависимой памяти через FileData.
-         *
-         * @note TODO: Реализовать функционал MQTT клиента
-         */
-        struct mqtt_config_t
-        {
-            // TODO: Добавить поля для конфигурации MQTT
-            // Например:
-            // char broker_host[64] = "";
-            // uint16_t broker_port = 1883;
-            // char username[32] = "";
-            // char password[64] = "";
-            // char client_id[32] = "";
-            // bool enabled = false;
-
-            /**
-             * @brief Очистка конфигурации к значениям по умолчанию
-             */
-            void clear();
-
-            /**
-             * @brief Вывод конфигурации в Serial
-             */
-            void trace() const;
-        };
-
-        /**
-         * @brief Результат сканирования WiFi сети
-         */
-        struct scan_result_t
-        {
-            String ssid;                                // SSID сети
-            int32_t rssi;                               // Уровень сигнала (dBm)
-            String encryption;                          // Тип шифрования (WPA2, WPA, Open)
-            uint8_t channel;                            // Канал
-            bool connected = false;                     // Флаг: подключено к этой сети
-        };
-
-        // connection_status_t определён в etl_webui_base.h
-
-        /**
-         * @brief Значение текущих настроек WiFi
-         */
         namespace settings
         {
             /**

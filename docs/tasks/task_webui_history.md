@@ -1,120 +1,111 @@
-# История разработки WebUI для Kitchen Light
+# История разработки: Переключение между WebUI и WiFi Setup
 
-## Дата начала: 26 марта 2026 г.
+## Контекст
 
-### Контекст
-Проект переключения между WebUI сервером (управление устройством) и WiFi Setup сервером (настройка WiFi).
+Для ESP устройства реализуется переключение между веб-интерфейсом управления датчиками и сервером настройки WiFi.
 
-### Архитектурные решения
+## Текущее состояние
 
-#### Режимы работы
-| Режим | Активация | HTTP порт | mDNS | Поведение |
-|-------|-----------|-----------|------|-----------|
-| **WebUI** | Обычный старт | 80 | `kitchenlight.local` | Сервер управления устройством |
-| **WiFi Setup** | 3 нажатия кнопки | 80 | `espdevice.local` | Сервер настройки WiFi |
-| **Factory Reset** | Кнопка при старте | - | - | Сброс настроек, запуск WiFi Setup |
+### Выполнено
 
-#### Переключение серверов
-- **Один порт 80**, сервера переключаются (не работают одновременно)
-- По умолчанию запускается **WebUI Server**
-- При 3 нажатиях кнопки: WebUI → остановка → WiFi Setup → запуск
-- После [Save & Reboot] или [Factory Reset]: WiFi Setup → остановка → WebUI → запуск
+#### Этап 1: Макет WebUI
+- [x] **Task 1.1:** Создан HTML макет для условной подсветки рабочей зоны
+  - Файл: `docs\web-wifi\qwen-webui.001.html` (базовая версия)
+  - Файл: `docs\web-wifi\qwen-webui.002.html` (текущая версия)
+  
+  **Реализованные функции в qwen-webui.002.html:**
+  - Status bar с иконкой устройства и статусными индикаторами [W] [M] [T]
+  - Кнопка настроек с переключением темной темы
+  - Power button с индикацией включения
+  - Brightness section со слайдером и кнопками +/-
+  - Темная тема в стиле iOS (цвета из docs/etl_wifi_setup.md)
+  - Адаптивный дизайн для мобильных устройств
 
-#### Структура классов
-```
-etl_web_server_base_t (базовый класс в ETL)
-├── device_info_t (name, description, icon_svg)
-├── begin(device_info_t)
-├── stop()
-├── handle()
-└── is_initialized()
+#### Подготовка к разделению (Task 2.x)
+- [x] **Task 2.1:** Изменить namespace etl::wifi на etl::webui (отмечено в task_webui.md)
+- [x] **Task 2.2:** Проверить сборку всех проектов (отмечено в task_webui.md)
+- [x] **Task 2.3:** Переименован файл истории в task_webui_history.md
 
-webui_server_t (WebUI Server)
-└── наследуется от etl_web_server_base_t
+### В процессе
 
-wifi::server_setup_t (WiFi Setup Server)
-└── наследуется от etl_web_server_base_t
-```
+### Ожидает выполнения
 
-### Прогресс разработки
-
-#### Этап 1: Макет WebUI ✅
-**Задача:** Создать HTML макет KitchenLight UI
-**Файл:** `docs\web-wifi\qwen-webui.001.html`
-**Статус:** Завершено
-
-**Реализованные элементы:**
-- Header с названием устройства
-- **Индикатор WiFi** (connected / ap-mode / disconnected)
-- **Кнопка WiFi Setup** (иконка ⚙ в header)
-- Device Info (иконка, название, описание)
-- Status section (онлайн/офлайн)
-- Light Control:
-  - Power toggle (переключатель)
-  - Brightness slider (0-100%)
-  - Light preview
-- Переключатель языков EN/RU
-- Кнопка размера шрифта
-- Модальное окно подтверждения
-
-**API endpoints (ожидает реализации):**
-- `GET /api/config` — информация об устройстве
-- `GET /api/status` — статус (power, brightness, connected, wifi_mode, ssid)
-- `POST /api/light` — управление светом {power: bool, brightness: int}
-- `POST /api/wifi_setup` — переключение в режим настройки WiFi
-
-#### Этап 2: Базовый класс Web Server ⏳
-**Задача:** Создать базовый класс в ETL
-**Файл:** `ETL/src/etl/etl_web_server_base.h`
-**Статус:** Не начато
-
-**План:**
-- Перенести `device_info_t` из `etl_wifi_setup.h`
-- Создать `etl_web_server_base_t` с виртуальными методами
-- Обновить WiFi Setup Server для наследования
-
-#### Этап 3: Реализация WebUI Server ⏳
-**Задача:** Создать WebUI Server
-**Файлы:** `src/webui_server.h`, `src/webui_server.cpp`, `src/webui_html.h`
-**Статус:** Не начато
-
-#### Этап 4: Менеджер серверов ⏳
-**Задача:** Создать менеджер переключения
-**Файл:** `src/server_manager.h/cpp`
-**Статус:** Не начато
-
-#### Этап 5: Интеграция в main.cpp ⏳
-**Задача:** Обновить main.cpp с переключением серверов
-**Статус:** Не начато
-
-#### Этап 6: Тестирование ⏳
-**Статус:** Не начато
+[STOP] - Дальнейшие задачи в процессе продумывания
 
 ---
 
-### Требования к макету (согласованы)
-1. ✅ Индикатор WiFi для показа статуса подключения
-2. ✅ Кнопка настроек WiFi в интерфейсе (сверху справа)
-3. ✅ Переключение языков EN/RU
-4. ✅ Регулировка размера шрифта
-5. ✅ Адаптивный дизайн (мобильные + десктоп)
-6. ✅ iOS-like стиль (как в WiFi Setup)
+## История изменений
 
----
+### 1 апреля 2026 г.
 
-### Следующие шаги (для продолжения)
-1. **Согласовать макет** с пользователем
-2. **Создать базовый класс** `etl_web_server_base_t` в ETL библиотеке
-3. **Обновить WiFi Setup Server** для наследования от базового класса
-4. **Создать WebUI Server** с KitchenLight функционалом
-5. **Создать Server Manager** для переключения между серверами
-6. **Интегрировать в main.cpp** с симуляцией кнопок
-7. **Протестировать** на всех платформах (nodemcuv3, esp32c3, esp32-wroom-32u)
+**qwen-webui.002.html:**
+- Добавлена рамка вокруг кнопки settings (в стиле кнопок brightness +/-)
+- Power button смещена вверх (margin-top: -20px) для центрирования
+- Иконка устройства перенесена в status-bar
+- Status иконки [W] [M] [T] размещены с gap 2px
+- Header центрирован, device-info-container упрощен
+- Добавлен обработчик кнопки settings - переключение темной темы
+- Обновлена документация в docs/tasks/task_light_webui.md
 
----
+**Переименование namespace wifi -> webui:**
+- Обновлены файлы:
+  - `lib\ETLTest\etl_wifi_setup.h` - namespace etl::wifi -> etl::webui
+  - `lib\ETLTest\etl_wifi_setup.cpp` - namespace etl::wifi -> etl::webui
+  - `lib\ETLTest\etl_wifi_setup_html.h` - namespace etl::wifi -> etl::webui
+  - `src\main.cpp` - все ссылки на etl::wifi:: заменены на etl::webui::
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266)
+  - ✅ esp32c3 (ESP32-C3)
+  - ✅ esp32-wroom-32u (ESP32)
 
-### Примечания
-- Настройки WiFi перемещены в ETL библиотеку
-- Симуляция кнопок через `simulation_t` в main.cpp
-- Оба сервера используют общий порт 80
-- mDNS имена разные: `kitchenlight.local` (WebUI) и `espdevice.local` (WiFi Setup)
+**Изменение цветовой схемы power-button и brightness:**
+- Power-button: зелёный (#34C759) → синий неоновый (#007AFF)
+  - border-color: #007AFF
+  - box-shadow: rgba(0, 122, 255, 0.4/0.5)
+- Brightness-fill: зелёный (#34C759/#30D158) → синий (#007AFF/#0A84FF)
+
+**Создание базового класса web_server_base_t:**
+- Создан файл `lib\ETLTest\etl_webui_base.h` с базовым классом `etl::webui::web_server_base_t`
+- Базовый класс включает:
+  - Виртуальный деструктор
+  - Чистые виртуальные методы: begin(), stop(), handle(), is_initialized(), get_connection_status(), is_connected(), get_ip_address(), get_mode(), get_hostname(), get_port()
+  - protected-члены: m_initialized, m_connection_status
+  - device_info_t и connection_status_t перенесены в базовый класс
+- `server_setup` унаследован от `web_server_base_t`
+- Реализованы методы get_hostname() и get_port() в server_setup
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266)
+  - ✅ esp32c3 (ESP32-C3)
+  - ✅ esp32-wroom-32u (ESP32)
+
+### 2 апреля 2026 г.
+
+**Вынос настроек в отдельный файл etl_webui_settings.h:**
+- Создан файл `lib\ETLTest\etl_webui_settings.h` с конфигурационными структурами:
+  - `server_config_t` — настройки WiFi сервера (hostname, AP/STA credentials, port, update_interval)
+  - `ui_config_t` — настройки интерфейса (language, dark_theme, large_font, use_bold_values)
+  - `telegram_config_t` — настройки Telegram бота (TODO)
+  - `mqtt_config_t` — настройки MQTT (TODO)
+  - `scan_result_t` — результат сканирования WiFi сети
+- Создан файл `lib\ETLTest\etl_webui_settings.cpp` с реализацией методов структур
+- Обновлён `lib\ETLTest\etl_webui.h`:
+  - Добавлен `#include "etl_webui_settings.h"`
+  - Удалены дублирующие определения структур (перенесены в etl_webui_settings.h)
+- Обновлён `lib\ETLTest\etl_webui.cpp`:
+  - Добавлен `#include "etl_webui_settings.cpp"` в конец файла
+  - Удалены дублирующие реализации методов структур
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 17.23 сек
+  - ✅ esp32c3 (ESP32-C3) — 17.75 сек
+  - ✅ esp32-wroom-32u (ESP32) — 23.06 сек
+
+**Перенос device_info_t и connection_status_t в etl_webui_settings.h:**
+- Из `lib\ETLTest\etl_webui_base.h` перенесены структуры:
+  - `device_info_t` — информация об устройстве (name, description, icon_svg)
+  - `connection_status_t` — статус подключения к WiFi
+- В `lib\ETLTest\etl_webui_base.h` добавлен `#include "etl_webui_settings.h"`
+- Обновлены комментарии в `lib\ETLTest\etl_webui.h` о расположении структур
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 6.87 сек
+  - ✅ esp32c3 (ESP32-C3) — 8.86 сек
+  - ✅ esp32-wroom-32u (ESP32) — 11.92 сек

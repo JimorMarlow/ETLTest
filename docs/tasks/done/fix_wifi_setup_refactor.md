@@ -2,7 +2,7 @@
 
 ## Ссылки
 - Основная задача: [task_wifi_setup_refactor.md](task_wifi_setup_refactor.md)
-- История изменений: [task_wifi_setup_refactor_hystory.md](task_wifi_setup_refactor_hystory.md)
+- История изменений: [task_wifi_setup_refactor_history.md](task_wifi_setup_refactor_history.md)
 
 ## Замечания и ошибки
 

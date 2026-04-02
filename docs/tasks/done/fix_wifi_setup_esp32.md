@@ -1,7 +1,7 @@
 # Ошибки найденные при тестировании задачи 
 
 задача: docs\tasks\task_wifi_setup_esp32.md
-история: docs\tasks\task_wifi_setup_esp32_hystory.md
+история: docs\tasks\task_wifi_setup_esp32_history.md
 
 Что уже исправлено в этой версии (0.1.22):
 

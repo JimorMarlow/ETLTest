@@ -525,4 +525,4 @@ void loop() {
 
 - Платформы: ESP8266, ESP32
 - Документация: `docs/etl_wifi_setup.md`
-- История изменений: `docs/tasks/done/task_webui_darktheme_hystory.md`
+- История изменений: `docs/tasks/done/task_webui_darktheme_history.md`
