@@ -80,6 +80,27 @@
 
 ### 2 апреля 2026 г.
 
+**Перенос namespace settings в etl_webui_settings.*:**
+- Обновлён `lib\ETLTest\etl_webui_settings.h`:
+  * Добавлены include: `<etl/etl_memory.h>`, `<etl/etl_optional.h>`
+  * Добавлен `namespace settings` с объявлениями функций: init_wifi_config, save_wifi_config, load_wifi_config, init_ui_config, save_ui_config, load_ui_config, init_telegram_config, save_telegram_config, load_telegram_config, init_mqtt_config, save_mqtt_config, load_mqtt_config
+
+- Обновлён `lib\ETLTest\etl_webui_settings.cpp`:
+  * Добавлены include: `etl/etl_littlefs.h`, `etl/etl_settings.h`, `<etl/etl_memory.h>`
+  * Перенесён `namespace settings` с реализацией всех функций из etl_webui.cpp
+  * Реализации структур server_config_t, ui_config_t, telegram_config_t, mqtt_config_t перемещены после закрывающей скобки namespace settings
+
+- Обновлён `lib\ETLTest\etl_webui.h`:
+  * Удалён `namespace settings` (перенесён в etl_webui_settings.h)
+
+- Обновлён `lib\ETLTest\etl_webui.cpp`:
+  * Удалён `namespace settings` с реализацией (перенесён в etl_webui_settings.cpp)
+
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 6.91 сек
+  - ✅ esp32c3 (ESP32-C3) — 9.92 сек
+  - ✅ esp32-wroom-32u (ESP32) — 13.87 сек
+
 **Перенос общих частей из server_setup в web_server_base_t:**
 - Обновлён `lib\ETLTest\etl_webui_base.h`:
   - Добавлен конструктор `explicit web_server_base_t(const etl::optional<server_config_t>& cfg = {})`

@@ -26,8 +26,6 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <etl/etl_memory.h>
-#include <etl/etl_optional.h>
 #include "etl_webui_settings.h"
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32

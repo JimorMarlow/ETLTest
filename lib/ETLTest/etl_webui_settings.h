@@ -12,6 +12,8 @@
  */
 
 #include <Arduino.h>
+#include <etl/etl_memory.h>
+#include <etl/etl_optional.h>
 
 #if defined(ESP8266) || defined(ESP32)
 
@@ -237,6 +239,88 @@ namespace etl
             uint8_t channel;                            // Канал
             bool connected = false;                     // Флаг: подключено к этой сети
         };
+
+        /**
+         * @brief Значение текущих настроек WiFi
+         */
+        namespace settings
+        {
+            /**
+             * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
+             * @param default_cfg Конфигурация WiFi сервера по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_wifi_config(const etl::webui::server_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Установить значения подключения к точками доступа
+             * @param cfg Конфигурация WiFi сервера
+             */
+            bool save_wifi_config(const etl::webui::server_config_t& cfg);
+
+            /**
+             * @brief Считать текущие значения подключения к точками доступа
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::webui::server_config_t> load_wifi_config();
+
+            /**
+             * @brief Инициализация настроек интерфейса
+             * @param default_cfg Конфигурация интерфейса по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_ui_config(const etl::webui::ui_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Сохранить настройки интерфейса
+             * @param cfg Конфигурация интерфейса
+             */
+            bool save_ui_config(const etl::webui::ui_config_t& cfg);
+
+            /**
+             * @brief Загрузить настройки интерфейса
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::webui::ui_config_t> load_ui_config();
+
+            /**
+             * @brief Инициализация настроек Telegram бота
+             * @param default_cfg Конфигурация Telegram бота по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_telegram_config(const etl::webui::telegram_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Сохранить настройки Telegram бота
+             * @param cfg Конфигурация Telegram бота
+             */
+            bool save_telegram_config(const etl::webui::telegram_config_t& cfg);
+
+            /**
+             * @brief Загрузить настройки Telegram бота
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::webui::telegram_config_t> load_telegram_config();
+
+            /**
+             * @brief Инициализация настроек MQTT
+             * @param default_cfg Конфигурация MQTT по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_mqtt_config(const etl::webui::mqtt_config_t& default_cfg, bool reset_to_default = false);
+
+            /**
+             * @brief Сохранить настройки MQTT
+             * @param cfg Конфигурация MQTT
+             */
+            bool save_mqtt_config(const etl::webui::mqtt_config_t& cfg);
+
+            /**
+             * @brief Загрузить настройки MQTT
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<etl::webui::mqtt_config_t> load_mqtt_config();
+        }
 
     } // namespace webui
 } // namespace etl

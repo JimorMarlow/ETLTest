@@ -8,11 +8,401 @@
 #if defined(ESP8266) || defined(ESP32)
 
 #include "etl_webui_settings.h"
+#include "etl/etl_littlefs.h"
+#include "etl/etl_settings.h"
 
 namespace etl
 {
     namespace webui
     {
+        namespace settings
+        {
+            // WiFi настройки
+            const String    wifi_data_path = "/settings/wifi.cfg";
+            const uint16_t  wifi_data_update_delay = 0;  // 0ms - Immediately update
+            server_config_t default_wifi_cfg;            // Значение по-умолчанию для сброса к заводским значениям
+            etl::shared_ptr<etl::settings::data<etl::webui::server_config_t>> wifi_cfg;
+
+            // UI настройки
+            const String    ui_data_path = "/settings/ui.cfg";
+            const uint16_t  ui_data_update_delay = 0;  // 0ms - Immediately update
+            ui_config_t     default_ui_cfg;            // Значение по-умолчанию для сброса к заводским значениям
+            etl::shared_ptr<etl::settings::data<etl::webui::ui_config_t>> ui_cfg;
+
+            // Telegram настройки
+            const String    telegram_data_path = "/settings/telegram.cfg";
+            const uint16_t  telegram_data_update_delay = 0;  // 0ms - Immediately update
+            telegram_config_t default_telegram_cfg;          // Значение по-умолчанию для сброса к заводским значениям
+            etl::shared_ptr<etl::settings::data<etl::webui::telegram_config_t>> telegram_cfg;
+
+            // MQTT настройки
+            const String    mqtt_data_path = "/settings/mqtt.cfg";
+            const uint16_t  mqtt_data_update_delay = 0;  // 0ms - Immediately update
+            mqtt_config_t   default_mqtt_cfg;            // Значение по-умолчанию для сброса к заводским значениям
+            etl::shared_ptr<etl::settings::data<etl::webui::mqtt_config_t>> mqtt_cfg;
+
+            // ============================================================================
+            // WiFi настройки
+            // ============================================================================
+
+            /**
+             * @brief Установить значения подключения к точками доступа по умолчанию и считать данные
+             * @param cfg Конфигурация WiFi сервера по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_wifi_config(const etl::webui::server_config_t& default_cfg, bool reset_to_default /*= false*/)
+            {
+                Serial.println(F("[wifi::settings] init_wifi_config()"));
+
+                if(etl::little_fs::begin())
+                {
+                    // Создание директории для файла настроек
+                    etl::little_fs::create_dir(settings::wifi_data_path);
+                }
+
+                // Сохранение настроек в постоянной памяти
+                if(!wifi_cfg)
+                {
+                    wifi_cfg = etl::make_shared<etl::settings::data<etl::webui::server_config_t>>(settings::wifi_data_path, settings::wifi_data_update_delay, default_cfg);
+                    bool result = wifi_cfg->init();
+                    Serial.print(F("[wifi::settings] init_wifi_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+
+                    if(result && reset_to_default)
+                    {
+                        Serial.println(F("[wifi::settings] resetting to default ..."));
+                        auto loaded_cfg = wifi_cfg->get();
+                        Serial.println(F("[wifi::settings] loaded from memory:"));
+                        loaded_cfg.trace();
+
+                        // Выполняем сброс: устанавливаем значения по умолчанию и сохраняем
+                        wifi_cfg->set(default_cfg);
+                        bool reset_result = wifi_cfg->save();
+
+                        Serial.print(F("[wifi::settings] reset to default: "));
+                        Serial.println(reset_result ? F("OK") : F("FAILED"));
+                        if(reset_result)
+                        {
+                            default_cfg.trace();
+                        }
+                    }
+
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] init_wifi_config() result: ALREADY INITED"));
+                return true;
+            }
+
+            /**
+             * @brief Установить значения подключения к точками доступа
+             * @param cfg Конфигурация WiFi сервера
+             */
+            bool save_wifi_config(const server_config_t& cfg)
+            {
+                Serial.println(F("[wifi::settings] save_wifi_config()"));
+
+                if(wifi_cfg)
+                {
+                    wifi_cfg->set(cfg);
+                    bool result = wifi_cfg->save();
+                    Serial.print(F("[wifi::settings] save_wifi_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] save_wifi_config() error: wifi_cfg not inited"));
+                return false;
+            }
+
+            /**
+             * @brief Считать текущие значения подключения к точками доступа
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<server_config_t> load_wifi_config()
+            {
+                Serial.println(F("[wifi::settings] load_wifi_config()"));
+
+                if(wifi_cfg)
+                {
+                    server_config_t cfg = wifi_cfg->get();
+                    Serial.println(F("[wifi::settings] load_wifi_config() loaded from FS"));
+                    cfg.trace();
+                    return cfg;
+                }
+                else
+                {
+                    Serial.println(F("[wifi::settings] load_wifi_config(): wifi_cfg not inited, returning empty optional"));
+                    return {};
+                }
+            }
+
+            // ============================================================================
+            // UI настройки
+            // ============================================================================
+
+            /**
+             * @brief Инициализация настроек интерфейса
+             * @param default_cfg Конфигурация интерфейса по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_ui_config(const etl::webui::ui_config_t& default_cfg, bool reset_to_default /*= false*/)
+            {
+                Serial.println(F("[wifi::settings] init_ui_config()"));
+
+                if(etl::little_fs::begin())
+                {
+                    // Создание директории для файла настроек
+                    etl::little_fs::create_dir(settings::ui_data_path);
+                }
+
+                // Сохранение настроек в постоянной памяти
+                if(!ui_cfg)
+                {
+                    ui_cfg = etl::make_shared<etl::settings::data<etl::webui::ui_config_t>>(settings::ui_data_path, settings::ui_data_update_delay, default_cfg);
+                    bool result = ui_cfg->init();
+                    Serial.print(F("[wifi::settings] init_ui_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+
+                    if(result && reset_to_default)
+                    {
+                        Serial.println(F("[wifi::settings] resetting UI to default ..."));
+                        auto loaded_cfg = ui_cfg->get();
+                        Serial.println(F("[wifi::settings] UI loaded from memory:"));
+                        loaded_cfg.trace();
+
+                        // Выполняем сброс: устанавливаем значения по умолчанию и сохраняем
+                        ui_cfg->set(default_cfg);
+                        bool reset_result = ui_cfg->save();
+
+                        Serial.print(F("[wifi::settings] UI reset to default: "));
+                        Serial.println(reset_result ? F("OK") : F("FAILED"));
+                        if(reset_result)
+                        {
+                            default_cfg.trace();
+                        }
+                    }
+
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] init_ui_config() result: ALREADY INITED"));
+                return true;
+            }
+
+            /**
+             * @brief Сохранить настройки интерфейса
+             * @param cfg Конфигурация интерфейса
+             */
+            bool save_ui_config(const ui_config_t& cfg)
+            {
+                Serial.println(F("[wifi::settings] save_ui_config()"));
+
+                if(ui_cfg)
+                {
+                    ui_cfg->set(cfg);
+                    bool result = ui_cfg->save();
+                    Serial.print(F("[wifi::settings] save_ui_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] save_ui_config() error: ui_cfg not inited"));
+                return false;
+            }
+
+            /**
+             * @brief Загрузить настройки интерфейса
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<ui_config_t> load_ui_config()
+            {
+                Serial.println(F("[wifi::settings] load_ui_config()"));
+
+                if(ui_cfg)
+                {
+                    ui_config_t cfg = ui_cfg->get();
+                    Serial.println(F("[wifi::settings] load_ui_config() loaded from FS"));
+                    cfg.trace();
+                    return cfg;
+                }
+                else
+                {
+                    Serial.println(F("[wifi::settings] load_ui_config(): ui_cfg not inited, returning empty optional"));
+                    etl::optional<ui_config_t> empty;
+                    return empty;
+                }
+            }
+
+            // ============================================================================
+            // Telegram настройки
+            // ============================================================================
+
+            /**
+             * @brief Инициализация настроек Telegram бота
+             * @param default_cfg Конфигурация Telegram бота по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_telegram_config(const etl::webui::telegram_config_t& default_cfg, bool reset_to_default /*= false*/)
+            {
+                Serial.println(F("[wifi::settings] init_telegram_config()"));
+
+                if(etl::little_fs::begin())
+                {
+                    etl::little_fs::create_dir(settings::telegram_data_path);
+                }
+
+                if(!telegram_cfg)
+                {
+                    telegram_cfg = etl::make_shared<etl::settings::data<etl::webui::telegram_config_t>>(settings::telegram_data_path, settings::telegram_data_update_delay, default_cfg);
+                    bool result = telegram_cfg->init();
+                    Serial.print(F("[wifi::settings] init_telegram_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+
+                    if(result && reset_to_default)
+                    {
+                        Serial.println(F("[wifi::settings] resetting Telegram to default ..."));
+                        telegram_cfg->set(default_cfg);
+                        bool reset_result = telegram_cfg->save();
+                        Serial.print(F("[wifi::settings] Telegram reset to default: "));
+                        Serial.println(reset_result ? F("OK") : F("FAILED"));
+                    }
+
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] init_telegram_config() result: ALREADY INITED"));
+                return true;
+            }
+
+            /**
+             * @brief Сохранить настройки Telegram бота
+             * @param cfg Конфигурация Telegram бота
+             */
+            bool save_telegram_config(const telegram_config_t& cfg)
+            {
+                Serial.println(F("[wifi::settings] save_telegram_config()"));
+
+                if(telegram_cfg)
+                {
+                    telegram_cfg->set(cfg);
+                    bool result = telegram_cfg->save();
+                    Serial.print(F("[wifi::settings] save_telegram_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] save_telegram_config() error: telegram_cfg not inited"));
+                return false;
+            }
+
+            /**
+             * @brief Загрузить настройки Telegram бота
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<telegram_config_t> load_telegram_config()
+            {
+                Serial.println(F("[wifi::settings] load_telegram_config()"));
+
+                if(telegram_cfg)
+                {
+                    telegram_config_t cfg = telegram_cfg->get();
+                    Serial.println(F("[wifi::settings] load_telegram_config() loaded from FS"));
+                    cfg.trace();
+                    return cfg;
+                }
+                else
+                {
+                    Serial.println(F("[wifi::settings] load_telegram_config(): telegram_cfg not inited, returning empty optional"));
+                    return {};
+                }
+            }
+
+            // ============================================================================
+            // MQTT настройки
+            // ============================================================================
+
+            /**
+             * @brief Инициализация настроек MQTT
+             * @param default_cfg Конфигурация MQTT по умолчанию
+             * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+             */
+            bool init_mqtt_config(const etl::webui::mqtt_config_t& default_cfg, bool reset_to_default /*= false*/)
+            {
+                Serial.println(F("[wifi::settings] init_mqtt_config()"));
+
+                if(etl::little_fs::begin())
+                {
+                    etl::little_fs::create_dir(settings::mqtt_data_path);
+                }
+
+                if(!mqtt_cfg)
+                {
+                    mqtt_cfg = etl::make_shared<etl::settings::data<etl::webui::mqtt_config_t>>(settings::mqtt_data_path, settings::mqtt_data_update_delay, default_cfg);
+                    bool result = mqtt_cfg->init();
+                    Serial.print(F("[wifi::settings] init_mqtt_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+
+                    if(result && reset_to_default)
+                    {
+                        Serial.println(F("[wifi::settings] resetting MQTT to default ..."));
+                        mqtt_cfg->set(default_cfg);
+                        bool reset_result = mqtt_cfg->save();
+                        Serial.print(F("[wifi::settings] MQTT reset to default: "));
+                        Serial.println(reset_result ? F("OK") : F("FAILED"));
+                    }
+
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] init_mqtt_config() result: ALREADY INITED"));
+                return true;
+            }
+
+            /**
+             * @brief Сохранить настройки MQTT
+             * @param cfg Конфигурация MQTT
+             */
+            bool save_mqtt_config(const mqtt_config_t& cfg)
+            {
+                Serial.println(F("[wifi::settings] save_mqtt_config()"));
+
+                if(mqtt_cfg)
+                {
+                    mqtt_cfg->set(cfg);
+                    bool result = mqtt_cfg->save();
+                    Serial.print(F("[wifi::settings] save_mqtt_config() result: "));
+                    Serial.println(result ? F("OK") : F("FAILED"));
+                    return result;
+                }
+
+                Serial.print(F("[wifi::settings] save_mqtt_config() error: mqtt_cfg not inited"));
+                return false;
+            }
+
+            /**
+             * @brief Загрузить настройки MQTT
+             * @return etl::optional с конфигом, если он был инициализирован, или пустой optional
+             */
+            etl::optional<mqtt_config_t> load_mqtt_config()
+            {
+                Serial.println(F("[wifi::settings] load_mqtt_config()"));
+
+                if(mqtt_cfg)
+                {
+                    mqtt_config_t cfg = mqtt_cfg->get();
+                    Serial.println(F("[wifi::settings] load_mqtt_config() loaded from FS"));
+                    cfg.trace();
+                    return cfg;
+                }
+                else
+                {
+                    Serial.println(F("[wifi::settings] load_mqtt_config(): mqtt_cfg not inited, returning empty optional"));
+                    return {};
+                }
+            }
+        } // namespace settings
+
         // ============================================================================
         // Реализация server_config_t
         // ============================================================================
