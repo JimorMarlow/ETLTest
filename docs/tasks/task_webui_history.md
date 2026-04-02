@@ -80,6 +80,26 @@
 
 ### 2 апреля 2026 г.
 
+**Перенос методов управления настройками в web_server_base_t:**
+- Обновлён `lib\ETLTest\etl_webui_base.h`:
+  * Добавлены чисто виртуальные методы: scan_networks(), connect_to_network(), connect_to_network_async(), disconnect(), set_config(), get_device_icon()
+  * Добавлены методы с реализацией в базовом классе: save_settings(), load_settings(), reset_settings()
+
+- Обновлён `lib\ETLTest\etl_webui_base.cpp`:
+  * Реализация disconnect() — WiFi.disconnect(true)
+  * Реализация save_settings() — сохранение WiFi и UI настроек через settings::save_wifi_config/save_ui_config
+  * Реализация load_settings() — загрузка WiFi и UI настроек через settings::load_wifi_config/load_ui_config
+  * Реализация reset_settings() — сброс настроек к значениям по умолчанию
+  * Реализация set_config() — присваивание m_config
+
+- Обновлён `lib\ETLTest\etl_webui.cpp`:
+  * server_setup::disconnect(), save_settings(), load_settings(), reset_settings(), set_config(), get_ui_config(), set_device_info(), reboot() — теперь вызывают реализации базового класса
+
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 6.90 сек
+  - ✅ esp32c3 (ESP32-C3) — 9.52 сек
+  - ✅ esp32-wroom-32u (ESP32) — 14.91 сек
+
 **Добавление метода tick() и базовых методов в web_server_base_t:**
 - Обновлён `lib\ETLTest\etl_webui_base.h`:
   * Добавлен метод `virtual void tick()` — объединяет handle() и handle_client()

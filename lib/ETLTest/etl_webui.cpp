@@ -347,112 +347,42 @@ namespace etl
 
         void server_setup::disconnect()
         {
-            Serial.println(F("[WiFiSetup] Disconnecting..."));
-
-            WiFi.disconnect(true);
-            m_connection_status = connection_status_t::disconnected;
+            web_server_base_t::disconnect();
         }
 
         bool server_setup::save_settings()
         {
-            Serial.println(F("[WiFiSetup] Saving settings..."));
-            
-            bool wifi_saved = false;
-            bool ui_saved = false;
-            
-            // Сохранение WiFi настроек
-            if (m_config.has_value()) {
-                m_config->trace();
-                wifi_saved = settings::save_wifi_config(*m_config);
-                Serial.print(F("[WiFiSetup] WiFi settings saved: "));
-                Serial.println(wifi_saved ? F("OK") : F("FAILED"));
-            } else {
-                Serial.println(F("[WiFiSetup] No WiFi config to save"));
-            }
-            
-            // Сохранение UI настроек
-            if (m_ui_config.has_value()) {
-                m_ui_config->trace();
-                ui_saved = settings::save_ui_config(*m_ui_config);
-                Serial.print(F("[WiFiSetup] UI settings saved: "));
-                Serial.println(ui_saved ? F("OK") : F("FAILED"));
-            } else {
-                Serial.println(F("[WiFiSetup] No UI config to save"));
-            }
-            
-            return wifi_saved || ui_saved;
+            return web_server_base_t::save_settings();
         }
 
         bool server_setup::load_settings()
         {
-            Serial.println(F("[WiFiSetup] Loading settings..."));
-            
-            // Загрузка WiFi настроек
-            if (auto wifi_cfg = settings::load_wifi_config(); wifi_cfg.has_value()) 
-            {
-                m_config = wifi_cfg;
-                Serial.println(F("[WiFiSetup] WiFi settings loaded"));
-            } else {
-                Serial.println(F("[WiFiSetup] No WiFi settings found"));
-            }
-            
-            // Загрузка UI настроек
-            if (auto ui_cfg = settings::load_ui_config(); ui_cfg.has_value()) 
-            {
-                m_ui_config = ui_cfg;
-                Serial.println(F("[WiFiSetup] UI settings loaded"));
-            } else {
-                Serial.println(F("[WiFiSetup] No UI settings found"));
-            }
-            
-            return true;
+            return web_server_base_t::load_settings();
         }
 
         bool server_setup::reset_settings()
         {
-            Serial.println(F("[WiFiSetup] Resetting settings..."));
-            
-            // Сброс WiFi конфигурации к значениям по умолчанию
-            if (m_config.has_value()) {
-                m_config->clear();
-                settings::save_wifi_config(*m_config);
-                Serial.println(F("[WiFiSetup] WiFi settings reset"));
-            }
-            
-            // Сброс UI конфигурации к значениям по умолчанию
-            if (m_ui_config.has_value()) {
-                m_ui_config->clear();
-                settings::save_ui_config(*m_ui_config);
-                Serial.println(F("[WiFiSetup] UI settings reset"));
-            }
-            
-            return true;
+            return web_server_base_t::reset_settings();
         }
 
         void server_setup::set_config(const etl::optional<server_config_t>& cfg)
         {
-            m_config = cfg;
+            web_server_base_t::set_config(cfg);
         }
 
         etl::optional<ui_config_t> server_setup::get_ui_config() const
         {
-            return m_ui_config;
+            return web_server_base_t::get_ui_config();
         }
 
         void server_setup::set_device_info(const device_info_t& info)
         {
-            m_device_info = info;
+            web_server_base_t::set_device_info(info);
         }
 
         void server_setup::reboot()
         {
-            Serial.println(F("[WiFiSetup] Rebooting..."));
-            delay(100);
-#ifdef ESP8266
-            ESP.reset();
-#elif defined(ESP32)
-            ESP.restart();
-#endif
+            web_server_base_t::reboot();
         }
 
         bool server_setup::start_ap()

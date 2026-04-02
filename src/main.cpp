@@ -125,8 +125,7 @@ void loop() {
     // Обработка клиентских запросов и WiFi событий
 #ifdef USE_WIFI_UI_SERVER
     if(wifi_server) {
-        wifi_server->handle();        // Обновление статуса WiFi
-        wifi_server->handle_client(); // Обработка HTTP запросов
+        wifi_server->tick();        // Обновление статуса WiFi и обработка HTTP запросов
     }
 #endif// USE_WIFI_UI_SERVER
 }

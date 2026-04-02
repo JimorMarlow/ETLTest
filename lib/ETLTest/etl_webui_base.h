@@ -176,13 +176,59 @@ namespace etl
              * @brief Получить информацию об устройстве
              * @return Информация об устройстве
              */
-            virtual const device_info_t& get_device_info() const { return m_device_info; }
+            virtual const device_info_t& get_device_info() const;
 
             /**
              * @brief Получить текущую конфигурацию интерфейса
              * @return Конфигурация интерфейса (опционально)
              */
             virtual etl::optional<ui_config_t> get_ui_config() const;
+
+            /**
+             * @brief Сканирование доступных WiFi сетей
+             * @param results Вектор для результатов сканирования
+             * @return Количество найденных сетей
+             */
+            virtual int32_t scan_networks(std::vector<scan_result_t>& results) = 0;
+
+            /**
+             * @brief Подключение к WiFi сети
+             * @param ssid SSID сети
+             * @param password Пароль сети
+             * @param timeout Таймаут подключения (мс, по умолчанию 10000)
+             * @return true при успешном подключении
+             */
+            virtual bool connect_to_network(const String& ssid, const String& password, uint32_t timeout = 10000) = 0;
+
+            /**
+             * @brief Начать подключение к WiFi сети (асинхронно, без ожидания)
+             * @param ssid SSID сети
+             * @param password Пароль сети
+             */
+            virtual void connect_to_network_async(const String& ssid, const String& password) = 0;
+
+            /**
+             * @brief Отключение от WiFi сети
+             */
+            virtual void disconnect() = 0;
+
+            /**
+             * @brief Установить конфигурацию сервера
+             * @param cfg Новая конфигурация
+             */
+            virtual void set_config(const etl::optional<server_config_t>& cfg) = 0;
+
+            /**
+             * @brief Получить текущую конфигурацию WiFi
+             * @return Конфигурация сервера (опционально)
+             */
+            virtual const etl::optional<server_config_t>& get_wifi_config() const { return m_config; }
+
+            /**
+             * @brief Получить SVG иконку устройства
+             * @return SVG строка или иконка по умолчанию
+             */
+            virtual String get_device_icon() const = 0;
 
         protected:
             /**

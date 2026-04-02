@@ -62,21 +62,27 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
   - [x] is_connected()
   - [x] get_ip_address()
   - [x] get_mode() const;
-  - [ ] load_settings()
-  - [ ] save_settings
-  - [ ] reset_settings
-  - [ ] disconnect()
+  - [x] load_settings()
+  - [x] save_settings
+  - [x] reset_settings
+  - [x] disconnect()
   - [ ] connect_to_network
   - [ ] connect_to_network_async
-  - [ ] set_config
-  - [ ] get_ui_config
-  - [ ] set_device_info
-  - [ ] reboot
+  - [x] set_config
+  - [x] get_ui_config
+  - [x] set_device_info
+  - [x] reboot
   - [ ] start_ap
   - [ ] connect_to_sta
   - [ ] update_connection_status
   - [ ] get_encryption_type
   - [ ] get_device_icon
+  - [ ] убери лишние методы из server_setup. Если переопределенный метод просто вызывает такой же метод базового класса, то он не нужнен в server_setup. Оставить только те, у которых есть отдельная реализация.
+        Пример кода, который можно убрать из server_setup
+        void server_setup::disconnect()
+        {
+            web_server_base_t::disconnect();
+        }
   дальше будем добвлять по необходимости
   
 - [ ] проверь компиляцию всех env в platformio
