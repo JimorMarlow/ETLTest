@@ -41,9 +41,6 @@ namespace etl
 {
     namespace webui
     {
-        // Константы для хранения настроек
-        static const uint32_t WIFI_CONNECT_TIMEOUT = 10000;  // 10 секунд
-
         // device_info_t и connection_status_t определены в etl_webui_settings.h
 
         /**
@@ -300,7 +297,8 @@ namespace etl
              */
             virtual void send_error_response(const String& message);
 
-        protected:  // Data section
+        protected:  
+            // Data section
             etl::optional<server_config_t> m_config;                ///< Конфигурация WiFi (опционально)
             etl::optional<ui_config_t> m_ui_config;                 ///< Конфигурация интерфейса (опционально)
             device_info_t m_device_info;                            ///< Информация об устройстве
@@ -309,6 +307,9 @@ namespace etl
             etl::shared_ptr<etl_web_server_t> m_server;             ///< HTTP сервер
             std::vector<scan_result_t> m_scan_cache;                ///< Кэш результатов сканирования
             uint32_t m_scan_timestamp = 0;                          ///< Время последнего сканирования
+
+            // Константы для хранения настроек
+            static const uint32_t WIFI_CONNECT_TIMEOUT = 10000;     ///< Время ожидания подключени к wifi 10 секунд
             static const uint32_t SCAN_CACHE_TIME = 30000;          ///< Время кэширования сканирования (30 сек)
 
         };
