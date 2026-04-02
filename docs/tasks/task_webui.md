@@ -50,8 +50,35 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
   - [x] Перенести реализацию всех функций и конструктора, которые достаточны, чтобы обрабатывать работу с данными без установки в интерфейс
   - [x] Передавать в конструкторе server_setup настройки конфигурации в базовый класс
   - [x] Перенести все содержимое namespace settings {} из lib\ETLTest\etl_webui.* в lib\ETLTest\etl_webui_settings.*
-- [ ] Перенос частей из  server_setup в web_server_base_t  
-  - [ ] 
+- [x] Перенос частей из server_setup в web_server_base_t
+  - [x] begin()
+  - [x] start_http_server()
+  - [x] stop()
+  - [x] handle()
+  - [x] handle_client()
+  - [x] web_server_base_t добавить virtual void tick(); в котором вызывать handle() и handle_client()
+  - [x] bool is_initialized() const;
+  - [x] get_connection_status()
+  - [x] is_connected()
+  - [x] get_ip_address()
+  - [x] get_mode() const;
+  - [ ] load_settings()
+  - [ ] save_settings
+  - [ ] reset_settings
+  - [ ] disconnect()
+  - [ ] connect_to_network
+  - [ ] connect_to_network_async
+  - [ ] set_config
+  - [ ] get_ui_config
+  - [ ] set_device_info
+  - [ ] reboot
+  - [ ] start_ap
+  - [ ] connect_to_sta
+  - [ ] update_connection_status
+  - [ ] get_encryption_type
+  - [ ] get_device_icon
+  дальше будем добвлять по необходимости
+  
 - [ ] проверь компиляцию всех env в platformio
 
 [STOP] - дальше не читай, это еще в процессе продумывания и разработки. После детализации будем двигаться дальше

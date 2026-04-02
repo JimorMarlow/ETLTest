@@ -131,6 +131,59 @@ namespace etl
              */
             virtual uint16_t get_port() const = 0;
 
+            /**
+             * @brief Основной цикл обработки (объединяет handle() и handle_client())
+             * 
+             * Вызывать регулярно из loop() для обработки событий WiFi и HTTP запросов.
+             */
+            virtual void tick();
+
+            /**
+             * @brief Обработка HTTP запросов сервера
+             */
+            virtual void handle_client();
+
+            /**
+             * @brief Сохранение настроек
+             * @return true при успешном сохранении
+             */
+            virtual bool save_settings() = 0;
+
+            /**
+             * @brief Загрузка сохранённых настроек
+             * @return true если настройки загружены успешно
+             */
+            virtual bool load_settings() = 0;
+
+            /**
+             * @brief Сброс настроек к заводским
+             * @return true при успешном сбросе
+             */
+            virtual bool reset_settings() = 0;
+
+            /**
+             * @brief Перезагрузка устройства
+             */
+            virtual void reboot();
+
+            /**
+             * @brief Установить информацию об устройстве
+             * @param info Информация об устройстве
+             */
+            virtual void set_device_info(const device_info_t& info);
+
+            /**
+             * @brief Получить информацию об устройстве
+             * @return Информация об устройстве
+             */
+            virtual const device_info_t& get_device_info() const { return m_device_info; }
+
+            /**
+             * @brief Получить текущую конфигурацию интерфейса
+             * @return Конфигурация интерфейса (опционально)
+             */
+            virtual etl::optional<ui_config_t> get_ui_config() const;
+
         protected:
             /**
              * @brief Защищённый конструктор для использования в наследниках

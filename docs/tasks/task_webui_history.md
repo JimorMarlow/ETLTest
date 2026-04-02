@@ -80,6 +80,25 @@
 
 ### 2 апреля 2026 г.
 
+**Добавление метода tick() и базовых методов в web_server_base_t:**
+- Обновлён `lib\ETLTest\etl_webui_base.h`:
+  * Добавлен метод `virtual void tick()` — объединяет handle() и handle_client()
+  * Добавлен метод `virtual void handle_client()`
+  * Добавлены виртуальные методы: reboot(), set_device_info(), get_ui_config()
+  * Добавлены чисто виртуальные методы: save_settings(), load_settings(), reset_settings()
+
+- Обновлён `lib\ETLTest\etl_webui_base.cpp`:
+  * Реализация tick() — вызывает handle() и handle_client()
+  * Реализация handle_client() — вызывает m_server->handleClient()
+  * Реализация reboot() — ESP.reset() для ESP8266, ESP.restart() для ESP32
+  * Реализация set_device_info() — присваивание m_device_info
+  * Реализация get_ui_config() — возврат m_ui_config
+
+- Успешная компиляция всех конфигураций:
+  - ✅ nodemcuv3 (ESP8266) — 7.23 сек
+  - ✅ esp32c3 (ESP32-C3) — 8.55 сек
+  - ✅ esp32-wroom-32u (ESP32) — 12.92 сек
+
 **Перенос namespace settings в etl_webui_settings.*:**
 - Обновлён `lib\ETLTest\etl_webui_settings.h`:
   * Добавлены include: `<etl/etl_memory.h>`, `<etl/etl_optional.h>`

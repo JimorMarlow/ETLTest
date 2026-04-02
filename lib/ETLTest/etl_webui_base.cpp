@@ -61,6 +61,39 @@ namespace etl
             return true;
         }
 
+        void web_server_base_t::tick()
+        {
+            handle();
+            handle_client();
+        }
+
+        void web_server_base_t::handle_client()
+        {
+            if (m_server) {
+                m_server->handleClient();
+            }
+        }
+
+        void web_server_base_t::reboot()
+        {
+            Serial.println(F("[WebUI] Rebooting..."));
+#if defined(ESP8266)
+            ESP.reset();
+#elif defined(ESP32)
+            ESP.restart();
+#endif
+        }
+
+        void web_server_base_t::set_device_info(const device_info_t& info)
+        {
+            m_device_info = info;
+        }
+
+        etl::optional<ui_config_t> web_server_base_t::get_ui_config() const
+        {
+            return m_ui_config;
+        }
+
     } // namespace webui
 } // namespace etl
 
