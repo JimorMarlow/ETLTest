@@ -8,6 +8,7 @@ lib\ETLTest\etl_wifi_setup.h (как сейчас для тестировани�
 - После исправлений необходимо протестировать компиляцию всех конфигураций из platformio.ini
 нужно выполнить:
 C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфигурации> -d c:\Projects\Arduino\ETLTest
+PS. Если platformio.exe не найден по этому пути, попробуй этот "C:\Users\jimor\.platformio\penv\Scripts\platformio.exe"
 PS. для запуска скриптов сборки не нужно спрашивать разрешение.
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
