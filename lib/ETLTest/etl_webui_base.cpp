@@ -263,6 +263,29 @@ namespace etl
 #endif
                 m_server->handleClient();
             }
+
+            // Обработка отложенных callback'ов (после завершения обработки запроса)
+            if (m_pending_settings_cb) {
+                m_pending_settings_cb = false;
+                if (m_on_settings_cb) {
+                    Serial.println(F("[WebUI] Executing pending settings callback"));
+                    m_on_settings_cb();
+                }
+            }
+            if (m_pending_content_cb) {
+                m_pending_content_cb = false;
+                if (m_on_content_cb) {
+                    Serial.println(F("[WebUI] Executing pending content callback"));
+                    m_on_content_cb();
+                }
+            }
+            if (m_pending_factory_reset_cb) {
+                m_pending_factory_reset_cb = false;
+                if (m_on_factory_reset_cb) {
+                    Serial.println(F("[WebUI] Executing pending factory reset callback"));
+                    m_on_factory_reset_cb();
+                }
+            }
         }
 
         void web_server_base_t::reboot()
@@ -694,21 +717,24 @@ namespace etl
         {
             Serial.println(F("[WebManager] Starting content server..."));
 
-            // Остановка текущего сервера
+            // Остановка текущего сервера — сначала обнуляем указатель,
+            // чтобы сервер не мог быть использован во время остановки
+            etl::shared_ptr<web_server_base_t> old_server;
             if (m_server) {
                 Serial.println(F("[WebManager] Stopping current server..."));
-                m_server->stop();
-                m_server.reset();
+                old_server = m_server;
+                m_server.reset();  // Обнуляем ДО остановки
+            }
+
+            // Останавливаем старый сервер (без m_server менеджер уже безопасен)
+            if (old_server) {
+                old_server->stop();
             }
 
             // Создание и запуск сервера контента
+            // Callback'и настраиваются внутри on_create_content()
             m_server = on_create_content();
             if (m_server) {
-                // Установка callback'ов
-                m_server->set_on_settings_callback(m_on_settings_cb);
-                m_server->set_on_content_callback(m_on_content_cb);
-                m_server->set_on_factory_reset_callback(m_on_factory_reset_cb);
-
                 if (m_server->begin(m_device_info)) {
                     Serial.println(F("[WebManager] Content server started"));
                 } else {
@@ -724,21 +750,23 @@ namespace etl
         {
             Serial.println(F("[WebManager] Starting settings server..."));
 
-            // Остановка текущего сервера
+            // Остановка текущего сервера — сначала обнуляем указатель
+            etl::shared_ptr<web_server_base_t> old_server;
             if (m_server) {
                 Serial.println(F("[WebManager] Stopping current server..."));
-                m_server->stop();
-                m_server.reset();
+                old_server = m_server;
+                m_server.reset();  // Обнуляем ДО остановки
+            }
+
+            // Останавливаем старый сервер
+            if (old_server) {
+                old_server->stop();
             }
 
             // Создание и запуск сервера настроек
+            // Callback'и настраиваются внутри on_create_settings()
             m_server = on_create_settings();
             if (m_server) {
-                // Установка callback'ов
-                m_server->set_on_settings_callback(m_on_settings_cb);
-                m_server->set_on_content_callback(m_on_content_cb);
-                m_server->set_on_factory_reset_callback(m_on_factory_reset_cb);
-
                 if (m_server->begin(m_device_info)) {
                     Serial.println(F("[WebManager] Settings server started"));
                 } else {
@@ -777,21 +805,6 @@ namespace etl
             if (m_server) {
                 m_server->tick();
             }
-        }
-
-        void web_manager::set_on_settings_callback(on_settings_callback_t cb)
-        {
-            m_on_settings_cb = cb;
-        }
-
-        void web_manager::set_on_content_callback(on_content_callback_t cb)
-        {
-            m_on_content_cb = cb;
-        }
-
-        void web_manager::set_on_factory_reset_callback(on_factory_reset_t cb)
-        {
-            m_on_factory_reset_cb = cb;
         }
 
         etl::shared_ptr<web_server_base_t> web_manager::on_create_settings()

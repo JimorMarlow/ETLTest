@@ -596,22 +596,13 @@ namespace etl
 
         void light_control_server::handle_api_settings()
         {
-            Serial.println(F("[LightControl] API: /api/settings - triggering settings callback"));
+            Serial.println(F("[LightControl] API: /api/settings - scheduling settings callback"));
 
             // Отправляем успешный ответ клиенту
             send_success_response("Switching to settings server");
 
-            // Небольшая задержка для отправки ответа
-            delay(100);
-            yield();
-
-            // Вызываем callback для переключения на сервер настроек
-            if (m_on_settings_cb) {
-                Serial.println(F("[LightControl] Calling settings callback"));
-                m_on_settings_cb();
-            } else {
-                Serial.println(F("[LightControl] WARNING: No settings callback registered"));
-            }
+            // Устанавливаем отложенный флаг — callback выполнится в tick() после завершения запроса
+            m_pending_settings_cb = true;
         }
 
         void light_control_server::setup_http_routes()

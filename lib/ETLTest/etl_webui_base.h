@@ -345,6 +345,11 @@ namespace etl
             on_content_callback_t  m_on_content_cb = nullptr;       ///< Callback для сервера контента
             on_factory_reset_t     m_on_factory_reset_cb = nullptr; ///< Callback для сброса настроек
 
+            // Флаги отложенных callback'ов (выполняются в tick() после завершения обработки запроса)
+            volatile bool m_pending_settings_cb = false;    ///< Ожидание callback настроек
+            volatile bool m_pending_content_cb = false;     ///< Ожидание callback контента
+            volatile bool m_pending_factory_reset_cb = false; ///< Ожидание callback сброса
+
         };
 
         /**
@@ -423,24 +428,6 @@ namespace etl
              */
             bool trace_connection() const;
 
-            /**
-             * @brief Установить callback на запуск сервера настроек
-             * @param cb Функция обратного вызова
-             */
-            void set_on_settings_callback(on_settings_callback_t cb);
-
-            /**
-             * @brief Установить callback на запуск сервера контента
-             * @param cb Функция обратного вызова
-             */
-            void set_on_content_callback(on_content_callback_t cb);
-
-            /**
-             * @brief Установить callback на сброс настроек
-             * @param cb Функция обратного вызова
-             */
-            void set_on_factory_reset_callback(on_factory_reset_t cb);
-
         protected:
             /**
              * @brief Создать сервер контента
@@ -461,11 +448,6 @@ namespace etl
 
             device_info_t m_device_info;                                ///< Информация об устройстве
             etl::shared_ptr<web_server_base_t> m_server;                ///< Текущий сервер
-
-            // Callback-функции
-            on_settings_callback_t m_on_settings_cb = nullptr;          ///< Callback для сервера настроек
-            on_content_callback_t  m_on_content_cb = nullptr;           ///< Callback для сервера контента
-            on_factory_reset_t     m_on_factory_reset_cb = nullptr;     ///< Callback для сброса настроек
         };
 
     } // namespace webui

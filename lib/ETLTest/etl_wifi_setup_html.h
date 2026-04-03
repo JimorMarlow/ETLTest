@@ -803,7 +803,8 @@ namespace etl
 
         function goBack() {
             console.log('[WiFiSetup] Going back to content server...');
-            // Отключаемся от WiFi и возвращаемся к серверу контента
+            // Показываем индикатор загрузки
+            const o=document.createElement('div');o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';const d=document.createElement('div');d.style.cssText='background:#fff;border-radius:12px;padding:24px;max-width:280px;text-align:center';const s=document.createElement('div');s.style.cssText='width:36px;height:36px;border:3px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px';const t=document.createElement('p');t.style.cssText='margin:0;font-size:16px;color:#1C1C1E';t.textContent=currentLang==='ru'?'Загрузка контента...':'Loading content...';const k=document.createElement('style');k.textContent='@keyframes spin{to{transform:rotate(360deg)}}';d.appendChild(s);d.appendChild(t);o.appendChild(k);o.appendChild(d);document.body.appendChild(o);
             fetch('/api/back', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                 .then(response => response.json())
                 .then(data => {
@@ -812,6 +813,8 @@ namespace etl
                     }
                 })
                 .catch(error => console.log('[WiFiSetup] Back request error:', error));
+            setTimeout(()=>{if(document.body&&document.body.contains(o))document.body.removeChild(o)},5000);
+            setTimeout(()=>{window.location.reload()},10000);
         }
 
         function showModal(message, onConfirm) { modalMessage.textContent = message; modalOverlay.classList.add('active'); modalConfirmBtn.onclick = () => { modalOverlay.classList.remove('active'); onConfirm(); }; modalCancelBtn.onclick = () => { modalOverlay.classList.remove('active'); }; }

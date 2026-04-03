@@ -336,7 +336,9 @@ namespace etl
             bool success = save_settings();
 
             if (success) {
-                send_success_response("Settings saved");
+                send_success_response("Settings saved. Switching to content server...");
+                // Переключаемся на сервер контента с новыми настройками
+                m_pending_content_cb = true;
             } else {
                 send_error_response("Failed to save settings");
             }
@@ -349,22 +351,12 @@ namespace etl
             bool success = reset_settings();
 
             if (success) {
-                // Вызываем callback для уведомления менеджера о сбросе
-                if (m_on_factory_reset_cb) {
-                    Serial.println(F("[WiFiSetup] Calling factory reset callback"));
-                    
-                    // Отправляем ответ перед вызовом callback
-                    send_success_response("Settings reset. Rebooting...");
-                    delay(100);
-                    yield();
-                    
-                    m_on_factory_reset_cb();
-                } else {
-                    send_success_response("Settings reset. Rebooting...");
-                    Serial.println(F("[WiFiSetup] Rebooting in 2 seconds..."));
-                    delay(2000);  // Дать время на отправку ответа клиенту
-                    reboot();
-                }
+                // Отправляем ответ клиенту
+                send_success_response("Settings reset. Rebooting...");
+
+                // Устанавливаем отложенный флаг для callback сброса
+                // Менеджер выполнит сброс и запустит сервер настроек заново
+                m_pending_factory_reset_cb = true;
             } else {
                 send_error_response("Failed to reset settings");
             }
@@ -372,22 +364,13 @@ namespace etl
 
         void server_setup::handle_api_back()
         {
-            Serial.println(F("[WiFiSetup] API: /api/back - triggering content callback"));
+            Serial.println(F("[WiFiSetup] API: /api/back - scheduling content callback"));
 
             // Отправляем успешный ответ клиенту
             send_success_response("Switching to content server");
 
-            // Небольшая задержка для отправки ответа
-            delay(100);
-            yield();
-
-            // Вызываем callback для переключения на сервер контента
-            if (m_on_content_cb) {
-                Serial.println(F("[WiFiSetup] Calling content callback"));
-                m_on_content_cb();
-            } else {
-                Serial.println(F("[WiFiSetup] WARNING: No content callback registered"));
-            }
+            // Устанавливаем отложенный флаг — callback выполнится в tick() после завершения запроса
+            m_pending_content_cb = true;
         }
 
         void server_setup::handle_api_ap_settings()
