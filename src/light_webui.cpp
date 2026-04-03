@@ -601,8 +601,9 @@ namespace etl
             // Отправляем успешный ответ клиенту
             send_success_response("Switching to settings server");
 
-            // Устанавливаем отложенный флаг — callback выполнится в tick() после завершения запроса
+            // Устанавливаем отложенный флаг — callback выполнится через N тиков
             m_pending_settings_cb = true;
+            m_pending_cb_counter = PENDING_CB_TICKS;
         }
 
         void light_control_server::setup_http_routes()

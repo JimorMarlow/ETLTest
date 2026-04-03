@@ -349,6 +349,8 @@ namespace etl
             volatile bool m_pending_settings_cb = false;    ///< Ожидание callback настроек
             volatile bool m_pending_content_cb = false;     ///< Ожидание callback контента
             volatile bool m_pending_factory_reset_cb = false; ///< Ожидание callback сброса
+            volatile uint8_t m_pending_cb_counter = 0;      ///< Счётчик тиков до выполнения callback
+            static const uint8_t PENDING_CB_TICKS = 3;      ///< Сколько тиков ждать перед callback (достаточно для отправки ответа)
 
         };
 

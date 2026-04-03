@@ -264,26 +264,33 @@ namespace etl
                 m_server->handleClient();
             }
 
-            // Обработка отложенных callback'ов (после завершения обработки запроса)
-            if (m_pending_settings_cb) {
-                m_pending_settings_cb = false;
-                if (m_on_settings_cb) {
-                    Serial.println(F("[WebUI] Executing pending settings callback"));
-                    m_on_settings_cb();
-                }
-            }
-            if (m_pending_content_cb) {
-                m_pending_content_cb = false;
-                if (m_on_content_cb) {
-                    Serial.println(F("[WebUI] Executing pending content callback"));
-                    m_on_content_cb();
-                }
-            }
-            if (m_pending_factory_reset_cb) {
-                m_pending_factory_reset_cb = false;
-                if (m_on_factory_reset_cb) {
-                    Serial.println(F("[WebUI] Executing pending factory reset callback"));
-                    m_on_factory_reset_cb();
+            // Обработка отложенных callback'ов с задержкой
+            // Даём N тиков на отправку ответа клиенту перед переключением сервера
+            if (m_pending_cb_counter > 0) {
+                m_pending_cb_counter--;
+                if (m_pending_cb_counter == 0) {
+                    // Время выполнить callback
+                    if (m_pending_settings_cb) {
+                        m_pending_settings_cb = false;
+                        if (m_on_settings_cb) {
+                            Serial.println(F("[WebUI] Executing pending settings callback"));
+                            m_on_settings_cb();
+                        }
+                    }
+                    if (m_pending_content_cb) {
+                        m_pending_content_cb = false;
+                        if (m_on_content_cb) {
+                            Serial.println(F("[WebUI] Executing pending content callback"));
+                            m_on_content_cb();
+                        }
+                    }
+                    if (m_pending_factory_reset_cb) {
+                        m_pending_factory_reset_cb = false;
+                        if (m_on_factory_reset_cb) {
+                            Serial.println(F("[WebUI] Executing pending factory reset callback"));
+                            m_on_factory_reset_cb();
+                        }
+                    }
                 }
             }
         }

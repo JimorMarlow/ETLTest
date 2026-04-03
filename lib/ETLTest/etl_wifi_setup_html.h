@@ -25,10 +25,12 @@ namespace etl
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #C6C6C8; margin-bottom: 20px; }
         .header-title { font-size: 17px; font-weight: 600; color: #1C1C1E; }
         body.ui-scale .header-title, body.large-font .header-title { font-size: 20px; }
-        .lang-btn { padding: 6px 12px; border: 1px solid #C6C6C8; border-radius: 6px; background: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; }
+        .lang-btn { padding: 6px 12px; border: none; border-radius: 10px; background: #F2F2F7; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; height: 32px; box-sizing: border-box; color: #8E8E93; }
         body.ui-scale .lang-btn, body.large-font .lang-btn { font-size: 17px; }
-        .lang-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
-        .lang-btn:hover { border-color: #007AFF; }
+        .lang-btn.active { background: #007AFF; color: #FFFFFF; }
+        .lang-btn:hover { background: #007AFF; color: #FFFFFF; }
+        .back-btn { width:44px;height:44px;border:none;border-radius:10px;background:#F2F2F7;color:#8E8E93;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:20px;flex-shrink:0; }
+        .back-btn:hover { background:#007AFF;color:#FFFFFF; }
         .ui-settings-container { background: #F2F2F7; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
         .ui-settings-title { font-size: 15px; font-weight: 600; color: #1C1C1E; margin-bottom: 12px; }
         body.ui-scale .ui-settings-title, body.large-font .ui-settings-title { font-size: 18px; }
@@ -165,9 +167,11 @@ namespace etl
         body.dark-theme { background: #1C1C1E; color: #FFFFFF; }
         body.dark-theme .header { border-bottom-color: #38383A; }
         body.dark-theme .header-title { color: #FFFFFF; }
-        body.dark-theme .lang-btn { background: #1C1C1E; border-color: #38383A; color: #FFFFFF; }
-        body.dark-theme .lang-btn:hover { border-color: #007AFF; }
-        body.dark-theme .lang-btn.active { background: #007AFF; border-color: #007AFF; color: #FFFFFF; }
+        body.dark-theme .lang-btn { background: #3A3A3C; color: #98989D; }
+        body.dark-theme .lang-btn:hover { background: #007AFF; color: #FFFFFF; }
+        body.dark-theme .lang-btn.active { background: #007AFF; color: #FFFFFF; }
+        body.dark-theme .back-btn { background: #3A3A3C; color: #98989D; }
+        body.dark-theme .back-btn:hover { background: #007AFF; color: #FFFFFF; }
         body.dark-theme .ui-settings-container { background: #2C2C2E; }
         body.dark-theme .ui-settings-title { color: #FFFFFF; }
         body.dark-theme .ui-setting-label { color: #FFFFFF; }
@@ -219,7 +223,10 @@ namespace etl
 <body>
     <div class="container">
         <div class="header">
-            <div class="header-title" data-i18n="title">Settings</div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <button class="back-btn" id="backBtn" title="Back">&#x2190;</button>
+                <div class="header-title" data-i18n="title">Settings</div>
+            </div>
             <button class="lang-btn" id="langToggleBtn" title="Toggle language">RU</button>
         </div>
         <div class="device-info-container" id="deviceInfoContainer">
@@ -291,7 +298,6 @@ namespace etl
             </div>
             <button class="btn btn-secondary" id="applyApSettingsBtn" style="margin-top: 12px;" data-i18n="apply_ap_settings_btn">Apply AP Settings</button>
         </div>
-        <button class="btn btn-secondary" id="backBtn" data-i18n="back_btn">Back</button>
         <button class="btn btn-primary" id="saveRebootBtn" data-i18n="save_reboot_btn">Save & Reboot</button>
         <button class="btn btn-danger" id="factoryResetBtn" data-i18n="factory_reset_btn">Factory Reset</button>
     </div>
@@ -754,19 +760,19 @@ namespace etl
             saveRebootBtn.innerHTML = '<span class="btn-spinner"></span><span>' + translations[currentLang].saving + '</span>';
             saveRebootBtn.classList.add('btn-with-spinner');
             saveRebootBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            showModal(translations[currentLang].success_saved, async () => {
-                try {
-                    await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: networks[selectedNetwork]?.ssid, password: document.getElementById(`inlinePassword_${selectedNetwork}`)?.value || '' }) });
-                    document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #007AFF; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">${translations[currentLang].rebooting}</p><p style="margin-top: 10px; font-size: 15px; color: #8E8E93;">Redirecting in 10 seconds...</p></div>`;
-                    await new Promise(resolve => setTimeout(resolve, 10000));
-                    window.location.reload();
-                } catch (error) {
-                    saveRebootBtn.disabled = false;
-                    saveRebootBtn.textContent = originalText;
-                    saveRebootBtn.classList.remove('btn-with-spinner');
-                    alert('Error: ' + error.message);
-                }
-            });
+            // Показываем оверлей загрузки
+            const o=document.createElement('div');o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';const d=document.createElement('div');d.style.cssText='background:#fff;border-radius:12px;padding:24px;max-width:280px;text-align:center';const s=document.createElement('div');s.style.cssText='width:36px;height:36px;border:3px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px';const t=document.createElement('p');t.style.cssText='margin:0;font-size:16px;color:#1C1C1E';t.textContent=currentLang==='ru'?'Загрузка контента...':'Loading content...';const k=document.createElement('style');k.textContent='@keyframes spin{to{transform:rotate(360deg)}}';d.appendChild(s);d.appendChild(t);o.appendChild(k);o.appendChild(d);document.body.appendChild(o);
+            try {
+                await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: networks[selectedNetwork]?.ssid, password: document.getElementById(`inlinePassword_${selectedNetwork}`)?.value || '' }) });
+                // Автообновление через 5 секунд — сервер контента уже должен быть запущен
+                setTimeout(()=>{window.location.reload()},5000);
+            } catch (error) {
+                if(document.body&&document.body.contains(o))document.body.removeChild(o);
+                saveRebootBtn.disabled = false;
+                saveRebootBtn.textContent = originalText;
+                saveRebootBtn.classList.remove('btn-with-spinner');
+                alert('Error: ' + error.message);
+            }
         }
         function factoryReset() {
             factoryResetBtn.disabled = true;
@@ -803,18 +809,10 @@ namespace etl
 
         function goBack() {
             console.log('[WiFiSetup] Going back to content server...');
-            // Показываем индикатор загрузки
             const o=document.createElement('div');o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';const d=document.createElement('div');d.style.cssText='background:#fff;border-radius:12px;padding:24px;max-width:280px;text-align:center';const s=document.createElement('div');s.style.cssText='width:36px;height:36px;border:3px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px';const t=document.createElement('p');t.style.cssText='margin:0;font-size:16px;color:#1C1C1E';t.textContent=currentLang==='ru'?'Загрузка контента...':'Loading content...';const k=document.createElement('style');k.textContent='@keyframes spin{to{transform:rotate(360deg)}}';d.appendChild(s);d.appendChild(t);o.appendChild(k);o.appendChild(d);document.body.appendChild(o);
-            fetch('/api/back', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('[WiFiSetup] Back callback triggered');
-                    }
-                })
-                .catch(error => console.log('[WiFiSetup] Back request error:', error));
-            setTimeout(()=>{if(document.body&&document.body.contains(o))document.body.removeChild(o)},5000);
-            setTimeout(()=>{window.location.reload()},10000);
+            fetch('/api/back', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(()=>{});
+            // Автообновление через 5 секунд — сервер контента уже должен быть запущен
+            setTimeout(()=>{window.location.reload()},5000);
         }
 
         function showModal(message, onConfirm) { modalMessage.textContent = message; modalOverlay.classList.add('active'); modalConfirmBtn.onclick = () => { modalOverlay.classList.remove('active'); onConfirm(); }; modalCancelBtn.onclick = () => { modalOverlay.classList.remove('active'); }; }
