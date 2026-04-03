@@ -594,6 +594,26 @@ namespace etl
             }
         }
 
+        void light_control_server::handle_api_settings()
+        {
+            Serial.println(F("[LightControl] API: /api/settings - triggering settings callback"));
+
+            // Отправляем успешный ответ клиенту
+            send_success_response("Switching to settings server");
+
+            // Небольшая задержка для отправки ответа
+            delay(100);
+            yield();
+
+            // Вызываем callback для переключения на сервер настроек
+            if (m_on_settings_cb) {
+                Serial.println(F("[LightControl] Calling settings callback"));
+                m_on_settings_cb();
+            } else {
+                Serial.println(F("[LightControl] WARNING: No settings callback registered"));
+            }
+        }
+
         void light_control_server::setup_http_routes()
         {
             Serial.println(F("[LightControl] Setting up HTTP routes..."));
@@ -669,6 +689,10 @@ namespace etl
             m_server->on("/api/control", HTTP_POST, [this]() {
                 Serial.println(F("[LightControl] Request: /api/control"));
                 handle_api_control();
+            });
+            m_server->on("/api/settings", HTTP_POST, [this]() {
+                Serial.println(F("[LightControl] Request: /api/settings"));
+                handle_api_settings();
             });
 
             // Обработчик для остальных путей - 404

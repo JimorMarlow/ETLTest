@@ -41,6 +41,16 @@ namespace etl
 {
     namespace webui
     {
+        // Forward declaration
+        class web_server_base_t;
+
+        /**
+         * @brief Типы callback-функций (определены на уровне namespace для удобства)
+         */
+        using on_settings_callback_t = void(*)();   ///< Запрос запуска сервера настроек
+        using on_content_callback_t  = void(*)();   ///< Запрос запуска сервера контента
+        using on_factory_reset_t     = void(*)();   ///< Запрос сброса настроек
+
         // device_info_t и connection_status_t определены в etl_webui_settings.h
 
         /**
@@ -66,6 +76,24 @@ namespace etl
              * при удалении через указатель на базовый класс.
              */
             virtual ~web_server_base_t();
+
+            /**
+             * @brief Установить callback на запуск сервера настроек
+             * @param cb Функция обратного вызова
+             */
+            void set_on_settings_callback(on_settings_callback_t cb);
+
+            /**
+             * @brief Установить callback на запуск сервера контента
+             * @param cb Функция обратного вызова
+             */
+            void set_on_content_callback(on_content_callback_t cb);
+
+            /**
+             * @brief Установить callback на сброс настроек
+             * @param cb Функция обратного вызова
+             */
+            void set_on_factory_reset_callback(on_factory_reset_t cb);
 
             /**
              * @brief Инициализация WiFi сервера
@@ -312,6 +340,132 @@ namespace etl
             static const uint32_t WIFI_CONNECT_TIMEOUT = 10000;     ///< Время ожидания подключени к wifi 10 секунд
             static const uint32_t SCAN_CACHE_TIME = 30000;          ///< Время кэширования сканирования (30 сек)
 
+            // Callback-функции
+            on_settings_callback_t m_on_settings_cb = nullptr;      ///< Callback для сервера настроек
+            on_content_callback_t  m_on_content_cb = nullptr;       ///< Callback для сервера контента
+            on_factory_reset_t     m_on_factory_reset_cb = nullptr; ///< Callback для сброса настроек
+
+        };
+
+        /**
+         * @brief Менеджер управления серверами контента и настроек
+         *
+         * Отвечает за переключение между серверами контента и настроек.
+         * Использует callback-механизм для связи с серверами.
+         *
+         * Пример использования:
+         * @code
+         * class my_webui_mgr : public etl::webui::web_manager
+         * {
+         * protected:
+         *     etl::shared_ptr<web_server_base_t> on_create_content() override {
+         *         // Создание сервера контента
+         *     }
+         *     etl::shared_ptr<web_server_base_t> on_create_settings() override {
+         *         // Создание сервера настроек
+         *     }
+         * };
+         * @endcode
+         */
+        class web_manager
+        {
+        public:
+            /**
+             * @brief Конструктор
+             * @param device_info Информация об устройстве
+             */
+            explicit web_manager(const device_info_t& device_info);
+
+            /**
+             * @brief Виртуальный деструктор
+             */
+            virtual ~web_manager();
+
+            /**
+             * @brief Запуск сервера контента
+             *
+             * Останавливает текущий сервер (если есть) и запускает сервер контента.
+             */
+            void start_content();
+
+            /**
+             * @brief Запуск сервера настроек
+             *
+             * Останавливает текущий сервер (если есть) и запускает сервер настроек.
+             */
+            void start_settings();
+
+            /**
+             * @brief Переключение между серверами
+             *
+             * Если сейчас работает сервер контента - переключает на настройки,
+             * и наоборот.
+             */
+            void toggle();
+
+            /**
+             * @brief Основной цикл обработки
+             *
+             * Вызывать регулярно из loop() для обработки событий WiFi и HTTP запросов.
+             * Проверяет наличие сервера перед вызовом tick().
+             */
+            void tick();
+
+            /**
+             * @brief Получить текущий сервер
+             * @return Указатель на текущий сервер или nullptr
+             */
+            etl::shared_ptr<web_server_base_t> get_server() const { return m_server; }
+
+            /**
+             * @brief Вывести информацию о подключении в Serial
+             * @return true если сервер инициализирован
+             */
+            bool trace_connection() const;
+
+            /**
+             * @brief Установить callback на запуск сервера настроек
+             * @param cb Функция обратного вызова
+             */
+            void set_on_settings_callback(on_settings_callback_t cb);
+
+            /**
+             * @brief Установить callback на запуск сервера контента
+             * @param cb Функция обратного вызова
+             */
+            void set_on_content_callback(on_content_callback_t cb);
+
+            /**
+             * @brief Установить callback на сброс настроек
+             * @param cb Функция обратного вызова
+             */
+            void set_on_factory_reset_callback(on_factory_reset_t cb);
+
+        protected:
+            /**
+             * @brief Создать сервер контента
+             *
+             * Перегружается в наследнике для создания сервера контента.
+             * @return Указатель на созданный сервер
+             */
+            virtual etl::shared_ptr<web_server_base_t> on_create_content() = 0;
+
+            /**
+             * @brief Создать сервер настроек
+             *
+             * Перегружается в наследнике для создания сервера настроек.
+             * По умолчанию создаёт server_setup.
+             * @return Указатель на созданный сервер
+             */
+            virtual etl::shared_ptr<web_server_base_t> on_create_settings();
+
+            device_info_t m_device_info;                                ///< Информация об устройстве
+            etl::shared_ptr<web_server_base_t> m_server;                ///< Текущий сервер
+
+            // Callback-функции
+            on_settings_callback_t m_on_settings_cb = nullptr;          ///< Callback для сервера настроек
+            on_content_callback_t  m_on_content_cb = nullptr;           ///< Callback для сервера контента
+            on_factory_reset_t     m_on_factory_reset_cb = nullptr;     ///< Callback для сброса настроек
         };
 
     } // namespace webui

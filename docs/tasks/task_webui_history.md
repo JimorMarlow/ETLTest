@@ -1,212 +1,158 @@
-# История разработки: Переключение между WebUI и WiFi Setup
+# История изменений по задаче task_webui.md
 
-## Контекст
+## Менеджер управления серверами контента и настроек
 
-Для ESP устройства реализуется переключение между веб-интерфейсом управления датчиками и сервером настройки WiFi.
+### Выполненные задачи:
 
-## Текущее состояние
+#### Task 2.1: Callback-механизм в web_server_base_t
+- Файл: `lib\ETLTest\etl_webui_base.h`
+- Добавлены типы callback-функций:
+  - `on_settings_callback_t` - для запроса запуска сервера настроек
+  - `on_content_callback_t` - для запроса запуска сервера контента
+  - `on_factory_reset_t` - для запроса сброса настроек
+- Добавлены методы установки callback'ов:
+  - `set_on_settings_callback()`
+  - `set_on_content_callback()`
+  - `set_on_factory_reset_callback()`
+- Добавлены protected поля для хранения callback'ов:
+  - `m_on_settings_cb`
+  - `m_on_content_cb`
+  - `m_on_factory_reset_cb`
+- Файл: `lib\ETLTest\etl_webui_base.cpp`
+- Реализация методов установки callback'ов
 
-### Выполнено
+#### Task 2.2: Обновление web_server_base_t::tick()
+- Файл: `lib\ETLTest\etl_webui_base.cpp`
+- Добавлена проверка `m_initialized` в начале `tick()`
+- Если сервер не инициализирован, `tick()` возвращается сразу
 
-#### Этап 1: Макет WebUI
-- [x] **Task 1.1:** Создан HTML макет для условной подсветки рабочей зоны
-  - Файл: `docs\web-wifi\qwen-webui.001.html` (базовая версия)
-  - Файл: `docs\web-wifi\qwen-webui.002.html` (текущая версия)
-  
-  **Реализованные функции в qwen-webui.002.html:**
-  - Status bar с иконкой устройства и статусными индикаторами [W] [M] [T]
-  - Кнопка настроек с переключением темной темы
-  - Power button с индикацией включения
-  - Brightness section со слайдером и кнопками +/-
-  - Темная тема в стиле iOS (цвета из docs/etl_wifi_setup.md)
-  - Адаптивный дизайн для мобильных устройств
+#### Task 3.1: Базовый класс web_manager
+- Файл: `lib\ETLTest\etl_webui_base.h`
+- Создан класс `web_manager` после `web_server_base_t`
+- Методы:
+  - `start_content()` - создание и запуск сервера контента
+  - `start_settings()` - создание и запуск сервера настроек
+  - `toggle()` - переключение между серверами
+  - `tick()` - вызов `m_server->tick()` с проверкой `m_server`
+  - Методы установки callback'ов
+- Виртуальные методы:
+  - `on_create_content()` - pure virtual, override в приложении
+  - `on_create_settings()` - virtual, реализация по умолчанию создаёт server_setup
+- Protected поля:
+  - `m_device_info`
+  - `m_server`
+  - Callback-поля
 
-#### Подготовка к разделению (Task 2.x)
-- [x] **Task 2.1:** Изменить namespace etl::wifi на etl::webui (отмечено в task_webui.md)
-- [x] **Task 2.2:** Проверить сборку всех проектов (отмечено в task_webui.md)
-- [x] **Task 2.3:** Переименован файл истории в task_webui_history.md
+- Файл: `lib\ETLTest\etl_webui_base.cpp`
+- Реализация всех методов `web_manager`
+- `toggle()` определяет тип сервера по режиму WiFi (AP = settings)
+- `on_create_settings()` создаёт server_setup с загруженными настройками
 
-### В процессе
+#### Task 4.1: Пользовательский менеджер light_webui_mgr
+- Файл: `src\light_webui_mgr.h`
+- Namespace: `light_control`
+- Наследование от `etl::webui::web_manager`
+- Реализация `on_create_content()`:
+  - Загружает настройки WiFi через `load_wifi_config()`
+  - Создаёт `light_control_server`
+  - Устанавливает callback'и для переключения на настройки и factory reset
+- Реализация `on_create_settings()`:
+  - Загружает настройки WiFi через `load_wifi_config()`
+  - Создаёт `server_setup`
+  - Устанавливает callback'и для возврата к контенту и factory reset
+- Приватный метод `handle_factory_reset()`:
+  - Сбрасывает WiFi настройки к дефолтным
+  - Сбрасывает UI настройки (если были инициализированы)
+  - Запускает сервер настроек
 
-### Ожидает выполнения
+#### Task 4.2: Обновление light_control_server для callback'ов
+- Файл: `src\light_webui.h`
+- Добавлен метод `handle_api_settings()` для обработки кнопки Settings
 
-[STOP] - Дальнейшие задачи в процессе продумывания
+- Файл: `src\light_webui.cpp`
+- Реализация `handle_api_settings()`:
+  - Отправляет успешный ответ клиенту
+  - Вызывает `m_on_settings_cb` для переключения на сервер настроек
+- Добавлен маршрут `/api/settings` в `setup_http_routes()`
 
----
+- Файл: `src\light_webui_html.h`
+- Уже содержит кнопку Settings (`settingsBtn`) и функцию `showSettingsDialog()`
 
-## История изменений
+#### Task 4.3: Обновление server_setup для callback'ов
+- Файл: `lib\ETLTest\etl_webui.h`
+- Добавлен метод `handle_api_back()` для обработки кнопки Back
 
-### 1 апреля 2026 г.
+- Файл: `lib\ETLTest\etl_webui.cpp`
+- Обновлён `handle_api_reset()`:
+  - Теперь вызывает `m_on_factory_reset_cb` вместо прямого `reboot()`
+  - Если callback не установлен, выполняет reboot как раньше
+- Реализация `handle_api_back()`:
+  - Отправляет успешный ответ клиенту
+  - Вызывает `m_on_content_cb` для переключения на сервер контента
+- Добавлен маршрут `/api/back` в `setup_http_routes()`
 
-**qwen-webui.002.html:**
-- Добавлена рамка вокруг кнопки settings (в стиле кнопок brightness +/-)
-- Power button смещена вверх (margin-top: -20px) для центрирования
-- Иконка устройства перенесена в status-bar
-- Status иконки [W] [M] [T] размещены с gap 2px
-- Header центрирован, device-info-container упрощен
-- Добавлен обработчик кнопки settings - переключение темной темы
-- Обновлена документация в docs/tasks/task_light_webui.md
+- Файл: `lib\ETLTest\etl_wifi_setup_html.h`
+- Добавлена кнопка "Back" (`backBtn`) перед "Save & Reboot"
+- Добавлен перевод для `back_btn` в en и ru
+- Добавлена JavaScript функция `goBack()`:
+  - Вызывает POST `/api/back`
+  - Логгирует результат в консоль
+- Добавлен event listener для `backBtn`
 
-**Переименование namespace wifi -> webui:**
-- Обновлены файлы:
-  - `lib\ETLTest\etl_wifi_setup.h` - namespace etl::wifi -> etl::webui
-  - `lib\ETLTest\etl_wifi_setup.cpp` - namespace etl::wifi -> etl::webui
-  - `lib\ETLTest\etl_wifi_setup_html.h` - namespace etl::wifi -> etl::webui
-  - `src\main.cpp` - все ссылки на etl::wifi:: заменены на etl::webui::
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266)
-  - ✅ esp32c3 (ESP32-C3)
-  - ✅ esp32-wroom-32u (ESP32)
+#### Task 5.1: Обновление main.cpp
+- Файл: `src\main.cpp`
+- Убрано прямое создание `wifi_server`
+- Создан `webui_manager` типа `light_control::light_webui_mgr`
+- Запуск через `start_content()` или `start_settings()` в зависимости от `simulation_data.start_webui_settings_on_start`
+- В `loop()` вызывается `webui_manager->tick()`
 
-**Изменение цветовой схемы power-button и brightness:**
-- Power-button: зелёный (#34C759) → синий неоновый (#007AFF)
-  - border-color: #007AFF
-  - box-shadow: rgba(0, 122, 255, 0.4/0.5)
-- Brightness-fill: зелёный (#34C759/#30D158) → синий (#007AFF/#0A84FF)
+#### Task 5.2: Обновление simulation_t
+- Файл: `src\main.cpp`
+- Уже существует поле `start_webui_settings_on_start` для тестирования запуска сервера настроек
 
-**Создание базового класса web_server_base_t:**
-- Создан файл `lib\ETLTest\etl_webui_base.h` с базовым классом `etl::webui::web_server_base_t`
-- Базовый класс включает:
-  - Виртуальный деструктор
-  - Чистые виртуальные методы: begin(), stop(), handle(), is_initialized(), get_connection_status(), is_connected(), get_ip_address(), get_mode(), get_hostname(), get_port()
-  - protected-члены: m_initialized, m_connection_status
-  - device_info_t и connection_status_t перенесены в базовый класс
-- `server_setup` унаследован от `web_server_base_t`
-- Реализованы методы get_hostname() и get_port() в server_setup
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266)
-  - ✅ esp32c3 (ESP32-C3)
-  - ✅ esp32-wroom-32u (ESP32)
+### Структура файлов после изменений:
 
-### 2 апреля 2026 г.
+```
+lib\ETLTest\
+├── etl_webui_base.h          # web_server_base_t + web_manager (базовые классы ETL)
+├── etl_webui_base.cpp        # Реализация базовых классов
+├── etl_webui.h               # server_setup (WiFi Setup Server)
+├── etl_webui.cpp             # Реализация server_setup
+├── etl_webui_settings.h      # Конфигурационные структуры
+├── etl_wifi_setup_html.h     # HTML шаблон для server_setup
 
-**Завершение переноса методов в web_server_base_t:**
-- Обновлён `lib\ETLTest\etl_webui_base.h`:
-  * Добавлены protected virtual методы: start_ap(), connect_to_sta(), update_connection_status(), get_encryption_type()
-- Обновлён `lib\ETLTest\etl_webui.cpp`:
-  * Удалены методы-обёртки из server_setup, которые вызывали базовый класс
-  * Оставлены только методы со специфичной реализацией
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 7.65 сек
-  - ✅ esp32c3 (ESP32-C3) — 9.70 сек
-  - ✅ esp32-wroom-32u (ESP32) — 13.23 сек
+src\
+├── light_webui.h             # light_control_server (WebUI Server)
+├── light_webui.cpp           # Реализация light_control_server
+├── light_webui_html.h        # HTML шаблон для light_control_server
+├── light_webui_mgr.h         # Пользовательский менеджер (namespace light_control)
+└── main.cpp                  # Интеграция с менеджером
+```
 
-**Перенос методов управления настройками в web_server_base_t:**
-- Обновлён `lib\ETLTest\etl_webui_base.h`:
-  * Добавлены чисто виртуальные методы: scan_networks(), connect_to_network(), connect_to_network_async(), disconnect(), set_config(), get_device_icon()
-  * Добавлены методы с реализацией в базовом классе: save_settings(), load_settings(), reset_settings()
+### Тестирование компиляции:
 
-- Обновлён `lib\ETLTest\etl_webui_base.cpp`:
-  * Реализация disconnect() — WiFi.disconnect(true)
-  * Реализация save_settings() — сохранение WiFi и UI настроек через settings::save_wifi_config/save_ui_config
-  * Реализация load_settings() — загрузка WiFi и UI настроек через settings::load_wifi_config/load_ui_config
-  * Реализация reset_settings() — сброс настроек к значениям по умолчанию
-  * Реализация set_config() — присваивание m_config
+- [x] d1_mini_lite (ESP8266) — **SUCCESS** (RAM: 80.8%, Flash: 51.4%, 10.12s)
+- [x] nodemcuv3 (ESP8266) — **SUCCESS** (RAM: 80.8%, Flash: 51.4%, 12.77s)
+- [x] esp32c3 — **SUCCESS** (RAM: 12.6%, Flash: 56.4%, 20.54s)
+- [x] esp32-wroom-32u — **SUCCESS** (RAM: 14.4%, Flash: 82.0%, 24.97s)
 
-- Обновлён `lib\ETLTest\etl_webui.cpp`:
-  * server_setup::disconnect(), save_settings(), load_settings(), reset_settings(), set_config(), get_ui_config(), set_device_info(), reboot() — теперь вызывают реализации базового класса
+Все конфигурации успешно собраны без ошибок!
 
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 6.90 сек
-  - ✅ esp32c3 (ESP32-C3) — 9.52 сек
-  - ✅ esp32-wroom-32u (ESP32) — 14.91 сек
+### Функциональное тестирование:
 
-**Добавление метода tick() и базовых методов в web_server_base_t:**
-- Обновлён `lib\ETLTest\etl_webui_base.h`:
-  * Добавлен метод `virtual void tick()` — объединяет handle() и handle_client()
-  * Добавлен метод `virtual void handle_client()`
-  * Добавлены виртуальные методы: reboot(), set_device_info(), get_ui_config()
-  * Добавлены чисто виртуальные методы: save_settings(), load_settings(), reset_settings()
+- [ ] WebUI доступен после старта
+- [ ] 3 нажатия переключают на WiFi Setup (нужно добавить обработку кнопки)
+- [ ] WebUI останавливается при переключении (mDNS перезапускается)
+- [ ] [Save & Reboot] переключает обратно на WebUI с новыми настройками
+- [ ] [Back] переключает обратно на WebUI без сохранения
+- [ ] [Factory Reset] сбрасывает WiFi и UI настройки, запускает WiFi Setup
+- [ ] mDNS работает для обоих серверов после переключения
+- [ ] tick() не вызывает ошибок при переключении серверов
 
-- Обновлён `lib\ETLTest\etl_webui_base.cpp`:
-  * Реализация tick() — вызывает handle() и handle_client()
-  * Реализация handle_client() — вызывает m_server->handleClient()
-  * Реализация reboot() — ESP.reset() для ESP8266, ESP.restart() для ESP32
-  * Реализация set_device_info() — присваивание m_device_info
-  * Реализация get_ui_config() — возврат m_ui_config
+### Примечания:
 
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 7.23 сек
-  - ✅ esp32c3 (ESP32-C3) — 8.55 сек
-  - ✅ esp32-wroom-32u (ESP32) — 12.92 сек
-
-**Перенос namespace settings в etl_webui_settings.*:**
-- Обновлён `lib\ETLTest\etl_webui_settings.h`:
-  * Добавлены include: `<etl/etl_memory.h>`, `<etl/etl_optional.h>`
-  * Добавлен `namespace settings` с объявлениями функций: init_wifi_config, save_wifi_config, load_wifi_config, init_ui_config, save_ui_config, load_ui_config, init_telegram_config, save_telegram_config, load_telegram_config, init_mqtt_config, save_mqtt_config, load_mqtt_config
-
-- Обновлён `lib\ETLTest\etl_webui_settings.cpp`:
-  * Добавлены include: `etl/etl_littlefs.h`, `etl/etl_settings.h`, `<etl/etl_memory.h>`
-  * Перенесён `namespace settings` с реализацией всех функций из etl_webui.cpp
-  * Реализации структур server_config_t, ui_config_t, telegram_config_t, mqtt_config_t перемещены после закрывающей скобки namespace settings
-
-- Обновлён `lib\ETLTest\etl_webui.h`:
-  * Удалён `namespace settings` (перенесён в etl_webui_settings.h)
-
-- Обновлён `lib\ETLTest\etl_webui.cpp`:
-  * Удалён `namespace settings` с реализацией (перенесён в etl_webui_settings.cpp)
-
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 6.91 сек
-  - ✅ esp32c3 (ESP32-C3) — 9.92 сек
-  - ✅ esp32-wroom-32u (ESP32) — 13.87 сек
-
-**Перенос общих частей из server_setup в web_server_base_t:**
-- Обновлён `lib\ETLTest\etl_webui_base.h`:
-  - Добавлен конструктор `explicit web_server_base_t(const etl::optional<server_config_t>& cfg = {})`
-  - Добавлен метод `bool init_mdns(const String& hostname)` для инициализации mDNS
-  - Перенесены protected-поля:
-    - `etl::optional<server_config_t> m_config`
-    - `etl::optional<ui_config_t> m_ui_config`
-    - `device_info_t m_device_info`
-    - `bool m_initialized`
-    - `connection_status_t m_connection_status`
-    - `etl::shared_ptr<etl_web_server_t> m_server`
-
-- Создан `lib\ETLTest\etl_webui_base.cpp` с реализацией:
-  - Конструктор базового класса
-  - Метод `init_mdns()` для инициализации mDNS сервиса
-
-- Обновлён `lib\ETLTest\etl_webui.h`:
-  - Удалены дублирующие поля из `server_setup` (перенесены в базовый класс)
-  - Удалён `m_server` из protected-секции `server_setup`
-  - Оставлены только специфические поля: `m_scan_cache`, `m_scan_timestamp`, `SCAN_CACHE_TIME`
-
-- Обновлён `lib\ETLTest\etl_webui.cpp`:
-  - Добавлен `#include "etl_webui_base.cpp"`
-  - Обновлён конструктор `server_setup` для передачи конфигурации в базовый класс: `: web_server_base_t(cfg)`
-
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 11.54 сек
-  - ✅ esp32c3 (ESP32-C3) — 18.75 сек
-  - ✅ esp32-wroom-32u (ESP32) — 20.27 сек
-
-**Вынос настроек в отдельный файл etl_webui_settings.h:**
-- Создан файл `lib\ETLTest\etl_webui_settings.h` с конфигурационными структурами:
-  - `server_config_t` — настройки WiFi сервера (hostname, AP/STA credentials, port, update_interval)
-  - `ui_config_t` — настройки интерфейса (language, dark_theme, large_font, use_bold_values)
-  - `telegram_config_t` — настройки Telegram бота (TODO)
-  - `mqtt_config_t` — настройки MQTT (TODO)
-  - `scan_result_t` — результат сканирования WiFi сети
-- Создан файл `lib\ETLTest\etl_webui_settings.cpp` с реализацией методов структур
-- Обновлён `lib\ETLTest\etl_webui.h`:
-  - Добавлен `#include "etl_webui_settings.h"`
-  - Удалены дублирующие определения структур (перенесены в etl_webui_settings.h)
-- Обновлён `lib\ETLTest\etl_webui.cpp`:
-  - Добавлен `#include "etl_webui_settings.cpp"` в конец файла
-  - Удалены дублирующие реализации методов структур
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 17.23 сек
-  - ✅ esp32c3 (ESP32-C3) — 17.75 сек
-  - ✅ esp32-wroom-32u (ESP32) — 23.06 сек
-
-**Перенос device_info_t и connection_status_t в etl_webui_settings.h:**
-- Из `lib\ETLTest\etl_webui_base.h` перенесены структуры:
-  - `device_info_t` — информация об устройстве (name, description, icon_svg)
-  - `connection_status_t` — статус подключения к WiFi
-- В `lib\ETLTest\etl_webui_base.h` добавлен `#include "etl_webui_settings.h"`
-- Обновлены комментарии в `lib\ETLTest\etl_webui.h` о расположении структур
-- Успешная компиляция всех конфигураций:
-  - ✅ nodemcuv3 (ESP8266) — 6.87 сек
-  - ✅ esp32c3 (ESP32-C3) — 8.86 сек
-  - ✅ esp32-wroom-32u (ESP32) — 11.92 сек
+1. Callback-механизм работает через лямбда-функции в `light_webui_mgr`
+2. Менеджер полностью управляет жизненным циклом серверов
+3. При переключении старый сервер уничтожается (деструктор вызывает stop())
+4. mDNS перезапускается вместе с сервером
+5. Factory Reset сбрасывает и WiFi, и UI настройки

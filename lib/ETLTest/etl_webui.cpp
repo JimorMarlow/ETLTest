@@ -349,12 +349,44 @@ namespace etl
             bool success = reset_settings();
 
             if (success) {
-                send_success_response("Settings reset. Rebooting...");
-                Serial.println(F("[WiFiSetup] Rebooting in 2 seconds..."));
-                delay(2000);  // Дать время на отправку ответа клиенту
-                reboot();
+                // Вызываем callback для уведомления менеджера о сбросе
+                if (m_on_factory_reset_cb) {
+                    Serial.println(F("[WiFiSetup] Calling factory reset callback"));
+                    
+                    // Отправляем ответ перед вызовом callback
+                    send_success_response("Settings reset. Rebooting...");
+                    delay(100);
+                    yield();
+                    
+                    m_on_factory_reset_cb();
+                } else {
+                    send_success_response("Settings reset. Rebooting...");
+                    Serial.println(F("[WiFiSetup] Rebooting in 2 seconds..."));
+                    delay(2000);  // Дать время на отправку ответа клиенту
+                    reboot();
+                }
             } else {
                 send_error_response("Failed to reset settings");
+            }
+        }
+
+        void server_setup::handle_api_back()
+        {
+            Serial.println(F("[WiFiSetup] API: /api/back - triggering content callback"));
+
+            // Отправляем успешный ответ клиенту
+            send_success_response("Switching to content server");
+
+            // Небольшая задержка для отправки ответа
+            delay(100);
+            yield();
+
+            // Вызываем callback для переключения на сервер контента
+            if (m_on_content_cb) {
+                Serial.println(F("[WiFiSetup] Calling content callback"));
+                m_on_content_cb();
+            } else {
+                Serial.println(F("[WiFiSetup] WARNING: No content callback registered"));
             }
         }
 
@@ -502,6 +534,10 @@ namespace etl
             m_server->on("/api/reset", HTTP_POST, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/reset"));
                 handle_api_reset();
+            });
+            m_server->on("/api/back", HTTP_POST, [this]() {
+                Serial.println(F("[WiFiSetup] Request: /api/back"));
+                handle_api_back();
             });
             m_server->on("/api/ap_settings", HTTP_POST, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/ap_settings"));

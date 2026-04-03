@@ -227,6 +227,11 @@ namespace etl
             virtual void handle_api_ap_settings();
 
             /**
+             * @brief Обработчик API настроек (кнопка Settings)
+             */
+            virtual void handle_api_settings();
+
+            /**
              * @brief Отправка состояния питания и яркости в Serial
              * @param power Состояние питания
              * @param brightness Яркость

@@ -111,6 +111,11 @@ namespace etl
             virtual void handle_api_reset();
 
             /**
+             * @brief Обработчик API возврата к серверу контента
+             */
+            virtual void handle_api_back();
+
+            /**
              * @brief Обработчик API настройки точки доступа
              */
             virtual void handle_api_ap_settings();

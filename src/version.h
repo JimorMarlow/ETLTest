@@ -7,7 +7,7 @@
 
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 2
-#define APP_VERSION_PATCH 10
+#define APP_VERSION_PATCH 11
 
 // Хелпер для stringify
 #define APP_STRINGIFY_HELPER(x) #x

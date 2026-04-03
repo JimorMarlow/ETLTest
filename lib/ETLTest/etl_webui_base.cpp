@@ -8,6 +8,7 @@
 #if defined(ESP8266) || defined(ESP32)
 
 #include "etl_webui_base.h"
+#include "etl_webui.h"  // Для server_setup
 
 #if defined(ESP8266)
   #include <ESP8266mDNS.h>
@@ -31,6 +32,21 @@ namespace etl
         web_server_base_t::~web_server_base_t()
         {
             stop();
+        }
+
+        void web_server_base_t::set_on_settings_callback(on_settings_callback_t cb)
+        {
+            m_on_settings_cb = cb;
+        }
+
+        void web_server_base_t::set_on_content_callback(on_content_callback_t cb)
+        {
+            m_on_content_cb = cb;
+        }
+
+        void web_server_base_t::set_on_factory_reset_callback(on_factory_reset_t cb)
+        {
+            m_on_factory_reset_cb = cb;
         }
 
         bool web_server_base_t::init_mdns(const String& hostname)
@@ -186,6 +202,11 @@ namespace etl
 
         void web_server_base_t::tick()
         {
+            // Если сервер не инициализирован, ничего не делаем
+            if (!m_initialized) {
+                return;
+            }
+
             handle();
             handle_client();
         }
@@ -649,6 +670,175 @@ namespace etl
             String response;
             serializeJson(doc, response);
             m_server->send(200, "application/json", response);
+        }
+
+        // ============================================================================
+        // Реализация web_manager
+        // ============================================================================
+
+        web_manager::web_manager(const device_info_t& device_info)
+            : m_device_info(device_info)
+        {
+        }
+
+        web_manager::~web_manager()
+        {
+            // Остановка сервера при уничтожении менеджера
+            if (m_server) {
+                m_server->stop();
+                m_server.reset();
+            }
+        }
+
+        void web_manager::start_content()
+        {
+            Serial.println(F("[WebManager] Starting content server..."));
+
+            // Остановка текущего сервера
+            if (m_server) {
+                Serial.println(F("[WebManager] Stopping current server..."));
+                m_server->stop();
+                m_server.reset();
+            }
+
+            // Создание и запуск сервера контента
+            m_server = on_create_content();
+            if (m_server) {
+                // Установка callback'ов
+                m_server->set_on_settings_callback(m_on_settings_cb);
+                m_server->set_on_content_callback(m_on_content_cb);
+                m_server->set_on_factory_reset_callback(m_on_factory_reset_cb);
+
+                if (m_server->begin(m_device_info)) {
+                    Serial.println(F("[WebManager] Content server started"));
+                } else {
+                    Serial.println(F("[WebManager] Failed to start content server"));
+                    m_server.reset();
+                }
+            } else {
+                Serial.println(F("[WebManager] on_create_content returned null"));
+            }
+        }
+
+        void web_manager::start_settings()
+        {
+            Serial.println(F("[WebManager] Starting settings server..."));
+
+            // Остановка текущего сервера
+            if (m_server) {
+                Serial.println(F("[WebManager] Stopping current server..."));
+                m_server->stop();
+                m_server.reset();
+            }
+
+            // Создание и запуск сервера настроек
+            m_server = on_create_settings();
+            if (m_server) {
+                // Установка callback'ов
+                m_server->set_on_settings_callback(m_on_settings_cb);
+                m_server->set_on_content_callback(m_on_content_cb);
+                m_server->set_on_factory_reset_callback(m_on_factory_reset_cb);
+
+                if (m_server->begin(m_device_info)) {
+                    Serial.println(F("[WebManager] Settings server started"));
+                } else {
+                    Serial.println(F("[WebManager] Failed to start settings server"));
+                    m_server.reset();
+                }
+            } else {
+                Serial.println(F("[WebManager] on_create_settings returned null"));
+            }
+        }
+
+        void web_manager::toggle()
+        {
+            Serial.println(F("[WebManager] Toggle servers..."));
+
+            // Проверяем тип текущего сервера для переключения
+            // Если сервера нет или это не server_setup, запускаем настройки
+            bool is_settings = false;
+            if (m_server) {
+                // Проверяем, является ли текущий сервер сервером настроек
+                // Это можно определить по наличию m_initialized и типу сервера
+                // Простой способ: если сервер инициализирован и это server_setup
+                is_settings = (m_server->get_mode() == "AP");  // Сервер настроек обычно в AP режиме
+            }
+
+            if (is_settings) {
+                start_content();
+            } else {
+                start_settings();
+            }
+        }
+
+        void web_manager::tick()
+        {
+            // Проверяем наличие сервера перед вызовом tick()
+            if (m_server) {
+                m_server->tick();
+            }
+        }
+
+        void web_manager::set_on_settings_callback(on_settings_callback_t cb)
+        {
+            m_on_settings_cb = cb;
+        }
+
+        void web_manager::set_on_content_callback(on_content_callback_t cb)
+        {
+            m_on_content_cb = cb;
+        }
+
+        void web_manager::set_on_factory_reset_callback(on_factory_reset_t cb)
+        {
+            m_on_factory_reset_cb = cb;
+        }
+
+        etl::shared_ptr<web_server_base_t> web_manager::on_create_settings()
+        {
+            // Создание сервера настроек по умолчанию
+            auto web_config = settings::load_wifi_config();
+            auto server = etl::make_shared<etl::webui::server_setup>(
+                web_config.has_value() ? web_config.value() : server_config_t()
+            );
+            return server;
+        }
+
+        bool web_manager::trace_connection() const
+        {
+            auto server = get_server();
+            if(server && server->is_initialized()) {
+                // Определяем тип сервера
+                const char* server_type = "Content";
+                // Если сервер работает в режиме AP - это сервер настроек
+                if (server->get_mode() == "AP") {
+                    server_type = "Setup";
+                }
+
+                const String& ip_addr = server->get_ip_address();
+                const String& hostname_cfg = server->get_wifi_config().has_value() ? 
+                                             server->get_wifi_config()->get_hostname() : "espdevice";
+                const String& mode = server->get_mode();
+
+                Serial.println(F("\n=== WiFi Server Info ==="));
+                Serial.print  (F("Server:   ")); Serial.println(server_type);
+                Serial.print  (F("Mode:     ")); Serial.println(mode);
+                Serial.print  (F("IP Addr:  ")); Serial.println(ip_addr.length() > 0 ? ip_addr : F("(AP IP: 192.168.4.1)"));
+                Serial.print  (F("Hostname: http://"));
+                if (mode == "AP") {
+                    Serial.println(F("192.168.4.1"));
+                } else {
+                    Serial.print(hostname_cfg);
+                    Serial.println(F(".local"));
+                }
+                Serial.print  (F("mDNS:     http://")); Serial.print  (hostname_cfg); Serial.println(F(".local"));
+                Serial.println(F("=========================\n"));
+                return true;
+            }
+            else {
+                Serial.println(F("[ERROR] WiFi server initialization failed!"));
+                return false;
+            }
         }
     } // namespace webui
 } // namespace etl
