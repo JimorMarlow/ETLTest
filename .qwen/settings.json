@@ -6,7 +6,8 @@
       "Bash(findstr *)",
       "Bash(python *)",
       "Bash(git add *)",
-      "Bash(move *)"
+      "Bash(move *)",
+      "Bash(git *)"
     ]
   },
   "$version": 3
