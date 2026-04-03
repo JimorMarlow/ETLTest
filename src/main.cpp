@@ -55,6 +55,8 @@ bool start_wifi_server() { // WiFi setup
     }
 
     // wifi_server = etl::make_shared<etl::webui::server_setup>(web_config);
+    // Тестовый сервер для контента
+    device_info = etl::webui::get_light_control_device_info();
     wifi_server = etl::make_shared<etl::webui::light_control_server>(web_config);
     
     if(wifi_server && wifi_server->begin(device_info)) {

@@ -20,19 +20,19 @@ namespace etl
         // Реализация light_control_server
         // ============================================================================
 
+        device_info_t get_light_control_device_info()
+        {
+            device_info_t info;
+            info.name = "Рабочая зона";
+            info.description = "Кухня, v";
+            info.description += APP_VERSION_STRING;
+            info.icon_svg = LIGHT_DEVICE_ICON_SVG;
+            return info;
+        }
+
         light_control_server::light_control_server(const etl::optional<server_config_t>& cfg)
             : web_server_base_t(cfg)
         {
-        }
-
-        device_info_t light_control_server::get_light_control_device_info()
-        {
-            device_info_t info;
-            info.name = "Work Area Light/Рабочая зона v";
-            info.name += APP_VERSION_STRING;
-            info.description = "Kitchen/Кухня";
-            info.icon_svg = LIGHT_DEVICE_ICON_SVG;
-            return info;
         }
 
         void light_control_server::set_light_settings(const kitchen_light_t& settings)

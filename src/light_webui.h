@@ -78,6 +78,12 @@ namespace etl
         };
 
         /**
+         * @brief Получить настройки устройства по умолчанию
+         * @return device_info_t с информацией об устройстве
+         */
+        device_info_t get_light_control_device_info();
+
+        /**
          * @brief Класс сервера управления лампой
          *
          * Предоставляет функционал для управления светодиодной лампой.
@@ -101,12 +107,6 @@ namespace etl
              * Вызывает stop() для освобождения ресурсов.
              */
             virtual ~light_control_server() = default;
-
-            /**
-             * @brief Получить настройки устройства по умолчанию
-             * @return device_info_t с информацией об устройстве
-             */
-            static device_info_t get_light_control_device_info();
 
             /**
              * @brief Установить настройки лампы
