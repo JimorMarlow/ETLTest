@@ -58,249 +58,394 @@ PS. для запуска скриптов сборки не нужно спра
 
 ✅ Разделение функционала в базовом классе и сервера настроек выполнено
 
-[STOP] - дальше не читай, это еще в процессе продумывания и разработки. После детализации будем двигаться дальше
+## [ ] Менеджер управления серверами контента и настроек
 
-- [ ] проверь компиляцию всех env в platformio
+### Основные принципы
 
-## Менеджер управления серверами контента и настроек
+- **Callback-механизм** — вместо жёсткой связи через `weak_ptr`, менеджер устанавливает callback-функции при создании сервера. Это снижает зависимости и даёт гибкость реализации.
+- **Каждый сервер управляет mDNS самостоятельно** — при разрушении сервера в деструкторе вызывается `stop()`, который останавливает mDNS. Это гарантирует, что при изменении настроек подключения к WiFi не остаются старые настройки. Переключение между настройками и контентом — редкая операция (обычно при первоначальной настройке), поэтому ожидание пользователя приемлемо.
+- **Одинаковый старт серверов** — оба сервера (контента и настроек) запускаются одинаково из `server_config_t`. Если пользователь изменил настройки в [Save & Reboot], выполняется `etl::webui::save_wifi_config(...)`. При старте любого сервера он читает `etl::webui::load_wifi_config()` и запускается с актуальными настройками.
+- **Собственный namespace для менеджера приложения** — класс менеджера для конкретного устройства (например, `light_webui_mgr`) определяется в собственном namespace приложения (например, `light_control`), а не в `etl::webui::`. Базовый класс `web_manager` находится в ETL, пользовательский наследник — в приложении.
+- **Factory Reset сбрасывает и UI settings** — если `ui_config_t` был инициализирован и контейнер "Настройки интерфейса" отображался в `server_setup`, то при Factory Reset настройки интерфейса тоже сбрасываются на дефолтные.
+- **tick() с проверкой инициализации** — если `m_server` удалён менеджером при перезапуске, вызовы не будут происходить. Менеджер проверяет `if (m_server)` перед вызовом `tick()`. Дополнительно в `web_server_base_t::tick()` есть проверка `m_initialized`, чтобы не выполнять ничего, если сервер не запущен.
+- **Полное переключение серверов** — при переключении старый сервер полностью уничтожается, новый создаётся заново со всеми новыми настройками. Это проще, чем управлять двумя серверами одновременно, и настройки изменяются редко.
+
+### Структура файлов
 
 Нужно создать файлы:
-lib\ETLTest\etl_webui.* с классом для управления веб-серверами
+- `lib\ETLTest\etl_webui_base.h` — класс `web_manager` (после `web_server_base_t`)
+- `src\light_webui_mgr.h` — пользовательский менеджер для конкретного устройства (namespace `light_control`)
+
+### Класс web_manager (ETL)
 
 Главный класс, который отвечает за управлением серверами:
-пространство имен etl::webui
-класс: web_manager
+```cpp
+namespace etl {
+namespace webui {
 
-Он включает в себя создание и вызов сервера контента
-server_content
-который является базовым для клиентских программ.
+// Типы callback-функций
+using on_settings_callback_t   = void(*)();   // Запрос запуска сервера настроек
+using on_content_callback_t    = void(*)();   // Запрос запуска сервера контента
+using on_factory_reset_t       = void(*)();   // Запрос сброса настроек
 
-Общий подход в новом приложении:
-- наследуешь свой сервер контента для управления датчиками или показа результатов
-нр: class kitchen_light_webui : public etl::webui::web_server_base_t
-- переопределяешь класс: 
-class kl_webui : public etl::webui::web_manager ...
-virtual etl::shared_ptr<etl::webui::web_server_base_t> on_create_content() override;
+class web_manager
+{
+public:
+    explicit web_manager(const device_info_t& device_info);
+    virtual ~web_manager();
 
-в нем создаешь экземпляр kitchen_light_webui и отдаешь менеджеру
+    // Запуск серверов
+    void start_content();    // Запуск сервера контента
+    void start_settings();   // Запуск сервера настроек
+    void toggle();           // Переключение между серверами
 
-- Менеджер выполняет следующие функции:
-  - при создании получает etl::wifi::device_info_t device_info и запоминает его. При созаднии сервера контента или настроек передает эту информацию в них
-  - вызов метода для создания клиентского сервера контента, и запоминает его
-  - создание server_setup для настройки подключения к wifi, управление интерфейсом, подключения к mqtt (в перспективе), подключения к телеграм боту (в переспективе)
-  - в один момент времени работает только один из этих серверов на одних и тех же настройках, портах и IP адресе.
-  - сервер контента должен реализовать вызов менеджера через запомненный etl::weak_ptr<etl::webui::web_manager> parent по нажатию на кнопку " settings", менеджер должен разрушить сервер контента и запустить сервер настроек. 
-  - Сервер настроек по команде "back", "Save & Reboot", "Factory Reset" должен сказать менеджеру, что изменение настроек завершено и менеджер закроет сервер настроек, запросит on_create_content() для создания контента и запустит его. пользователь обновит интерфейс и увидит новый сервер. Возможно, придется переподключиться к нужной wifi сети
-  - void tick() - этот метод будет вызываться из loop(), в нем менеджер должен выолнять вызовы для активного сервера
-  server->handle();        // Обновление статуса
-  server->handle_client(); // Обработка HTTP запросов
+    // Установка callback-функций (вызывается при создании сервера)
+    void set_on_settings_callback(on_settings_callback_t cb);
+    void set_on_content_callback(on_content_callback_t cb);
+    void set_on_factory_reset_callback(on_factory_reset_t cb);
+
+    // Основной цикл — вызывается из loop()
+    void tick();
+
+protected:
+    // Перегружается в наследнике для создания сервера контента
+    virtual etl::shared_ptr<web_server_base_t> on_create_content() = 0;
+
+    // Перегружается в наследнике для создания сервера настроек
+    virtual etl::shared_ptr<web_server_base_t> on_create_settings();
+
+    device_info_t m_device_info;
+    etl::shared_ptr<web_server_base_t> m_server;
+
+    // Callback-функции
+    on_settings_callback_t m_on_settings_cb = nullptr;
+    on_content_callback_t  m_on_content_cb = nullptr;
+    on_factory_reset_t     m_on_factory_reset_cb = nullptr;
+};
+
+} // namespace webui
+} // namespace etl
+```
+
+### Пользовательский менеджер (пример для light_control)
+
+```cpp
+// src/light_webui_mgr.h
+#include "etl_webui_base.h"
+#include "light_webui.h"
+
+namespace light_control {
+
+class light_webui_mgr : public etl::webui::web_manager
+{
+public:
+    explicit light_webui_mgr(const etl::webui::device_info_t& device_info)
+        : etl::webui::web_manager(device_info) {}
+
+protected:
+    etl::shared_ptr<etl::webui::web_server_base_t> on_create_content() override
+    {
+        // Загружаем актуальные настройки WiFi
+        auto web_config = etl::webui::settings::load_wifi_config();
+
+        // Создаём сервер контента
+        auto server = etl::make_shared<etl::webui::light_control_server>(
+            web_config.has_value() ? web_config.value() : etl::webui::server_config_t()
+        );
+
+        // Устанавливаем callback'и на действия пользователя
+        server->set_on_settings_callback([this]() {
+            this->start_settings();
+        });
+
+        return server;
+    }
+
+    etl::shared_ptr<etl::webui::web_server_base_t> on_create_settings() override
+    {
+        auto web_config = etl::webui::settings::load_wifi_config();
+        auto ui_config = etl::webui::settings::load_ui_config();
+
+        auto server = etl::make_shared<etl::webui::server_setup>(
+            web_config.has_value() ? web_config.value() : etl::webui::server_config_t()
+        );
+
+        // Callback'и для сервера настроек
+        server->set_on_content_callback([this]() {
+            this->start_content();
+        });
+        server->set_on_factory_reset_callback([this]() {
+            // Сброс настроек WiFi и UI
+            etl::webui::server_config_t default_config;
+            etl::webui::settings::init_wifi_config(default_config, true);
+            if (etl::webui::settings::load_ui_config().has_value()) {
+                etl::webui::ui_config_t default_ui;
+                etl::webui::settings::init_ui_config(default_ui, true);
+            }
+            this->start_content();
+        });
+
+        return server;
+    }
+};
+
+} // namespace light_control
+```
+
+### Общий подход к работе в клиентской программе
+
+```cpp
+#include "etl_webui_settings.h"
+#include "etl_webui_base.h"
+#include "light_webui_mgr.h"
+
+// Симуляция для тестирования
+struct simulation_t {
+    bool reset_wifi_on_start = false;   // Сброс настроек при старте
+    bool reset_ui_on_start = false;     // Сброс UI настроек при старте
+    bool start_settings_on_start = false; // Запуск сервера настроек при старте
+};
+simulation_t simulation_data;
+
+void setup() {
+    Serial.begin(115200);
+
+    // Инициализация настроек WiFi
+    etl::webui::server_config_t default_web_config;
+    etl::webui::settings::init_wifi_config(default_web_config, simulation_data.reset_wifi_on_start);
+
+    // Инициализация настроек интерфейса (опционально)
+    etl::webui::ui_config_t default_ui_config;
+    etl::webui::settings::init_ui_config(default_ui_config, simulation_data.reset_ui_on_start);
+
+    // Настройка информации об устройстве
+    etl::webui::device_info_t device_info = etl::webui::get_light_control_device_info();
+
+    // Создание менеджера
+    etl::shared_ptr<light_control::light_webui_mgr> webui =
+        etl::make_shared<light_control::light_webui_mgr>(device_info);
+
+    // Запуск нужного сервера
+    if (simulation_data.start_settings_on_start) {
+        webui->start_settings();
+    } else {
+        webui->start_content();
+    }
+}
+
+void loop() {
+    if (webui) {
+        webui->tick();
+    }
+
+    // Проверка на три клика кнопкой для переключения серверов
+    if (btn && btn->tick() && btn->hasClicks(3) && webui) {
+        Serial.println("[WebUI] Toggle content and setup servers...");
+        webui->toggle();
+    }
+}
+```
+
+### Callback-механизм в web_server_base_t
+
+В базовый класс `web_server_base_t` добавляются методы для установки callback-функций:
+
+```cpp
+class web_server_base_t
+{
+public:
+    // Типы callback-функций
+    using on_settings_callback_t = void(*)();
+    using on_content_callback_t  = void(*)();
+    using on_factory_reset_t     = void(*)();
+
+    // Установка callback-функций
+    void set_on_settings_callback(on_settings_callback_t cb);
+    void set_on_content_callback(on_content_callback_t cb);
+    void set_on_factory_reset_callback(on_factory_reset_t cb);
+
+protected:
+    // Callback-функции
+    on_settings_callback_t m_on_settings_cb = nullptr;
+    on_content_callback_t  m_on_content_cb = nullptr;
+    on_factory_reset_t     m_on_factory_reset_cb = nullptr;
+};
+```
+
+Вызов callback'ов происходит из обработчиков API:
+- Кнопка "Settings" в сервере контента → `if (m_on_settings_cb) m_on_settings_cb();`
+- Кнопка "[Back]" в сервере настроек → `if (m_on_content_cb) m_on_content_cb();`
+- Кнопка "[Save & Reboot]" → сохранение настроек + `if (m_on_content_cb) m_on_content_cb();`
+- Кнопка "[Factory Reset]" → `if (m_on_factory_reset_cb) m_on_factory_reset_cb();`
 
 ### Режимы работы
 
 | Режим | Активация | HTTP порт | mDNS | Поведение |
 |-------|-----------|-----------|------|-----------|
-| **WebUI** | Обычный старт | 80 | `espdevice.local` | Сервер управления устройством |
-| **WiFi Setup** | 3 нажатия кнопки | 80 | `espdevice.local` | Сервер настройки WiFi |
+| **WebUI** | Обычный старт | 80 | `hostname.local` | Сервер управления устройством |
+| **WiFi Setup** | 3 нажатия кнопки | 80 | `hostname.local` | Сервер настройки WiFi |
 | **Factory Reset** | Кнопка при старте | - | - | Сброс настроек, запуск WiFi Setup |
 
-Имя для обоих серверов одинаковое, настройки берут тоже одни и теже, сервер забирается в одинаковом режиме для точки доступа.
+Имя для обоих серверов одинаковое, настройки берут тоже одни и те же, сервер запускается в одинаковом режиме для точки доступа.
 
 ### Переключение серверов
 
 **Один порт 80, сервера переключаются:**
 - По умолчанию запускается **WebUI Server**
-- При 3 нажатиях кнопки: WebUI → остановка → WiFi Setup → запуск
-- После [Save & Reboot] или [Factory Reset] или [Back] : WiFi Setup → остановка → WebUI → запуск
+- При 3 нажатиях кнопки: WebUI → остановка (деструктор) → WiFi Setup → запуск
+- После [Save & Reboot] или [Factory Reset] или [Back]: WiFi Setup → остановка (деструктор) → WebUI → запуск
+- mDNS перезапускается вместе с сервером (каждый сервер управляет своим mDNS)
+
+### Хранение настроек
+
+```cpp
+// Настройки WiFi — общий доступ через etl::webui::settings
+
+// Инициализация в setup()
+etl::webui::server_config_t default_web_config;
+etl::webui::settings::init_wifi_config(default_web_config, reset_on_start);
+
+// Загрузка актуальных настроек при старте сервера
+auto web_config = etl::webui::settings::load_wifi_config();
+
+// Сохранение изменённых настроек
+etl::webui::settings::save_wifi_config(new_config);
+```
+
+```cpp
+// Настройки интерфейса
+etl::webui::ui_config_t default_ui_config;
+etl::webui::settings::init_ui_config(default_ui_config, reset_on_start);
+
+auto ui_config = etl::webui::settings::load_ui_config();
+etl::webui::settings::save_ui_config(new_ui_config);
+```
 
 ### Структура классов
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    etl::webui::web_server_base_t            │
-│                    (базовый класс)                          │
-│  - hostname, port, mDNS                                     │
-│  - start(), stop(), handle()                                │
+│              etl::webui::web_server_base_t                  │
+│              (базовый класс)                                │
+│  - hostname, port, mDNS (управляется сервером)              │
+│  - start(), stop() (stop() останавливает mDNS)              │
+│  - handle(), tick() (с проверкой m_initialized)             │
 │  - device_info_t (name, description, icon_svg)              │
+│  - callback-функции (on_settings, on_content, on_reset)     │
 └─────────────────────────────────────────────────────────────┘
          │                                    │
          │                                    │
          ▼                                    ▼
 ┌────────────────────┐            ┌─────────────────────────┐
-│   server_content_t │            │  wifi::server_setup_t   │
-│   (WebUI Server)   │            │  (WiFi Setup Server)    │
-│                    │            │                         │
-│  - Light UI        │            │  - AP режим             │
-│  - LED control API │            │  - Сканирование сетей   │
-│  - Brightness API  │            │  - Подключение к WiFi   │
-│  - Device config   │            │  - Сохранение настроек  │
+│  light_control_    │            │  server_setup           │
+│  server            │            │  (WiFi Setup Server)    │
+│  (WebUI Server)    │            │                         │
+│                    │            │  - AP режим             │
+│  - Light UI        │            │  - Сканирование сетей   │
+│  - LED control API │            │  - Подключение к WiFi   │
+│  - Brightness API  │            │  - Сохранение настроек  │
+│  - Device config   │            │  - UI settings          │
+│  - Settings button │            │  - [Back], [Save&Reboot]│
+│    → callback      │            │    → callback           │
 └────────────────────┘            └─────────────────────────┘
-```
-
-### Хранение настроек
-
-```cpp
-// Настройки WiFi перемещены в ETL библиотеку
-// Общий доступ через etl::wifi::settings
-
-// В main.cpp:
-etl::wifi::server_config_t web_config; // default settings
-    // В setup() или до начала работы с WiFi
-etl::wifi::settings::init_wifi_config(web_config, simulation_data.reset_wifi_on_start);
-
-// Для получения 
-etl::optional<etl::wifi::settings::server_config_t> etl::wifi::settings::load_wifi_config();
-```
-
-```cpp
-// Настройки интерфейса
-// Общий доступ через etl::wifi::settings
-etl::wifi::ui_config_t ui_config; // default UI settings 
-etl::wifi::settings::init_ui_config(ui_config, simulation_data.reset_ui_on_start);
-
-// Получение настроек интерфейса
-... etl::wifi::settings::load_ui_config(); // Может отсутствовать, проверять результат
-```
-
-### Симуляция в тестовом проекте
-
-```cpp
-struct simulation_t {
-    bool reset_wifi_on_start = false;   // Сброс настроек при старте
-    bool custom_device_info = true;     // Кастомная информация об устройстве
-    bool custom_icon_svg = false;       // Кастомная иконка
-    bool triple_press = false;          // Симуляция 3 нажатий кнопки
-    bool long_press_at_start = false;   // Симуляция долгого нажатия при старте
-};
+         │                                    │
+         └──────────┬─────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│              etl::webui::web_manager                        │
+│              (базовый менеджер, в ETL)                      │
+│  - device_info_t                                            │
+│  - m_server (shared_ptr<web_server_base_t>)                 │
+│  - start_content(), start_settings(), toggle()              │
+│  - tick() → m_server->tick() (с проверкой m_server)         │
+│  - on_create_content() (virtual, override в приложении)     │
+│  - on_create_settings() (virtual, override в приложении)    │
+└─────────────────────────────────────────────────────────────┘
+         ▲
+         │ (наследование)
+         │
+┌─────────────────────────────────────────────────────────────┐
+│        light_control::light_webui_mgr                       │
+│        (пользовательский менеджер, в приложении)            │
+│  - on_create_content() → light_control_server + callbacks   │
+│  - on_create_settings() → server_setup + callbacks          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Tasks
 
-### Этап 1: Макет WebUI
-- [x] **Task 1.1:** Создан HTML макет для условной подсветки рабочей зоны - это будет главный экран контента
-  - Файл: `docs\web-wifi\qwen-webui.001.html`
-  
-### Этап 2: Базовый класс Web Server
-- [ ] **Task 2.1:** Создать базовый класс в ETL
-  - Файл: `ETL/src/etl/etl_web_server_base.h`
-  - Содержимое:
-    - `device_info_t` (перенести из wifi_setup)
-    - `etl_web_server_base_t` — виртуальные методы:
-      - `begin(device_info_t)` — запуск сервера
-      - `stop()` — остановка сервера
-      - `handle()` — обработка событий
-      - `is_initialized()` — статус инициализации
-  - Перенести `device_info_t` из `etl_wifi_setup.h` в базовый класс
+### Этап 1: Подготовка
+- [x] **Task 1.1:** Создан HTML макет для условной подсветки рабочей зоны
+  - Файл: `docs\web-wifi\qwen-webui.002.html`
+- [x] **Task 1.2:** Создан сервер контента для управления лампой
+  - Файлы: `src\light_webui.h`, `src\light_webui.cpp`, `src\light_webui_html.h`
 
-- [ ] **Task 2.2:** Обновить WiFi Setup Server
-  - Наследование от `etl_web_server_base_t`
-  - Переименовать `server_setup` → `server_setup_t`
-  - Сохранить всю текущую функциональность
+### Этап 2: Базовый класс для callback'ов
+- [ ] **Task 2.1:** Добавить callback-механизм в `web_server_base_t`
+  - Файл: `lib\ETLTest\etl_webui_base.h`
+  - Типы callback-функций: `on_settings_callback_t`, `on_content_callback_t`, `on_factory_reset_t`
+  - Методы установки: `set_on_settings_callback()`, `set_on_content_callback()`, `set_on_factory_reset_callback()`
+  - Callback-поля в protected части
 
-### Этап 3: Реализация WebUI Server
-- [ ] **Task 3.1:** Создать структуру файлов
-  - `src/webui_server.h` — заголовок класса
-  - `src/webui_server.cpp` — реализация
-  - `src/webui_html.h` — HTML шаблон (из макета)
+- [ ] **Task 2.2:** Обновить `web_server_base_t::tick()` с проверкой `m_initialized`
+  - Если сервер не инициализирован, `tick()` возвращает сразу
 
-- [ ] **Task 3.2:** Реализовать класс WebUI Server
-  - Наследование от `etl_web_server_base_t`
-  - HTTP сервер на порту 80
-  - mDNS: `kitchenlight.local`
-  - API endpoints:
-    - `GET /` — главная страница
-    - `GET /api/status` — статус устройства (вкл/выкл, яркость)
-    - `POST /api/light` — управление светом (power, brightness)
-    - `GET /api/config` — конфигурация устройства
+### Этап 3: Менеджер серверов (ETL)
+- [ ] **Task 3.1:** Создать базовый класс `web_manager`
+  - Файл: `lib\ETLTest\etl_webui_base.h` (после `web_server_base_t`)
+  - Методы:
+    - `start_content()` — создание и запуск сервера контента
+    - `start_settings()` — создание и запуск сервера настроек
+    - `toggle()` — переключение между серверами
+    - `tick()` — вызов `m_server->tick()` с проверкой `m_server != nullptr`
+  - Виртуальные методы:
+    - `on_create_content()` — override в приложении для создания сервера контента
+    - `on_create_settings()` — override в приложении для создания сервера настроек
 
-- [ ] **Task 3.3:** Интеграция с WiFi settings
-  - Использование общих настроек из ETL
-  - Загрузка конфигурации hostname для mDNS
+### Этап 4: Пользовательский менеджер (приложение)
+- [ ] **Task 4.1:** Создать `light_webui_mgr` для тестового проекта
+  - Файл: `src\light_webui_mgr.h`
+  - Namespace: `light_control` (не `etl::webui`)
+  - Наследование от `etl::webui::web_manager`
+  - Реализация `on_create_content()` и `on_create_settings()` с установкой callback'ов
 
-### Этап 4: Менеджер серверов
-- [ ] **Task 4.1:** Создать менеджер переключения
-  - Файл: `src/server_manager.h/cpp`
-  - Функции:
-    - `start_webui()` — запуск WebUI сервера
-    - `start_wifi_setup()` — запуск WiFi Setup сервера
-    - `stop_current()` — остановка текущего сервера
-    - `switch_to_wifi_setup()` — переключение на WiFi Setup
-    - `switch_to_webui()` — переключение на WebUI
+- [ ] **Task 4.2:** Обновить `light_control_server` для callback'ов
+  - Добавить вызов `m_on_settings_cb` при нажатии кнопки Settings
+  - Убедиться, что сервер корректно останавливается в деструкторе
 
-- [ ] **Task 4.2:** Обновить main.cpp
-  - Инициализация `etl::wifi::settings::init_config()` в setup()
-  - Запуск WebUI сервера по умолчанию
-  - Обработка симуляции 3 нажатий:
-    ```cpp
-    if (simulation_data.triple_press) {
-        server_manager.switch_to_wifi_setup();
-        simulation_data.triple_press = false;
-    }
-    ```
-  - Обработка Factory Reset:
-    ```cpp
-    if (simulation_data.long_press_at_start) {
-        wifi_server.reset_settings();
-        server_manager.switch_to_wifi_setup();
-    }
-    ```
+- [ ] **Task 4.3:** Обновить `server_setup` для callback'ов
+  - Добавить вызов `m_on_content_cb` при нажатии кнопки [Back]
+  - Добавить вызов `m_on_content_cb` после [Save & Reboot]
+  - Добавить вызов `m_on_factory_reset_cb` при [Factory Reset]
+  - Убедиться, что сервер корректно останавливается в деструкторе (mDNS stop)
 
-### Этап 5: Тестирование
-- [ ] **Task 5.1:** Компиляция всех конфигураций
+### Этап 5: Интеграция в main.cpp
+- [ ] **Task 5.1:** Обновить `main.cpp` для использования менеджера
+  - Убрать прямое создание `wifi_server`
+  - Создать `light_control::light_webui_mgr`
+  - Запуск `start_content()` или `start_settings()` в зависимости от симуляции
+  - В `loop()` вызывать `webui->tick()`
+  - Обработка 3 нажатий кнопки для `toggle()`
+
+- [ ] **Task 5.2:** Обновить `simulation_t`
+  - Добавить `start_settings_on_start` для тестирования запуска сервера настроек
+
+### Этап 6: Тестирование
+- [ ] **Task 6.1:** Компиляция всех конфигураций
+  - d1_mini_lite (ESP8266)
   - nodemcuv3 (ESP8266)
   - esp32c3
   - esp32-wroom-32u
 
-- [ ] **Task 5.2:** Функциональное тестирование
+- [ ] **Task 6.2:** Функциональное тестирование
   - [ ] WebUI доступен после старта
   - [ ] 3 нажатия переключают на WiFi Setup
-  - [ ] WebUI останавливается при переключении
-  - [ ] [Save & Reboot] переключает обратно на WebUI
-  - [ ] Factory Reset сбрасывает настройки и запускает WiFi Setup
-  - [ ] mDNS работает для обоих серверов
-
----
-
-## План работ (последовательность)
-
-```
-1. Макет WebUI (docs\web-wifi\qwen-webui.001.html)
-   ↓
-2. Базовый класс etl_web_server_base_t (ETL библиотека)
-   ↓
-3. Обновление WiFi Setup Server (наследование от базового)
-   ↓
-4. WebUI Server (src/webui_server*)
-   ↓
-5. Server Manager (src/server_manager*)
-   ↓
-6. Интеграция в main.cpp
-   ↓
-7. Тестирование
-```
-
----
-
-## Примечания
-
-### Настройки WiFi в ETL
-- Настройки WiFi перемещены в библиотеку ETL
-- Общий доступ через `etl::wifi::settings`
-- `server_config_t` содержит:
-  - hostname, ap_ssid, ap_password, wifi_ssid, wifi_password
-  - port, update_interval
-
-### Базовый класс для WebUI
-- `etl_web_server_base_t` предоставляет общий интерфейс
-- Клиенты могут наследоваться и реализовывать собственный UI
-- `device_info_t` передаётся при запуске:
-  - name — название устройства
-  - description — описание
-  - icon_svg — SVG иконка (опционально)
-
-### Симуляция в тестовом проекте
-- `simulation_t` в main.cpp для тестирования без реального железа
-- `triple_press` — симуляция 3 нажатий кнопки
-- `long_press_at_start` — симуляция долгого нажатия при старте
-- `reset_wifi_on_start` — сброс настроек WiFi при старте
+  - [ ] WebUI останавливается при переключении (mDNS перезапускается)
+  - [ ] [Save & Reboot] переключает обратно на WebUI с новыми настройками
+  - [ ] [Back] переключает обратно на WebUI без сохранения
+  - [ ] [Factory Reset] сбрасывает WiFi и UI настройки, запускает WiFi Setup
+  - [ ] mDNS работает для обоих серверов после переключения
+  - [ ] tick() не вызывает ошибок при переключении серверов

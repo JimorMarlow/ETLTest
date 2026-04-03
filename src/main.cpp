@@ -15,7 +15,7 @@ struct simulation_t {
 
     bool init_ui_settings = true;       // Использовать настройки интерфейса в общих настройках
     bool reset_ui_on_start = false;      // Не считывать настройки, а заменить на значения по умолчанию
-    
+    bool start_webui_settings_on_start = false;      // При старте запустить сервер настроек (например по зажатой кнопке)
 };
 simulation_t simulation_data;
 //////////////////////////////////////////////////////////////
