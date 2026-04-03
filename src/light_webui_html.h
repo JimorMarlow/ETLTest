@@ -15,13 +15,13 @@ const char* LIGHT_WEBUI_HTML = R"rawliteral(<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>LED Lamp Control</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#FFFFFF;min-height:100vh;color:#1C1C1E;padding:16px;display:flex;flex-direction:column}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#FFFFFF;min-height:100vh;min-height:100dvh;color:#1C1C1E;padding:env(safe-area-inset-top,16px) env(safe-area-inset-right,16px) env(safe-area-inset-bottom,16px) env(safe-area-inset-left,16px);display:flex;flex-direction:column}
 body.dark-theme{background:#1C1C1E;color:#FFFFFF}
-.container{max-width:480px;margin:0 auto;flex:1;display:flex;flex-direction:column}
+.container{max-width:480px;margin:0 auto;flex:1;display:flex;flex-direction:column;width:100%}
 .status-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;margin-bottom:8px;background:#F2F2F7;border-radius:12px}
 body.dark-theme .status-bar{background:#2C2C2E}
 .status-left{display:flex;align-items:center;gap:12px}
@@ -88,7 +88,7 @@ body.dark-theme .brightness-slider::-webkit-slider-thumb{background:#3A3A3C;box-
 body.dark-theme .brightness-slider::-moz-range-track{background:transparent}
 .brightness-slider::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 8px rgba(0,0,0,0.2);cursor:pointer;border:none}
 body.dark-theme .brightness-slider::-moz-range-thumb{background:#3A3A3C;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
-@media (max-width:480px){body{padding:12px}.power-button-wrapper{width:140px;height:140px}.power-symbol{width:84px;height:84px}.power-symbol svg{width:42px;height:42px}.device-name{font-size:18px}.device-description{font-size:14px}}
+@media (max-width:480px){body{padding:env(safe-area-inset-top,12px) env(safe-area-inset-right,12px) env(safe-area-inset-bottom,12px) env(safe-area-inset-left,12px)}.container{max-width:100%}.power-button-wrapper{width:140px;height:140px}.power-symbol{width:84px;height:84px}.power-symbol svg{width:42px;height:42px}.device-name{font-size:18px}.device-description{font-size:14px}.brightness-section{margin-bottom:20px}}
 body.large-font .device-name{font-size:24px}
 body.large-font .device-description{font-size:18px}
 body.large-font .brightness-label{font-size:18px}
