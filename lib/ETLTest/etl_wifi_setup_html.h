@@ -780,19 +780,11 @@ namespace etl
             factoryResetBtn.innerHTML = '<span class="btn-spinner"></span><span>' + translations[currentLang].resetting + '</span>';
             factoryResetBtn.classList.add('btn-with-spinner');
             factoryResetBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            showModal(translations[currentLang].confirm_reset, async () => {
-                try {
-                    await fetch('/api/reset', { method: 'POST' });
-                    document.body.innerHTML = `<div class="container" style="text-align: center; padding-top: 100px;"><div class="spinner" style="width: 48px; height: 48px; border-width: 4px; border-color: #FF3B30; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div><p style="margin-top: 20px; font-size: 17px; color: #1C1C1E;">${translations[currentLang].resetting}</p><p style="margin-top: 10px; font-size: 14px; color: #8E8E93;">Rebooting in 3 seconds...</p></div>`;
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    window.location.reload();
-                } catch (error) {
-                    factoryResetBtn.disabled = false;
-                    factoryResetBtn.textContent = originalText;
-                    factoryResetBtn.classList.remove('btn-with-spinner');
-                    alert('Error: ' + error.message);
-                }
-            });
+            // Показываем оверлей загрузки
+            const o=document.createElement('div');o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';const d=document.createElement('div');d.style.cssText='background:#fff;border-radius:12px;padding:24px;max-width:280px;text-align:center';const s=document.createElement('div');s.style.cssText='width:36px;height:36px;border:3px solid #E5E5EA;border-top-color:#FF3B30;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px';const t=document.createElement('p');t.style.cssText='margin:0;font-size:16px;color:#1C1C1E';t.textContent=currentLang==='ru'?'Сброс настроек...':'Factory reset...';const k=document.createElement('style');k.textContent='@keyframes spin{to{transform:rotate(360deg)}}';d.appendChild(s);d.appendChild(t);o.appendChild(k);o.appendChild(d);document.body.appendChild(o);
+            fetch('/api/reset', { method: 'POST' }).catch(()=>{});
+            // Автообновление через 8 секунд — сервер настроек должен перезапуститься
+            setTimeout(()=>{window.location.reload()},8000);
         }
         async function applyApSettings() {
             const apSsid = apSsidInput.value;

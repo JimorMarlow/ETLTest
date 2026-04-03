@@ -75,7 +75,9 @@ body.dark-theme .brightness-btn{background:#3A3A3C;color:#0A84FF}
 .brightness-btn:hover{background:#007AFF;color:#FFFFFF}
 body.dark-theme .brightness-btn:hover{background:#0A84FF;color:#FFFFFF}
 .brightness-btn:active{transform:scale(0.95)}
-.brightness-slider-container{flex:1;position:relative;display:flex;align-items:center;height:44px}
+.brightness-slider-container{flex:1;position:relative;display:flex;align-items:center;height:44px;margin:0 4px}
+.brightness-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:12px;background:#E5E5EA;border-radius:6px;z-index:0}
+body.dark-theme .brightness-track{background:#3A3A3C}
 .brightness-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:12px;background:#007AFF;border-radius:6px;pointer-events:none;z-index:1}
 body.dark-theme .brightness-fill{background:#0A84FF}
 .brightness-slider{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer;position:relative;z-index:2}
@@ -95,6 +97,7 @@ body.large-font .device-description{font-size:18px}
 body.large-font .brightness-label{font-size:18px}
 body.large-font .brightness-value{font-size:18px}
 body.large-font .brightness-value.bold-val{font-weight:700}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -136,6 +139,7 @@ body.large-font .brightness-value.bold-val{font-weight:700}
 <div class="brightness-controls">
 <button class="brightness-btn" id="brightnessDown">&minus;</button>
 <div class="brightness-slider-container">
+<div class="brightness-track" id="brightnessTrack"></div>
 <input type="range" class="brightness-slider" id="brightnessSlider" min="5" max="100" value="100">
 <div class="brightness-fill" id="brightnessFill"></div>
 </div>
@@ -157,7 +161,7 @@ function togglePower(){deviceState.power=!deviceState.power;if(deviceState.power
 function handleSliderChange(){deviceState.brightness=parseInt(brightnessSlider.value);brightnessValue.textContent=deviceState.brightness+'%';brightnessFill.style.width=deviceState.brightness+'%';sendState()}
 function adjustBrightness(d){if(!deviceState.power){deviceState.power=true;powerBtn.classList.add('on')}deviceState.brightness=Math.max(5,Math.min(100,deviceState.brightness+d));brightnessSlider.value=deviceState.brightness;brightnessValue.textContent=deviceState.brightness+'%';brightnessFill.style.width=deviceState.brightness+'%';sendState()}
 function sendState(){const data={power:deviceState.power,brightness:deviceState.brightness};fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(e=>console.log('Send error:',e))}
-function showSettingsDialog(){const o=document.createElement('div');o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';const d=document.createElement('div');d.style.cssText='background:#fff;border-radius:12px;padding:24px;max-width:280px;text-align:center';const s=document.createElement('div');s.style.cssText='width:36px;height:36px;border:3px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px';const t=document.createElement('p');t.style.cssText='margin:0;font-size:16px;color:#1C1C1E';t.textContent=uiConfig.lang==='ru'?'Загрузка настроек...':'Loading setup...';const k=document.createElement('style');k.textContent='@keyframes spin{to{transform:rotate(360deg)}}';d.appendChild(s);d.appendChild(t);o.appendChild(k);o.appendChild(d);document.body.appendChild(o);fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>{});setTimeout(()=>{if(document.body&&document.body.contains(o))document.body.removeChild(o)},8000);setTimeout(()=>{window.location.reload()},15000)}
+function showSettingsDialog(){const svg=settingsBtn.querySelector('svg');if(svg){svg.outerHTML='<div style="width:24px;height:24px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>'}settingsBtn.style.pointerEvents='none';fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>{});setTimeout(()=>{window.location.reload()},15000)}
 async function loadUIConfig(){try{const r=await fetch('/api/ui_config');if(r.ok){const c=await r.json();uiConfig={lang:c.language||'en',darkTheme:c.dark_theme||false,largeFont:c.large_font||false,useBoldValues:c.use_bold_values||false};applyUIConfig()}}catch(e){console.log('UI config load error:',e)}}
 async function loadDeviceInfo(){try{const r=await fetch('/api/device_info');if(r.ok){const d=await r.json();deviceName.textContent=d.name;deviceDescription.textContent=d.description;if(d.icon_svg)deviceIconSmall.innerHTML=d.icon_svg}}catch(e){console.log('Device info load error:',e)}}
 async function loadStatus(){try{const r=await fetch('/api/status');if(r.ok){const s=await r.json();if(s.wifi==='ap'){statusWifi.classList.add('active');statusWifi.classList.remove('error');statusWifi.style.fill='#34C759'}else if(s.wifi==='sta'){statusWifi.classList.add('active');statusWifi.classList.remove('error');statusWifi.style.fill='#007AFF'}else{statusWifi.classList.add('active');statusWifi.classList.add('error')}if(s.mqtt==='connected'){statusMqtt.classList.add('active');statusMqtt.classList.remove('error')}else if(s.mqtt==='disconnected'){statusMqtt.classList.add('active');statusMqtt.classList.add('error')}else{statusMqtt.classList.remove('active','error')}if(s.telegram==='connected'){statusTelegram.classList.add('active');statusTelegram.classList.remove('error')}else if(s.telegram==='disconnected'){statusTelegram.classList.add('active');statusTelegram.classList.add('error')}else{statusTelegram.classList.remove('active','error')}}}catch(e){console.log('Status load error:',e)}}
