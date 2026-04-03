@@ -295,6 +295,24 @@ namespace etl
             }
         }
 
+        void web_server_base_t::schedule_settings_cb()
+        {
+            m_pending_settings_cb = true;
+            m_pending_cb_counter = PENDING_CB_TICKS;
+        }
+
+        void web_server_base_t::schedule_content_cb()
+        {
+            m_pending_content_cb = true;
+            m_pending_cb_counter = PENDING_CB_TICKS;
+        }
+
+        void web_server_base_t::schedule_factory_reset_cb()
+        {
+            m_pending_factory_reset_cb = true;
+            m_pending_cb_counter = PENDING_CB_TICKS;
+        }
+
         void web_server_base_t::reboot()
         {
             Serial.println(F("[WebUI] Rebooting..."));

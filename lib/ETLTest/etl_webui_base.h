@@ -163,6 +163,21 @@ namespace etl
             virtual uint16_t get_port() const;
 
             /**
+             * @brief Запланировать callback настроек (безопасный вызов из обработчика API)
+             */
+            void schedule_settings_cb();
+
+            /**
+             * @brief Запланировать callback контента (безопасный вызов из обработчика API)
+             */
+            void schedule_content_cb();
+
+            /**
+             * @brief Запланировать callback сброса (безопасный вызов из обработчика API)
+             */
+            void schedule_factory_reset_cb();
+
+            /**
              * @brief Основной цикл обработки (объединяет handle() и handle_client())
              * 
              * Вызывать регулярно из loop() для обработки событий WiFi и HTTP запросов.
@@ -350,7 +365,7 @@ namespace etl
             volatile bool m_pending_content_cb = false;     ///< Ожидание callback контента
             volatile bool m_pending_factory_reset_cb = false; ///< Ожидание callback сброса
             volatile uint8_t m_pending_cb_counter = 0;      ///< Счётчик тиков до выполнения callback
-            static const uint8_t PENDING_CB_TICKS = 3;      ///< Сколько тиков ждать перед callback (достаточно для отправки ответа)
+            static const uint8_t PENDING_CB_TICKS = 10;     ///< Сколько тиков ждать перед callback (достаточно для отправки ответа)
 
         };
 

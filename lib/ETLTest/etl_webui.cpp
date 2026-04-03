@@ -338,8 +338,7 @@ namespace etl
             if (success) {
                 send_success_response("Settings saved. Switching to content server...");
                 // Переключаемся на сервер контента с новыми настройками
-                m_pending_content_cb = true;
-                m_pending_cb_counter = PENDING_CB_TICKS;
+                schedule_content_cb();
             } else {
                 send_error_response("Failed to save settings");
             }
@@ -355,8 +354,7 @@ namespace etl
                 // Отправляем ответ клиенту
                 send_success_response("Settings reset. Switching to settings server...");
                 // Менеджер выполнит сброс и запустит сервер настроек заново
-                m_pending_factory_reset_cb = true;
-                m_pending_cb_counter = PENDING_CB_TICKS;
+                schedule_factory_reset_cb();
             } else {
                 send_error_response("Failed to reset settings");
             }
@@ -369,9 +367,8 @@ namespace etl
             // Отправляем успешный ответ клиенту
             send_success_response("Switching to content server");
 
-            // Устанавливаем отложенный флаг — callback выполнится через N тиков
-            m_pending_content_cb = true;
-            m_pending_cb_counter = PENDING_CB_TICKS;
+            // Запланировать callback — выполнится через N тиков
+            schedule_content_cb();
         }
 
         void server_setup::handle_api_ap_settings()

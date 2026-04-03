@@ -51,7 +51,8 @@ body.dark-theme .settings-button:hover{background:#0A84FF;color:#FFFFFF}
 .settings-button svg{width:24px;height:24px;fill:currentColor;transition:fill 0.2s}
 .power-section{flex:1;display:flex;align-items:center;justify-content:center;padding:0;margin-top:-20px}
 .power-button-wrapper{position:relative;width:160px;height:160px}
-.power-button{position:relative;width:100%;height:100%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.power-button{position:relative;width:100%;height:100%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;outline:none;-webkit-tap-highlight-color:transparent}
+.power-button:focus{outline:none;box-shadow:none}
 .power-ring{position:absolute;width:100%;height:100%;border-radius:50%;border:4px solid #E5E5EA;transition:border-color 0.3s,box-shadow 0.3s}
 body.dark-theme .power-ring{border-color:#38383A}
 .power-button.on .power-ring{border-color:#007AFF;box-shadow:0 0 30px rgba(0,122,255,0.4)}
