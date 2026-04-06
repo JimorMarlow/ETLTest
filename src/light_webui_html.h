@@ -24,18 +24,13 @@ body.dark-theme{background:#1C1C1E;color:#FFFFFF}
 .container{max-width:480px;margin:0 auto;flex:1;display:flex;flex-direction:column;width:100%}
 .status-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;margin-bottom:8px;background:#F2F2F7;border-radius:12px}
 body.dark-theme .status-bar{background:#2C2C2E}
-.status-left{display:flex;align-items:center;gap:12px}
 .device-icon-small{width:40px;height:40px;flex-shrink:0}
 .device-icon-small svg{width:100%;height:100%}
-.status-icons{display:flex;gap:2px;align-items:center}
-.status-icon{width:24px;height:24px;flex-shrink:0;opacity:0.3;transition:opacity 0.3s,fill 0.3s}
-.status-icon.active{opacity:1}
-.status-icon.wifi.active{fill:#34C759}
-.status-icon.wifi.error{fill:#8E8E93}
-.status-icon.mqtt.active{fill:#660066}
-.status-icon.mqtt.error{fill:#8E8E93}
-.status-icon.telegram.active{fill:#0088CC}
-.status-icon.telegram.error{fill:#8E8E93}
+.status-right{display:flex;align-items:center;gap:2px}
+.connection-states{display:flex;align-items:center;gap:2px;padding:4px 8px;min-height:32px}
+.connection-icon{font-size:20px;line-height:1;flex-shrink:0}
+.connection-icon.wifi.sta{color:#44a6f3}
+.connection-icon.wifi.ap{color:rgb(31,177,65)}
 .header{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:8px;margin-bottom:8px;text-align:center}
 .device-info-container{display:flex;flex-direction:column;align-items:center;gap:0}
 .device-info-content{display:flex;flex-direction:column;align-items:center}
@@ -104,15 +99,13 @@ body.large-font .brightness-value.bold-val{font-weight:700}
 <body>
 <div class="container">
 <div class="status-bar">
-<div class="status-left">
 <div class="device-icon-small" id="deviceIconSmall"></div>
-<div class="status-icons">
-<svg class="status-icon wifi" id="statusWifi" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C7.79 3 3.7 4.41 0.43 6.75L12 21L23.57 6.75C20.3 4.41 16.21 3 12 3M12 9C9.3 9 6.68 9.89 4.56 11.43L12 20.59L19.44 11.43C17.32 9.89 14.7 9 12 9M12 13C10.35 13 8.75 13.51 7.4 14.5L12 20.14L16.6 14.5C15.25 13.51 13.65 13 12 13Z"/></svg>
-<svg class="status-icon mqtt" id="statusMqtt" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M7.1 133.9v46.7c73.8 0.1 134 59.3 135 132.4h45.5C186.5 214.6 106.1 134.8 7.1 133.9z M7.1 37.3v46.7c127.4 0.1 231.1 102.5 232.1 228.9h45.5C283.7 161.4 159.7 38.3 7.1 37.3z M312.9 193.5V97.6c-11.8-16.1-25.9-33.4-40.4-47.8c-16-15.9-34.1-30.1-52.3-42.7H119C207.3 38.9 278.1 107.2 312.9 193.5z"/></svg>
-<svg class="status-icon telegram" id="statusTelegram" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="14" fill="url(#paint0_linear)"/><path d="M22.99 10.21C23.11 9.4 22.35 8.77 21.63 9.08L7.36 15.34C6.85 15.57 6.89 16.35 7.42 16.52L10.36 17.45C10.92 17.63 11.53 17.54 12.02 17.2L18.66 12.62C18.86 12.48 19.07 12.77 18.9 12.94L14.13 17.86C13.67 18.34 13.76 19.15 14.31 19.5L19.66 22.85C20.26 23.23 21.03 22.85 21.14 22.13L22.99 10.21Z"/><defs><linearGradient id="paint0_linear" x1="16" y1="2" x2="16" y2="30" gradientUnits="userSpaceOnUse"><stop stop-color="#37BBFE"/><stop offset="1" stop-color="#007DBB"/></linearGradient></defs></svg>
-</div>
+<div class="status-right">
+<div class="connection-states" id="connectionStates">
+<span class="connection-icon wifi" id="wifiIcon">&#x1F4F6;</span>
 </div>
 <button class="settings-button" id="settingsBtn" title="Settings"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84a.484.484 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.488.488 0 0 0-.59.22L2.09 8.83a.488.488 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.488.488 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.27.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.488.488 0 0 0-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+</div>
 </div>
 <div class="header">
 <div class="device-info-container">
@@ -154,7 +147,7 @@ const translations={en:{brightness:'Brightness',powerOn:'Power ON',powerOff:'Pow
 let deviceState={power:false,brightness:100};
 let uiConfig={lang:'en',darkTheme:false,largeFont:false,useBoldValues:false};
 const $=id=>document.getElementById(id);
-const deviceIconSmall=$('deviceIconSmall'),deviceName=$('deviceName'),deviceDescription=$('deviceDescription'),settingsBtn=$('settingsBtn'),powerBtn=$('powerBtn'),brightnessSlider=$('brightnessSlider'),brightnessValue=$('brightnessValue'),brightnessDown=$('brightnessDown'),brightnessUp=$('brightnessUp'),brightnessFill=$('brightnessFill'),statusWifi=$('statusWifi'),statusMqtt=$('statusMqtt'),statusTelegram=$('statusTelegram');
+const deviceIconSmall=$('deviceIconSmall'),deviceName=$('deviceName'),deviceDescription=$('deviceDescription'),settingsBtn=$('settingsBtn'),powerBtn=$('powerBtn'),brightnessSlider=$('brightnessSlider'),brightnessValue=$('brightnessValue'),brightnessDown=$('brightnessDown'),brightnessUp=$('brightnessUp'),brightnessFill=$('brightnessFill'),connectionStates=$('connectionStates'),wifiIcon=$('wifiIcon');
 function applyUIConfig(){if(uiConfig.darkTheme)document.body.classList.add('dark-theme');else document.body.classList.remove('dark-theme');if(uiConfig.largeFont)document.body.classList.add('large-font');else document.body.classList.remove('large-font');if(uiConfig.useBoldValues)brightnessValue.classList.add('bold-val');else brightnessValue.classList.remove('bold-val');const t=translations[uiConfig.lang]||translations.en;document.querySelector('[data-i18n="brightness"]').textContent=t.brightness;settingsBtn.title=t.settings}
 function updateUI(){if(deviceState.power)powerBtn.classList.add('on');else powerBtn.classList.remove('on');brightnessSlider.value=deviceState.brightness;brightnessValue.textContent=deviceState.brightness+'%';brightnessFill.style.width=deviceState.brightness+'%'}
 function setupEventListeners(){powerBtn.addEventListener('click',togglePower);brightnessSlider.addEventListener('input',handleSliderChange);brightnessUp.addEventListener('click',()=>adjustBrightness(5));brightnessDown.addEventListener('click',()=>adjustBrightness(-5));settingsBtn.addEventListener('click',showSettingsDialog)}
@@ -165,7 +158,7 @@ function sendState(){const data={power:deviceState.power,brightness:deviceState.
 function showSettingsDialog(){const svg=settingsBtn.querySelector('svg');const isDark=uiConfig.darkTheme;const borderColor=isDark?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.4)';const topColor=isDark?'#FFFFFF':'#1C1C1E';if(svg){svg.outerHTML='<div class="settings-spinner" style="width:24px;height:24px;border:2px solid '+borderColor+';border-top-color:'+topColor+';border-radius:50%;animation:spin .8s linear infinite;will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden"></div>'}settingsBtn.style.pointerEvents='none';fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>{});setTimeout(()=>{window.location.reload()},15000)}
 async function loadUIConfig(){try{const r=await fetch('/api/ui_config');if(r.ok){const c=await r.json();uiConfig={lang:c.language||'en',darkTheme:c.dark_theme||false,largeFont:c.large_font||false,useBoldValues:c.use_bold_values||false};applyUIConfig()}}catch(e){console.log('UI config load error:',e)}}
 async function loadDeviceInfo(){try{const r=await fetch('/api/device_info');if(r.ok){const d=await r.json();deviceName.textContent=d.name;deviceDescription.textContent=d.description;if(d.icon_svg)deviceIconSmall.innerHTML=d.icon_svg}}catch(e){console.log('Device info load error:',e)}}
-async function loadStatus(){try{const r=await fetch('/api/status');if(r.ok){const s=await r.json();if(s.wifi==='ap'){statusWifi.classList.add('active');statusWifi.classList.remove('error');statusWifi.style.fill='#34C759'}else if(s.wifi==='sta'){statusWifi.classList.add('active');statusWifi.classList.remove('error');statusWifi.style.fill='#007AFF'}else{statusWifi.classList.add('active');statusWifi.classList.add('error')}if(s.mqtt==='connected'){statusMqtt.classList.add('active');statusMqtt.classList.remove('error')}else if(s.mqtt==='disconnected'){statusMqtt.classList.add('active');statusMqtt.classList.add('error')}else{statusMqtt.classList.remove('active','error')}if(s.telegram==='connected'){statusTelegram.classList.add('active');statusTelegram.classList.remove('error')}else if(s.telegram==='disconnected'){statusTelegram.classList.add('active');statusTelegram.classList.add('error')}else{statusTelegram.classList.remove('active','error')}}}catch(e){console.log('Status load error:',e)}}
+async function loadStatus(){try{const r=await fetch('/api/status');if(r.ok){const s=await r.json();if(s.wifi==='ap'){wifiIcon.textContent='\u{1F4E1}';wifiIcon.classList.add('ap');wifiIcon.classList.remove('sta')}else if(s.wifi==='sta'){wifiIcon.textContent='\u{1F4F6}';wifiIcon.classList.add('sta');wifiIcon.classList.remove('ap')}else{wifiIcon.classList.remove('sta','ap')}}}catch(e){console.log('Status load error:',e)}}
 async function loadState(){try{const r=await fetch('/api/state');if(r.ok){const d=await r.json();deviceState={power:d.power||false,brightness:d.brightness||100};updateUI()}}catch(e){console.log('State load error:',e)}}
 function init(){deviceIconSmall.innerHTML=DEVICE_ICON;applyUIConfig();updateUI();setupEventListeners();loadDeviceInfo();loadUIConfig();loadStatus();loadState()}
 init();
