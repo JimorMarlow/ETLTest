@@ -152,6 +152,9 @@ namespace etl
 #ifdef ESP8266
             // Для ESP8266 start_http_server() не используется (begin() переопределён)
             virtual void start_http_server() override {}
+#else
+            // Для ESP32 — полноценный запуск через shared_ptr
+            virtual void start_http_server() override;
 #endif
             virtual void setup_http_routes();
 

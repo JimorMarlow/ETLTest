@@ -8,9 +8,12 @@
 
 ## Текущее состояние
 
-Сборка **успешна** для ESP8266 (d1_mini_lite):
-- RAM: 78.7% (64448/81920)
-- Flash: 48.2% (502952/1044464)
+Сборка **успешна** для обеих платформ:
+
+| Платформа | RAM | Flash | Статус |
+|-----------|-----|-------|--------|
+| ESP8266 (d1_mini_lite) | 78.7% (64448/81920) | 48.2% (502952/1044464) | ✅ SUCCESS |
+| ESP32-C3 | 12.6% (41140/327680) | 56.1% (1065492/1900544) | ✅ SUCCESS |
 
 ## Что сделано
 
@@ -21,7 +24,7 @@
 - ОДИН `DispatchFn` callback для ВСЕХ запросов (вместо 9+ отдельных handler'ов)
 - Все буферы запросов — НА СТЕКЕ в `handleClient()`: `uri[64]`, `body[512]`
 - НЕТ массивов маршрутов внутри класса
-- Совместимый API: `send()`, `send_P()`, `hasArg()`, `arg()`, `method()`, `uri()`
+- Совместимый API: `send()`, `send_P()`, `hasArg()`, `arg()`, `method()`, `uri()`, `reply()`
 
 ### 2. `m_http_server` — член класса, НЕ heap-аллокация
 **Файлы:** `src/light_webui.h`, `src/light_webui.cpp`
@@ -44,17 +47,11 @@
 - `friend` объявления для доступа к protected методам
 
 ### 5. Удалены неиспользуемые API из light_control_server
-**Файлы:** `src/light_webui.cpp`, `src/light_webui.h`
-
 Удалены методы которые нужны только в server_setup:
 - `handle_api_scan()`, `handle_api_connect()`, `handle_api_disconnect()`
 - `handle_api_save()`, `handle_api_reset()`, `handle_api_ap_settings()`
 
-Оставлены 9 маршрутов: `/`, `/api/status`, `/api/config`, `/api/ui_settings`, `/api/device_info`, `/api/ui_config`, `/api/state`, `/api/control`, `/api/settings`
-
 ### 6. Отключение mDNS на ESP8266
-**Файлы:** `src/light_webui.cpp`, `lib/ETLTest/etl_webui.cpp`, `lib/ETLTest/etl_webui_base.cpp`
-
 - mDNS не инициализируется на ESP8266
 - `MDNS.update()` убран из `handle_client()`
 
@@ -63,7 +60,7 @@
 
 `sendState()` с `setTimeout` — не шлёт запросы чаще раза в 100ms.
 
-### 8. Серверный debounce 50ms
+### 8. Серверный debounce 50ms + StaticJsonDocument
 **Файл:** `src/light_webui.cpp`
 
 `handle_api_control()` — не чаще 50ms, `StaticJsonDocument<256>` без аллокаций.
@@ -87,7 +84,7 @@ Serial-лог `ESP.getFreeHeap()` после каждого шага иници�
 [LightControl] Server started (ESP8266)
 ```
 
-Если после `Free heap after server` остаётся < 500 байт — сервер может падать при обработке запросов.
+**КРИТИЧНО:** Если после `Free heap after server` остаётся < 500 байт — сервер может падать при обработке HTTP-запросов.
 
 ### 2. Обработка HTTP-запросов
 - Подключиться к AP `ESP_Device_AP`
@@ -97,7 +94,7 @@ Serial-лог `ESP.getFreeHeap()` после каждого шага иници�
 
 ### 3. Нагрузка — ползунок яркости
 - Активно подвигать ползунок brightness вперёд-назад
-- НЕ должно быть Exception 29 (LoadProhibited)
+- НЕ должно быть Exception 29 (LoadProhibited) или OOM
 - В serial log должно быть стабильное значение heap
 
 ### 4. server_setup
@@ -110,14 +107,13 @@ Serial-лог `ESP.getFreeHeap()` после каждого шага иници�
 - **~1600 байт heap до сервера, ~192 байт после WiFiServer::begin()** — `WiFiServer` внутри аллоцирует буферы сокетов. Это неизбежно на ESP8266. 192 байт может не хватить для обработки HTTP-запросов.
 - Если heap после `m_http_server.begin()` < 500 байт — нужно искать другие пути:
   - Уменьшить размер HTML (убрать SVG дубликаты)
-  - Отложить инициализацию WiFi AP до после запуска сервера
   - Использовать другую плату с большим RAM (NodeMCU, ESP32)
 
 ## Изменённые файлы
 
 - `src/minimal_http_server.h` — **НОВЫЙ** минимальный HTTP-сервер (~35 байт)
 - `src/light_webui.cpp` — `begin()`, `handle_client()`, `_cb_dispatch()` для ESP8266
-- `src/light_webui.h` — `m_http_server` член, `begin()` override, `start_http_server()` stub
+- `src/light_webui.h` — `m_http_server` член, `begin()` override, `start_http_server()` stub/decl
 - `src/light_webui_html.h` — клиентский debounce 100ms
 - `lib/ETLTest/etl_webui.cpp` — `_ss_cb_dispatch()` для server_setup
 - `lib/ETLTest/etl_webui.h` — `friend` объявление, `_ss_cb_dispatch()` declaration
