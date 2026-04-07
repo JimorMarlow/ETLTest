@@ -30,7 +30,9 @@
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
 #if defined(ESP8266)
-  using etl_web_server_t = ESP8266WebServer;
+  // Для ESP8266 используем минимальный сервер без аллокаций в куче
+  #include "../../src/minimal_http_server.h"
+  using etl_web_server_t = MinimalHttpServer;
 #elif defined(ESP32)
   using etl_web_server_t = WebServer;
 #endif

@@ -18,19 +18,15 @@
 #include "etl_webui_base.h"
 #include "version.h"
 
-// Алиас типа сервера для совместимости ESP8266 и ESP32
-#if defined(ESP8266)
-  using light_web_server_t = ESP8266WebServer;
-#elif defined(ESP32)
-  using light_web_server_t = WebServer;
-#endif
-
 #if defined(ESP8266) || defined(ESP32)
 
 namespace etl
 {
     namespace webui
     {
+#ifdef ESP8266
+        void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
+#endif
         /**
          * @brief Настройки устройства (светодиодная лампа)
          *
@@ -93,6 +89,13 @@ namespace etl
          */
         class light_control_server : public web_server_base_t
         {
+#ifdef ESP8266
+            friend void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
+            // Переопределяем begin() чтобы НЕ создавать m_server через shared_ptr
+            virtual bool begin(const device_info_t& device_info) override;
+            virtual void handle_client() override;
+            MinimalHttpServer m_http_server; ///< Член класса — БЕЗ отдельной heap-аллокации!
+#endif
         public:
             /**
              * @brief Конструктор
@@ -146,14 +149,10 @@ namespace etl
 
         protected:
 
-            /**
-             * @brief Запуск HTTP сервера
-             */
-            virtual void start_http_server() override;
-
-            /**
-             * @brief Настройка HTTP роутинга
-             */
+#ifdef ESP8266
+            // Для ESP8266 start_http_server() не используется (begin() переопределён)
+            virtual void start_http_server() override {}
+#endif
             virtual void setup_http_routes();
 
             /**
@@ -192,42 +191,12 @@ namespace etl
             virtual void handle_api_ui_settings();
 
             /**
-             * @brief Обработчик API сканирования сетей
-             */
-            virtual void handle_api_scan();
-
-            /**
-             * @brief Обработчик API подключения
-             */
-            virtual void handle_api_connect();
-
-            /**
-             * @brief Обработчик API отключения
-             */
-            virtual void handle_api_disconnect();
-
-            /**
-             * @brief Обработчик API конфигурации устройства
+             * @brief Обработчик API конфигурации устройства (только чтение)
              */
             virtual void handle_api_config();
 
             /**
-             * @brief Обработчик API сохранения настроек
-             */
-            virtual void handle_api_save();
-
-            /**
-             * @brief Обработчик API сброса настроек
-             */
-            virtual void handle_api_reset();
-
-            /**
-             * @brief Обработчик API настройки точки доступа
-             */
-            virtual void handle_api_ap_settings();
-
-            /**
-             * @brief Обработчик API настроек (кнопка Settings)
+             * @brief Обработчик API настроек (кнопка Settings — переключение на server_setup)
              */
             virtual void handle_api_settings();
 
@@ -238,8 +207,19 @@ namespace etl
              */
             void send_state_to_serial(bool power, float brightness);
 
+#ifdef ESP8266
+            // Вспомогательные методы для MinimalHttpServer
+            void _send_204() { m_server->reply(204, "text/plain", ""); }
+            void _send_404() { m_server->reply(404, "text/plain", "Not Found"); }
+            friend void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
+#endif
+
         private:
             kitchen_light_t m_light_settings;  ///< Настройки лампы
+#ifdef ESP8266
+            uint32_t m_last_control_time = 0;  ///< Debounce для API control
+            static const uint32_t CONTROL_DEBOUNCE_MS = 50; ///< Мин. интервал между запросами
+#endif
         };
 
     } // namespace webui

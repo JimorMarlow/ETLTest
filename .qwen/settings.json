@@ -9,7 +9,10 @@
       "Bash(move *)",
       "Bash(git *)",
       "Bash(pio *)",
-      "Bash(\"c:\\users\\jimor\\.platformio\\penv\\scripts\\platformio.exe\" *)"
+      "Bash(\"c:\\users\\jimor\\.platformio\\penv\\scripts\\platformio.exe\" *)",
+      "Bash(platformio *)",
+      "Bash(powershell *)",
+      "Bash(del *)"
     ]
   },
   "$version": 3

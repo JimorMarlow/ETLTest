@@ -20,19 +20,16 @@
 
 #include "etl_webui_base.h"
 
-// Алиас типа сервера для совместимости ESP8266 и ESP32
-#if defined(ESP8266)
-  using etl_web_server_t = ESP8266WebServer;
-#elif defined(ESP32)
-  using etl_web_server_t = WebServer;
-#endif
-
 #if defined(ESP8266) || defined(ESP32)
 
 namespace etl
 {
     namespace webui
     {
+#ifdef ESP8266
+        void _ss_cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
+#endif
+
         /**
          * @brief Класс WiFi Setup Server
          *
@@ -43,6 +40,9 @@ namespace etl
          */
         class server_setup : public web_server_base_t
         {
+#ifdef ESP8266
+            friend void _ss_cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
+#endif
         public:
             /**
              * @brief Конструктор
@@ -124,6 +124,14 @@ namespace etl
              * @brief Обработчик API сохранения настроек интерфейса
              */
             virtual void handle_api_ui_settings();
+
+#ifdef ESP8266
+            // Вспомогательные методы для статических callback'ов
+            void _send_204() { m_server->send(204, "text/plain", ""); }
+            void _send_404() { m_server->send(404, "text/plain", "Not Found"); }
+            etl_web_server_t* _raw_server() { return m_server.get(); }
+            friend void _ss_cb_dispatch(MinimalHttpServer&, const char*);
+#endif
 
         };
 
