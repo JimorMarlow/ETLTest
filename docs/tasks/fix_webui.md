@@ -123,3 +123,38 @@ Serial-лог `ESP.getFreeHeap()` после каждого шага иници�
 ## Версия
 
 v0.3.1 — оптимизация HTTP сервера для ESP8266
+v0.3.2 — перенос HTML/SVG в PROGMEM, исправление handler'ов
+
+## Текст коммита v0.3.2
+
+```
+v0.3.2: Move HTML/SVG to PROGMEM to free 25KB RAM on ESP8266
+
+Root cause of page delivery crash:
+  LIGHT_WEBUI_HTML (26KB) and LIGHT_DEVICE_ICON_SVG (4KB) were stored
+  in RAM, leaving only ~1000 bytes free heap after WiFi server init.
+  WiFiClient::write() for 26KB HTML caused OOM crash (Exception 28).
+
+Changes:
+  - Move LIGHT_WEBUI_HTML to PROGMEM: const char PROGMEM LIGHT_WEBUI_HTML[]
+  - Move LIGHT_DEVICE_ICON_SVG to PROGMEM: const char PROGMEM LIGHT_DEVICE_ICON_SVG[]
+  - Use m_http_server.send_P() for root page delivery on ESP8266
+  - Use WiFiClient::write_P() in reply_pgm() — reads directly from flash
+  - Replace all m_server->send() with _send() helpers in handler methods
+  - Replace m_server->hasArg/arg with _hasArg/_arg helpers
+  - Fix ESP32 start_http_server() declaration (was missing for ESP32)
+  - Chunked response delivery (128-byte chunks + flush + delay)
+  - Remove duplicate SVG icon from HTML body (use LIGHT_DEVICE_ICON_SVG)
+
+Results:
+  ESP8266 RAM: 78.7% → 47.5% (freed ~25KB RAM!)
+  Free heap after server: ~1000 → ~26000 bytes
+  ESP32-C3: unchanged (12.6% RAM)
+  Both platforms: SUCCESS
+
+Files:
+  src/light_webui_html.h (PROGMEM constants)
+  src/light_webui.cpp (send_P, _send, _hasArg, _arg helpers)
+  src/light_webui.h (_send, _hasArg, _arg, _send_P, _sendHeader)
+  src/minimal_http_server.h (write_P chunked delivery, flush, delay)
+```

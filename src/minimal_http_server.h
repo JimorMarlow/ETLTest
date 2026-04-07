@@ -69,15 +69,28 @@ private:
         const char* st=code==200?"OK":code==400?"Bad Request":"Not Found";
         char h[128];
         snprintf_P(h,sizeof(h),PSTR("HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nConnection: close\r\n\r\n"),code,st,ct,(unsigned)len);
-        m_tmp_client->print(h);m_tmp_client->write(body,len);
+        m_tmp_client->print(h);
+        m_tmp_client->flush();
+        // Отправка мелкими чанками + delay — TCP стек успевает отправлять
+        size_t sent=0;
+        while(sent<len){
+            size_t n=min((size_t)128,len-sent);
+            m_tmp_client->write(body+sent,n);
+            m_tmp_client->flush();
+            sent+=n;
+            delay(1);
+            yield();
+        }
     }
     void reply_pgm(int code,const char* ct,PGM_P body){
         const char* st=code==200?"OK":"Not Found";size_t blen=strlen_P(body);
         char h[128];
         snprintf_P(h,sizeof(h),PSTR("HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nConnection: close\r\n\r\n"),code,st,ct,(unsigned)blen);
         m_tmp_client->print(h);
-        char buf[256];size_t s=0;
-        while(s<blen){size_t n=min((size_t)256,blen-s);memcpy_P(buf,body+s,n);buf[n]=0;m_tmp_client->print(buf);s+=n;yield();}
+        m_tmp_client->flush();
+        // write_P читает напрямую из PROGMEM — НЕ аллоцирует RAM для источника
+        size_t s=0;
+        while(s<blen){size_t n=min((size_t)128,blen-s);m_tmp_client->write_P(body+s,n);m_tmp_client->flush();s+=n;delay(1);yield();}
     }
 
     static bool parseRequest(WiFiClient& c,char* uri,size_t& ulen,char* body,size_t& blen,bool& post){

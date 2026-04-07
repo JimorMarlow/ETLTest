@@ -211,10 +211,21 @@ namespace etl
             void send_state_to_serial(bool power, float brightness);
 
 #ifdef ESP8266
-            // Вспомогательные методы для MinimalHttpServer
-            void _send_204() { m_server->reply(204, "text/plain", ""); }
-            void _send_404() { m_server->reply(404, "text/plain", "Not Found"); }
+            // Вспомогательные методы — работают с m_http_server
+            void _send(int c, const char* ct, const char* b) { m_http_server.send(c, ct, b); }
+            void _send(int c, const char* ct, const String& b) { m_http_server.send(c, ct, b); }
+            void _send_P(int c, const char* ct, PGM_P b) { m_http_server.send_P(c, ct, b); }
+            void _sendHeader(const String& n, const String& v) { m_http_server.sendHeader(n, v); }
+            bool _hasArg(const char* n) const { return m_http_server.hasArg(n); }
+            String _arg(const char* n) const { return m_http_server.arg(n); }
             friend void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
+#else
+            void _send(int c, const char* ct, const char* b) { m_server->send(c, ct, b); }
+            void _send(int c, const char* ct, const String& b) { m_server->send(c, ct, b); }
+            void _send_P(int c, const char* ct, PGM_P b) { m_server->send_P(c, ct, b); }
+            void _sendHeader(const String& n, const String& v) { m_server->sendHeader(n, v); }
+            bool _hasArg(const char* n) const { return m_server->hasArg(n); }
+            String _arg(const char* n) const { return m_server->arg(n); }
 #endif
 
         private:

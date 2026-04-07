@@ -169,12 +169,11 @@ namespace etl
             Serial.println(F("[LightControl] Serving root page..."));
 
 #ifdef ESP8266
-            // MinimalHttpServer: LIGHT_WEBUI_HTML в RAM, используем send()
-            m_server->send(200, "text/html", LIGHT_WEBUI_HTML);
+            // HTML в PROGMEM — отправляем напрямую из flash
+            m_http_server.send_P(200, "text/html", LIGHT_WEBUI_HTML);
 #else
-            // ESP32: send_P() из PROGMEM
-            m_server->sendHeader("Cache-Control", "no-cache");
-            m_server->send_P(200, "text/html", LIGHT_WEBUI_HTML);
+            _sendHeader("Cache-Control", "no-cache");
+            _send_P(200, "text/html", LIGHT_WEBUI_HTML);
 #endif
 
             Serial.println(F("[LightControl] Page sent"));
@@ -211,7 +210,7 @@ namespace etl
 
             String response;
             serializeJson(doc, response);
-            m_server->send(200, "application/json", response);
+            _send(200, "application/json", response);
         }
 
         void light_control_server::handle_api_device_info()
@@ -223,7 +222,7 @@ namespace etl
 
             String response;
             serializeJson(doc, response);
-            m_server->send(200, "application/json", response);
+            _send(200, "application/json", response);
         }
 
         void light_control_server::handle_api_ui_config()
@@ -243,7 +242,7 @@ namespace etl
 
             String response;
             serializeJson(doc, response);
-            m_server->send(200, "application/json", response);
+            _send(200, "application/json", response);
         }
 
         void light_control_server::handle_api_state()
@@ -256,14 +255,14 @@ namespace etl
             resp += ",\"brightness\":";
             resp += String(m_light_settings.brightness, 1);
             resp += "}";
-            m_server->send(200, "application/json", resp);
+            _send(200, "application/json", resp);
 #else
             JsonDocument doc;
             doc["power"] = m_light_settings.power;
             doc["brightness"] = m_light_settings.brightness;
             String response;
             serializeJson(doc, response);
-            m_server->send(200, "application/json", response);
+            _send(200, "application/json", response);
 #endif
         }
 
@@ -273,7 +272,7 @@ namespace etl
             // Debounce — не чаще 50ms
             uint32_t now = millis();
             if (now - m_last_control_time < CONTROL_DEBOUNCE_MS) {
-                m_server->send(200, "application/json", F("{\"success\":true,\"debounced\":true}"));
+                _send(200, "application/json", F("{\"success\":true,\"debounced\":true}"));
                 return;
             }
             m_last_control_time = now;
@@ -284,8 +283,8 @@ namespace etl
 
             Serial.println(F("[LightControl] API: /api/control"));
 
-            if (m_server->hasArg("plain")) {
-                String body = m_server->arg("plain");
+            if (_hasArg("plain")) {
+                String body = _arg("plain");
 #ifdef ESP8266
                 // StaticJsonDocument — без аллокаций в куче
                 StaticJsonDocument<256> doc;
@@ -295,7 +294,7 @@ namespace etl
                 DeserializationError error = deserializeJson(doc, body);
 
                 if (error) {
-                    m_server->send(400, "application/json", F("{\"success\":false,\"message\":\"Invalid JSON\"}"));
+                    _send(400, "application/json", F("{\"success\":false,\"message\":\"Invalid JSON\"}"));
                     return;
                 }
 
@@ -321,7 +320,7 @@ namespace etl
                 resp += ",\"brightness\":";
                 resp += String(m_light_settings.brightness, 1);
                 resp += "}";
-                m_server->send(200, "application/json", resp);
+                _send(200, "application/json", resp);
 #else
                 JsonDocument resp;
                 resp["success"] = true;
@@ -329,10 +328,10 @@ namespace etl
                 resp["brightness"] = m_light_settings.brightness;
                 String response;
                 serializeJson(resp, response);
-                m_server->send(200, "application/json", response);
+                _send(200, "application/json", response);
 #endif
             } else {
-                m_server->send(400, "application/json", F("{\"success\":false,\"message\":\"No data\"}"));
+                _send(400, "application/json", F("{\"success\":false,\"message\":\"No data\"}"));
             }
         }
 
@@ -340,8 +339,8 @@ namespace etl
         {
             Serial.println(F("[LightControl] API: /api/ui_settings"));
 
-            if (m_server->hasArg("plain")) {
-                String body = m_server->arg("plain");
+            if (_hasArg("plain")) {
+                String body = _arg("plain");
                 JsonDocument doc;
                 DeserializationError error = deserializeJson(doc, body);
 
@@ -397,7 +396,7 @@ namespace etl
             }
             String response;
             serializeJson(doc, response);
-            m_server->send(200, "application/json", response);
+            _send(200, "application/json", response);
         }
 
         void light_control_server::handle_api_settings()
@@ -509,3 +508,5 @@ namespace etl
 #else
     #pragma message("light_webui: no implementation for this platform")
 #endif
+
+
