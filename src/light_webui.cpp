@@ -82,9 +82,15 @@ namespace etl
 
         void light_control_server::start_http_server()
         {
+#ifdef ESP8266
+            Serial.println(F("[LightControl] Init (ESP8266, no shared_ptr)..."));
+            Serial.print(F("[LightControl] Free heap before: "));
+            Serial.println(ESP.getFreeHeap());
+#endif
+
             Serial.println(F("[LightControl] Starting HTTP server..."));
 
-            // Создание сервера через shared_ptr
+            // Создание серверера через shared_ptr
             m_server = etl::make_shared<etl_web_server_t>(m_config.has_value() ? m_config->port : 80);
 
             // Настройка роутинга
@@ -92,6 +98,12 @@ namespace etl
 
             // Запуск сервера
             m_server->begin();
+
+#ifdef ESP8266
+            Serial.print(F("[LightControl] Free heap after server: "));
+            Serial.println(ESP.getFreeHeap());
+#endif
+
             Serial.print(F("[LightControl] HTTP server started on port "));
             Serial.println(m_config.has_value() ? m_config->port : 80);
 
@@ -160,12 +172,6 @@ namespace etl
             } else {
                 doc["wifi"] = "error";
             }
-
-            // MQTT статус (заглушка - пока нет подключения)
-            doc["mqtt"] = "disconnected";
-
-            // Telegram статус (заглушка - пока нет подключения)
-            doc["telegram"] = "disconnected";
 
             String response;
             serializeJson(doc, response);
