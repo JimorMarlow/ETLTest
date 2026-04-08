@@ -331,14 +331,17 @@ namespace etl
 
         void server_setup::handle_api_save()
         {
-            Serial.println(F("[WiFiSetup] API: /api/save"));
+            Serial.println(F("[WiFiSetup] API: /api/save — saving and rebooting"));
 
             bool success = save_settings();
 
             if (success) {
-                send_success_response("Settings saved. Switching to content server...");
-                // Переключаемся на сервер контента с новыми настройками
-                schedule_content_cb();
+                send_success_response("Settings saved. Rebooting...");
+                // Задержка для отправки ответа клиенту
+                delay(1000);
+                yield();
+                // Перезагрузка — после неё запустится сервер контента
+                reboot();
             } else {
                 send_error_response("Failed to save settings");
             }
@@ -346,15 +349,18 @@ namespace etl
 
         void server_setup::handle_api_reset()
         {
-            Serial.println(F("[WiFiSetup] API: /api/reset"));
+            Serial.println(F("[WiFiSetup] API: /api/reset — factory reset and reboot"));
 
             bool success = reset_settings();
 
             if (success) {
                 // Отправляем ответ клиенту
-                send_success_response("Settings reset. Switching to settings server...");
-                // Менеджер выполнит сброс и запустит сервер настроек заново
-                schedule_factory_reset_cb();
+                send_success_response("Settings reset. Rebooting...");
+                // Задержка для отправки ответа клиенту
+                delay(1000);
+                yield();
+                // Перезагрузка — после неё запустится сервер настроек (нет сохранённых WiFi)
+                reboot();
             } else {
                 send_error_response("Failed to reset settings");
             }
@@ -362,13 +368,23 @@ namespace etl
 
         void server_setup::handle_api_back()
         {
-            Serial.println(F("[WiFiSetup] API: /api/back - scheduling content callback"));
-
-            // Отправляем успешный ответ клиенту
+#ifdef ESP8266
+            // ESP8266: перезагрузка вместо переключения серверов.
+            // Причина: постоянное выделение/освобождение памяти при переключении
+            // вызывает фрагментацию кучи и подвисания.
+            // После reboot запустится сервер контента (если WiFi подключён) или настроек.
+            Serial.println(F("[WiFiSetup] API: /api/back — rebooting (ESP8266)"));
+            send_success_response("Switching to content server. Rebooting...");
+            delay(1000);
+            yield();
+            reboot();
+#else
+            // ESP32: переключение через callback работает стабильно.
+            // TODO: Если на ESP32 тоже начнутся подвисания — перевести на reboot (как ESP8266 выше).
+            Serial.println(F("[WiFiSetup] API: /api/back — scheduling content callback (ESP32)"));
             send_success_response("Switching to content server");
-
-            // Запланировать callback — выполнится через N тиков
             schedule_content_cb();
+#endif
         }
 
         void server_setup::handle_api_ap_settings()
