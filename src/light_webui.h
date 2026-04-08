@@ -96,7 +96,7 @@ namespace etl
         public:
             /**
              * @brief Конструктор
-             * @param cfg Конфигурация WiFi сервера (опционально)
+             * @param cfg Конфигурация WiFi сервера (опционально, используется как fallback)
              */
             explicit light_control_server(const etl::optional<server_config_t>& cfg = {});
 
@@ -107,6 +107,17 @@ namespace etl
              * Вызывает stop() для освобождения ресурсов.
              */
             virtual ~light_control_server() = default;
+
+            /**
+             * @brief Инициализация сервера контента
+             *
+             * Загружает настройки WiFi и UI из FS, пытается подключиться к WiFi,
+             * если не удалось - запускает AP режим.
+             *
+             * @param device_info Информация об устройстве
+             * @return true при успешной инициализации
+             */
+            virtual bool begin(const device_info_t& device_info) override;
 
             /**
              * @brief Установить настройки лампы
@@ -152,6 +163,11 @@ namespace etl
             virtual void start_http_server() override;
 
             /**
+             * @brief Попытка подключения к WiFi из сохранённых настроек
+             */
+            void connect_from_saved_config();
+
+            /**
              * @brief Настройка HTTP роутинга
              */
             virtual void setup_http_routes();
@@ -172,62 +188,27 @@ namespace etl
             virtual void handle_api_device_info();
 
             /**
-             * @brief Обработчик API настроек интерфейса
+             * @brief Обработчик API настроек интерфейса (только чтение)
              */
             virtual void handle_api_ui_config();
 
             /**
-             * @brief Обработчик API текущего состояния
+             * @brief Обработчик API текущего состояния лампы
              */
             virtual void handle_api_state();
 
             /**
-             * @brief Обработчик API управления
+             * @brief Обработчик API управления лампой
              */
             virtual void handle_api_control();
 
             /**
-             * @brief Обработчик API настроек интерфейса (GET/POST)
-             */
-            virtual void handle_api_ui_settings();
-
-            /**
-             * @brief Обработчик API сканирования сетей
-             */
-            virtual void handle_api_scan();
-
-            /**
-             * @brief Обработчик API подключения
-             */
-            virtual void handle_api_connect();
-
-            /**
-             * @brief Обработчик API отключения
-             */
-            virtual void handle_api_disconnect();
-
-            /**
-             * @brief Обработчик API конфигурации устройства
+             * @brief Обработчик API конфигурации устройства (только чтение)
              */
             virtual void handle_api_config();
 
             /**
-             * @brief Обработчик API сохранения настроек
-             */
-            virtual void handle_api_save();
-
-            /**
-             * @brief Обработчик API сброса настроек
-             */
-            virtual void handle_api_reset();
-
-            /**
-             * @brief Обработчик API настройки точки доступа
-             */
-            virtual void handle_api_ap_settings();
-
-            /**
-             * @brief Обработчик API настроек (кнопка Settings)
+             * @brief Обработчик API настроек (кнопка Settings - переключение на server_setup)
              */
             virtual void handle_api_settings();
 

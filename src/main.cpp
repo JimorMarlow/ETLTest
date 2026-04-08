@@ -45,9 +45,11 @@ bool start_wifi_server() {
 
     // Настройка информации об устройстве
     etl::webui::device_info_t device_info = etl::webui::get_light_control_device_info();
+    Serial.print("[DeviceInfo] name: "); Serial.println(device_info.name);
 
     // Создание менеджера управления серверами
     webui_manager = etl::make_shared<light_control::light_webui_mgr>(device_info);
+    Serial.printf("[WebUI Mgr] create: %s\n", webui_manager ? "OK" : "FAIL");
 
     // Запуск нужного сервера
     if(simulation_data.start_webui_settings_on_start) {

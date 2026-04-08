@@ -3,6 +3,9 @@
  * @brief Реализация сервера управления светодиодной лампой
  *
  * Платформа: ESP8266 (NodeMCU v3), ESP32
+ *
+ * Сервер контента - ТОЛЬКО ЧТЕНИЕ настроек, управление лампой и показ статуса.
+ * Настройки WiFi меняются через server_setup.
  */
 
 #if defined(ESP8266) || defined(ESP32)
@@ -77,20 +80,118 @@ namespace etl
         }
 
         // ============================================================================
+        // Инициализация сервера контента
+        // ============================================================================
+
+        bool light_control_server::begin(const device_info_t& device_info)
+        {
+            Serial.println(F("[LightControl] begin()..."));
+
+            // Сохраняем информацию об устройстве
+            m_device_info = device_info;
+
+            // Загружаем настройки WiFi из FS (только чтение)
+            auto saved_wifi = settings::load_wifi_config();
+            if (saved_wifi.has_value()) {
+                m_config = saved_wifi;
+                Serial.println(F("[LightControl] WiFi settings loaded"));
+            }
+
+            // Загружаем настройки UI из FS (только чтение)
+            auto saved_ui = settings::load_ui_config();
+            if (saved_ui.has_value()) {
+                m_ui_config = saved_ui;
+                Serial.println(F("[LightControl] UI settings loaded"));
+            }
+
+            // Попытка подключения к WiFi
+            connect_from_saved_config();
+
+            // Запуск HTTP сервера
+            m_initialized = true;
+            start_http_server();
+
+            return true;
+        }
+
+        // ============================================================================
+        // Подключение к WiFi из сохранённых настроек (только чтение)
+        // ============================================================================
+
+        void light_control_server::connect_from_saved_config()
+        {
+            Serial.println(F("[LightControl] Loading WiFi config from settings..."));
+
+            // Считываем сохранённые настройки
+            auto saved_cfg = settings::load_wifi_config();
+            if (saved_cfg.has_value() && saved_cfg->wifi_ssid[0] != '\0') {
+                m_config = saved_cfg;
+                Serial.print(F("[LightControl] Found saved WiFi config, SSID: "));
+                Serial.println(m_config->get_wifi_ssid());
+
+#ifdef ESP8266
+                Serial.print(F("[LightControl] Free heap before connect: "));
+                Serial.println(ESP.getFreeHeap());
+#endif
+
+                // Попытка подключения
+                Serial.print(F("[LightControl] Connecting to "));
+                Serial.print(m_config->get_wifi_ssid());
+                Serial.print(F("..."));
+
+                WiFi.mode(WIFI_STA);
+                WiFi.begin(m_config->get_wifi_ssid().c_str(), m_config->get_wifi_password().c_str());
+
+                uint32_t start = millis();
+                const uint32_t timeout = 10000;
+
+                while (WiFi.status() != WL_CONNECTED && (millis() - start) < timeout) {
+                    delay(500);
+                    Serial.print(F("."));
+                }
+
+                if (WiFi.status() == WL_CONNECTED) {
+                    Serial.println(F(" OK"));
+                    Serial.print(F("[LightControl] IP: "));
+                    Serial.println(WiFi.localIP());
+                    m_connection_status = connection_status_t::connected;
+                } else {
+                    Serial.println(F(" FAILED"));
+                    m_connection_status = connection_status_t::error;
+                }
+
+#ifdef ESP8266
+                Serial.print(F("[LightControl] Free heap after connect: "));
+                Serial.println(ESP.getFreeHeap());
+#endif
+            } else {
+                Serial.println(F("[LightControl] No saved WiFi config, using AP mode"));
+            }
+
+            // Если не подключились - запускаем AP
+            if (!is_connected()) {
+                WiFi.mode(WIFI_AP);
+                if (start_ap()) {
+                    Serial.println(F("[LightControl] AP mode started"));
+                }
+            }
+        }
+
+        // ============================================================================
         // HTTP обработчики
         // ============================================================================
 
         void light_control_server::start_http_server()
         {
 #ifdef ESP8266
-            Serial.println(F("[LightControl] Init (ESP8266, no shared_ptr)..."));
+            Serial.println(F("[LightControl] Init (ESP8266)..."));
             Serial.print(F("[LightControl] Free heap before: "));
             Serial.println(ESP.getFreeHeap());
 #endif
 
             Serial.println(F("[LightControl] Starting HTTP server..."));
 
-            // Создание серверера через shared_ptr
+            // Создание сервера через shared_ptr
             m_server = etl::make_shared<etl_web_server_t>(m_config.has_value() ? m_config->port : 80);
 
             // Настройка роутинга
@@ -271,222 +372,6 @@ namespace etl
             }
         }
 
-        void light_control_server::handle_api_ui_settings()
-        {
-            Serial.println(F("[LightControl] API: /api/ui_settings"));
-
-            if (m_server->hasArg("plain")) {
-                String body = m_server->arg("plain");
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, body);
-
-                if (error) {
-                    send_error_response("Invalid JSON");
-                    return;
-                }
-
-                // Применение настроек интерфейса через setter'ы
-                if (!m_ui_config.has_value()) {
-                    m_ui_config = ui_config_t();
-                }
-
-                if (doc["language"].is<const char*>()) {
-                    m_ui_config->set_language(doc["language"].as<String>());
-                }
-                if (doc["dark_theme"].is<bool>()) {
-                    m_ui_config->set_dark_theme(doc["dark_theme"].as<bool>());
-                }
-                if (doc["large_font"].is<bool>()) {
-                    m_ui_config->set_large_font(doc["large_font"].as<bool>());
-                }
-                if (doc["use_bold_values"].is<bool>()) {
-                    m_ui_config->set_use_bold_values(doc["use_bold_values"].as<bool>());
-                }
-
-                // Сохранение настроек интерфейса
-                settings::save_ui_config(*m_ui_config);
-
-                send_success_response("UI settings updated");
-                Serial.println(F("[LightControl] UI settings updated"));
-            } else {
-                send_error_response("No data provided");
-            }
-        }
-
-        void light_control_server::handle_api_scan()
-        {
-            Serial.println(F("[LightControl] API: /api/scan"));
-
-            // Проверка кэша
-            uint32_t current_time = millis();
-            if (m_scan_cache.size() > 0 && (current_time - m_scan_timestamp) < SCAN_CACHE_TIME) {
-                Serial.println(F("[LightControl] Returning cached scan results"));
-                send_scan_response();
-                return;
-            }
-
-            // Сканирование сетей
-            m_scan_cache.clear();
-            int32_t count = scan_networks(m_scan_cache);
-            m_scan_timestamp = millis();
-
-            Serial.printf("[LightControl] Scan completed: %d networks\n", count);
-
-            send_scan_response();
-        }
-
-        void light_control_server::handle_api_connect()
-        {
-            Serial.println(F("[LightControl] API: /api/connect"));
-
-            if (m_server->hasArg("plain")) {
-                String body = m_server->arg("plain");
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, body);
-
-                if (error) {
-                    send_error_response("Invalid JSON");
-                    return;
-                }
-
-                String ssid = doc["ssid"].as<String>();
-                String password = doc["password"].as<String>();
-
-                if (ssid.length() == 0) {
-                    send_error_response("SSID is required");
-                    return;
-                }
-
-                Serial.print(F("[LightControl] Connecting to: "));
-                Serial.println(ssid);
-
-                // Сохраняем настройки
-                if (!m_config.has_value()) {
-                    m_config = server_config_t();
-                }
-                m_config->set_wifi_ssid(ssid);
-                m_config->set_wifi_password(password);
-
-                // Сохранение текущего режима для восстановления
-                WiFiMode_t previous_mode = WiFi.getMode();
-
-                // Установка режима AP+STA для подключения
-                WiFi.mode(WIFI_AP_STA);
-
-                // Подключение к сети с ожиданием
-                WiFi.begin(m_config->get_wifi_ssid().c_str(), m_config->get_wifi_password().c_str());
-
-                // Ожидание подключения (до 15 секунд)
-                uint32_t start_time = millis();
-                const uint32_t timeout = 15000;
-
-                while (WiFi.status() != WL_CONNECTED && (millis() - start_time) < timeout) {
-                    delay(500);
-                    yield();
-                    // Обработка HTTP запросов во время ожидания
-                    if (m_server) {
-                        m_server->handleClient();
-                    }
-                    Serial.print(F("."));
-                }
-
-                // Проверка результата подключения
-                if (WiFi.status() == WL_CONNECTED) {
-                    Serial.println(F("\n[LightControl] Connected successfully"));
-                    Serial.print(F("[LightControl] IP address: "));
-                    Serial.println(WiFi.localIP());
-
-                    // Отправка успешного ответа с IP
-                    JsonDocument response_doc;
-                    response_doc["success"] = true;
-                    response_doc["message"] = "Connected successfully";
-                    response_doc["ip"] = WiFi.localIP().toString();
-                    response_doc["ssid"] = ssid;
-
-                    String response;
-                    serializeJson(response_doc, response);
-                    m_server->send(200, "application/json", response);
-
-                    // Возврат в предыдущий режим (AP или AP+STA)
-                    if (previous_mode == WIFI_AP) {
-                        WiFi.mode(WIFI_AP_STA);
-                    }
-
-                    m_connection_status = connection_status_t::connected;
-                } else {
-                    Serial.println(F("\n[LightControl] Connection failed"));
-                    m_connection_status = connection_status_t::error;
-
-                    // Отправка ответа с ошибкой
-                    JsonDocument response_doc;
-                    response_doc["success"] = false;
-                    response_doc["message"] = "Connection timeout";
-
-                    String response;
-                    serializeJson(response_doc, response);
-                    m_server->send(200, "application/json", response);
-
-                    // Возврат в предыдущий режим и перезапуск AP
-                    if (previous_mode == WIFI_AP || previous_mode == WIFI_AP_STA) {
-                        WiFi.mode(WIFI_AP);
-                        WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
-                                    m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
-                        Serial.println(F("[LightControl] AP restarted after connection failure"));
-                    } else if (previous_mode == WIFI_OFF) {
-                        WiFi.mode(WIFI_AP);
-                        WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
-                                    m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
-                        Serial.println(F("[LightControl] AP started after connection failure"));
-                    } else {
-                        WiFi.mode(previous_mode);
-                    }
-                }
-            } else {
-                send_error_response("No data provided");
-            }
-        }
-
-        void light_control_server::handle_api_disconnect()
-        {
-            Serial.println(F("[LightControl] API: /api/disconnect"));
-
-            // Сброс настроек WiFi
-            if (m_config.has_value()) {
-                m_config->set_wifi_ssid("");
-                m_config->set_wifi_password("");
-            }
-
-            // Сначала отправляем успешный ответ клиенту
-            JsonDocument response_doc;
-            response_doc["success"] = true;
-            response_doc["message"] = "Disconnected";
-
-            String response;
-            serializeJson(response_doc, response);
-            m_server->send(200, "application/json", response);
-
-            // Задержка для отправки ответа клиенту
-            delay(100);
-            yield();
-
-            // Отключение от сети
-            WiFi.disconnect(true);
-            m_connection_status = connection_status_t::disconnected;
-
-#ifdef ESP32
-            WiFi.mode(WIFI_AP_STA);
-            WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
-                        m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
-            Serial.println(F("[LightControl] Switched to AP+STA mode"));
-#else
-            WiFi.mode(WIFI_AP);
-            WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
-                        m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
-#endif
-
-            Serial.println(F("[LightControl] Disconnected from WiFi, AP restarted"));
-        }
-
         void light_control_server::handle_api_config()
         {
             JsonDocument doc;
@@ -495,7 +380,7 @@ namespace etl
             doc["device_description"] = m_device_info.description;
             doc["device_icon_svg"] = m_device_info.icon_svg;
 
-            // WiFi конфигурация (из m_config)
+            // WiFi конфигурация (из m_config, только чтение)
             if (m_config.has_value()) {
                 doc["hostname"] = m_config->get_hostname();
                 doc["ap_ssid"] = m_config->get_ap_ssid();
@@ -504,7 +389,7 @@ namespace etl
                 doc["wifi_ssid"] = m_config->get_wifi_ssid();
             }
 
-            // Настройки интерфейса (из m_ui_config)
+            // Настройки интерфейса (из m_ui_config, только чтение)
             doc["ui_config_initialized"] = m_ui_config.has_value();
             if (m_ui_config.has_value()) {
                 doc["language"] = m_ui_config->get_language();
@@ -516,88 +401,6 @@ namespace etl
             String response;
             serializeJson(doc, response);
             m_server->send(200, "application/json", response);
-        }
-
-        void light_control_server::handle_api_save()
-        {
-            Serial.println(F("[LightControl] API: /api/save"));
-
-            bool success = save_settings();
-
-            if (success) {
-                send_success_response("Settings saved");
-            } else {
-                send_error_response("Failed to save settings");
-            }
-        }
-
-        void light_control_server::handle_api_reset()
-        {
-            Serial.println(F("[LightControl] API: /api/reset"));
-
-            bool success = reset_settings();
-
-            if (success) {
-                send_success_response("Settings reset. Rebooting...");
-                Serial.println(F("[LightControl] Rebooting in 2 seconds..."));
-                delay(2000);
-                reboot();
-            } else {
-                send_error_response("Failed to reset settings");
-            }
-        }
-
-        void light_control_server::handle_api_ap_settings()
-        {
-            Serial.println(F("[LightControl] API: /api/ap_settings"));
-
-            if (m_server->hasArg("plain")) {
-                String body = m_server->arg("plain");
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, body);
-
-                if (error) {
-                    send_error_response("Invalid JSON");
-                    return;
-                }
-
-                String ap_ssid = doc["ap_ssid"].as<String>();
-                String ap_password = doc["ap_password"].as<String>();
-
-                if (ap_ssid.length() == 0) {
-                    send_error_response("AP SSID is required");
-                    return;
-                }
-
-                if (ap_password.length() > 0 && ap_password.length() < 8) {
-                    send_error_response("AP password must be at least 8 characters");
-                    return;
-                }
-
-                // Применение настроек AP через setter'ы
-                if (!m_config.has_value()) {
-                    m_config = server_config_t();
-                }
-                m_config->set_ap_ssid(ap_ssid);
-                m_config->set_ap_password(ap_password);
-
-                // Сохранение настроек в постоянной памяти
-                save_settings();
-
-                // Сначала отправляем ответ клиенту
-                send_success_response("AP settings applied", m_config->get_ap_ssid());
-
-                // Небольшая задержка для отправки ответа
-                delay(100);
-
-                // Перезапуск точки доступа
-                WiFi.softAPdisconnect(true);
-                start_ap();
-
-                Serial.println(F("[LightControl] AP restarted, client should reconnect"));
-            } else {
-                send_error_response("No data provided");
-            }
         }
 
         void light_control_server::handle_api_settings()
@@ -632,19 +435,7 @@ namespace etl
                 m_server->send(204);
             });
 
-            // API endpoints
-            m_server->on("/api/scan", HTTP_GET, [this]() {
-                Serial.println(F("[LightControl] Request: /api/scan"));
-                handle_api_scan();
-            });
-            m_server->on("/api/connect", HTTP_POST, [this]() {
-                Serial.println(F("[LightControl] Request: /api/connect"));
-                handle_api_connect();
-            });
-            m_server->on("/api/disconnect", HTTP_POST, [this]() {
-                Serial.println(F("[LightControl] Request: /api/disconnect"));
-                handle_api_disconnect();
-            });
+            // API endpoints (только чтение + управление лампой)
             m_server->on("/api/status", HTTP_GET, [this]() {
                 Serial.println(F("[LightControl] Request: /api/status"));
                 handle_api_status();
@@ -653,24 +444,6 @@ namespace etl
                 Serial.println(F("[LightControl] Request: /api/config"));
                 handle_api_config();
             });
-            m_server->on("/api/save", HTTP_POST, [this]() {
-                Serial.println(F("[LightControl] Request: /api/save"));
-                handle_api_save();
-            });
-            m_server->on("/api/reset", HTTP_POST, [this]() {
-                Serial.println(F("[LightControl] Request: /api/reset"));
-                handle_api_reset();
-            });
-            m_server->on("/api/ap_settings", HTTP_POST, [this]() {
-                Serial.println(F("[LightControl] Request: /api/ap_settings"));
-                handle_api_ap_settings();
-            });
-            m_server->on("/api/ui_settings", HTTP_POST, [this]() {
-                Serial.println(F("[LightControl] Request: /api/ui_settings"));
-                handle_api_ui_settings();
-            });
-
-            // Специфичные API для управления лампой
             m_server->on("/api/device_info", HTTP_GET, [this]() {
                 Serial.println(F("[LightControl] Request: /api/device_info"));
                 handle_api_device_info();
