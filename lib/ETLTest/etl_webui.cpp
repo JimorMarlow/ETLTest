@@ -40,12 +40,13 @@ namespace etl
             Serial.print(F("[WiFiSetup] HTTP server started on port "));
             Serial.println(m_config.has_value() ? m_config->port : 80);
 
-#ifdef ESP32
-            // mDNS — только на ESP32 (на ESP8266 потребляет слишком много RAM)
+            // mDNS - инициализация при каждой загрузке
+            // Статические переменные сохраняют состояние в течение сессии
             static bool mdns_initialized = false;
             static bool mdns_service_added = false;
 
             if (!mdns_initialized) {
+                // Первый запуск после загрузки
                 Serial.print(F("[WiFiSetup] Initializing mDNS: "));
                 if (MDNS.begin(m_config.has_value() ? m_config->get_hostname().c_str() : "espdevice")) {
                     Serial.print(F("[WiFiSetup] mDNS: http://"));
@@ -56,19 +57,22 @@ namespace etl
                     Serial.println(F("[WiFiSetup] mDNS failed"));
                 }
             } else {
+                // mDNS уже инициализирован в этой сессии
                 Serial.print(F("[WiFiSetup] mDNS already running: http://"));
                 Serial.print(m_config.has_value() ? m_config->get_hostname() : "espdevice");
                 Serial.println(F(".local"));
             }
 
+            // Добавляем сервис http только один раз
             if (!mdns_service_added) {
                 MDNS.addService("http", "tcp", m_config.has_value() ? m_config->port : 80);
                 mdns_service_added = true;
             }
-            Serial.println(F("[WiFiSetup] mDNS service added and updated"));
-#elif defined(ESP8266)
-            Serial.println(F("[WiFiSetup] mDNS disabled on ESP8266 (save RAM)"));
+#ifdef ESP8266
+            MDNS.update();
 #endif
+
+            Serial.println(F("[WiFiSetup] mDNS service added and updated"));
         }
 
         // ============================================================================
@@ -79,14 +83,9 @@ namespace etl
         {
             Serial.println(F("[WiFiSetup] Serving root page..."));
 
-#ifdef ESP8266
-            // MinimalHttpServer — нет sendHeader, Cache-Control не критичен
-            m_server->send(200, "text/html", HTML_TEMPLATE);
-#else
-            // ESP32: send_P() из PROGMEM
+            // Отправка HTML напрямую из PROGMEM
             m_server->sendHeader("Cache-Control", "no-cache");
             m_server->send_P(200, "text/html", HTML_TEMPLATE);
-#endif
 
             Serial.println(F("[WiFiSetup] Page sent"));
         }
@@ -467,54 +466,17 @@ namespace etl
             }
         }
 
-        // ============================================================================
-        // Статические callback-обёртки для ESP8266 (server_setup, экономия RAM)
-        // ============================================================================
-#ifdef ESP8266
-        static server_setup* s_ss_server = nullptr;
-
-        // Единый диспетчер для server_setup на ESP8266
-        void _ss_cb_dispatch(MinimalHttpServer& srv, const char* uri, bool is_post, const char* body, size_t body_len) {
-            if (strcmp(uri, "/favicon.ico") == 0 ||
-                strcmp(uri, "/apple-touch-icon.png") == 0 ||
-                strcmp(uri, "/apple-touch-icon-precomposed.png") == 0) {
-                srv.reply(204, "text/plain", "");
-                return;
-            }
-
-            if (!is_post) {
-                if (strcmp(uri, "/") == 0) { s_ss_server->handle_root(); }
-                else if (strcmp(uri, "/api/scan") == 0) { s_ss_server->handle_api_scan(); }
-                else if (strcmp(uri, "/api/status") == 0) { s_ss_server->handle_api_status(); }
-                else if (strcmp(uri, "/api/config") == 0) { s_ss_server->handle_api_config(); }
-                else { srv.reply(404, "text/plain", "Not Found"); }
-            } else {
-                if (strcmp(uri, "/api/connect") == 0) { s_ss_server->handle_api_connect(); }
-                else if (strcmp(uri, "/api/disconnect") == 0) { s_ss_server->handle_api_disconnect(); }
-                else if (strcmp(uri, "/api/save") == 0) { s_ss_server->handle_api_save(); }
-                else if (strcmp(uri, "/api/reset") == 0) { s_ss_server->handle_api_reset(); }
-                else if (strcmp(uri, "/api/back") == 0) { s_ss_server->handle_api_back(); }
-                else if (strcmp(uri, "/api/ap_settings") == 0) { s_ss_server->handle_api_ap_settings(); }
-                else if (strcmp(uri, "/api/ui_settings") == 0) { s_ss_server->handle_api_ui_settings(); }
-                else { srv.reply(404, "text/plain", "Not Found"); }
-            }
-        }
-#endif // ESP8266
-
         void server_setup::setup_http_routes()
         {
             Serial.println(F("[WiFiSetup] Setting up HTTP routes..."));
 
-#ifdef ESP8266
-            // ESP8266: единый диспетчер через onNotFound — 0 аллокаций std::function
-            s_ss_server = this;
-            m_server->onNotFound(_ss_cb_dispatch);
-#else
-            // ESP32: лямбды с захватом (памяти достаточно)
+            // Главная страница
             m_server->on("/", HTTP_GET, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /"));
                 handle_root();
             });
+
+            // Favicon и Apple touch icons (возвращаем 204 No Content)
             m_server->on("/favicon.ico", HTTP_GET, [this]() {
                 m_server->send(204);
             });
@@ -524,6 +486,8 @@ namespace etl
             m_server->on("/apple-touch-icon-precomposed.png", HTTP_GET, [this]() {
                 m_server->send(204);
             });
+
+            // API endpoints
             m_server->on("/api/scan", HTTP_GET, [this]() {
                 Serial.println(F("[WiFiSetup] Request: /api/scan"));
                 handle_api_scan();
@@ -564,12 +528,13 @@ namespace etl
                 Serial.println(F("[WiFiSetup] Request: /api/ui_settings"));
                 handle_api_ui_settings();
             });
+
+            // Обработчик для остальных путей - 404
             m_server->onNotFound([this]() {
                 Serial.print(F("[WiFiSetup] Request 404: "));
                 Serial.println(m_server->uri());
                 m_server->send(404, "text/plain", "Not Found");
             });
-#endif // ESP8266/ESP32
         }
 
     } // namespace webui

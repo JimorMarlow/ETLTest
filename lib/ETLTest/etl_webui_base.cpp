@@ -131,25 +131,13 @@ namespace etl
         bool web_server_base_t::begin(const device_info_t& device_info)
         {
             Serial.println(F("[WiFiSetup] Initializing..."));
-#ifdef ESP8266
-            Serial.print(F("[WiFiSetup] Free heap before anything: "));
-            Serial.println(ESP.getFreeHeap());
-#endif
 
             // Сохранение информации об устройстве
             m_device_info = device_info;
-#ifdef ESP8266
-            Serial.print(F("[WiFiSetup] Free heap after device_info: "));
-            Serial.println(ESP.getFreeHeap());
-#endif
 
             // Попытка загрузки сохранённых настроек
             if (load_settings()) {
                 Serial.println(F("[WiFiSetup] Loaded saved settings"));
-#ifdef ESP8266
-                Serial.print(F("[WiFiSetup] Free heap after load_settings: "));
-                Serial.println(ESP.getFreeHeap());
-#endif
 
                 // Если есть сохранённые настройки, пробуем подключиться
                 if (m_config.has_value() && m_config->wifi_ssid[0] != '\0') {
@@ -270,6 +258,9 @@ namespace etl
         void web_server_base_t::handle_client()
         {
             if (m_server) {
+#ifdef ESP8266
+                MDNS.update();
+#endif
                 m_server->handleClient();
             }
 

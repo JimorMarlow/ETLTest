@@ -18,15 +18,19 @@
 #include "etl_webui_base.h"
 #include "version.h"
 
+// Алиас типа сервера для совместимости ESP8266 и ESP32
+#if defined(ESP8266)
+  using light_web_server_t = ESP8266WebServer;
+#elif defined(ESP32)
+  using light_web_server_t = WebServer;
+#endif
+
 #if defined(ESP8266) || defined(ESP32)
 
 namespace etl
 {
     namespace webui
     {
-#ifdef ESP8266
-        void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
-#endif
         /**
          * @brief Настройки устройства (светодиодная лампа)
          *
@@ -89,13 +93,6 @@ namespace etl
          */
         class light_control_server : public web_server_base_t
         {
-#ifdef ESP8266
-            friend void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
-            // Переопределяем begin() чтобы НЕ создавать m_server через shared_ptr
-            virtual bool begin(const device_info_t& device_info) override;
-            virtual void handle_client() override;
-            MinimalHttpServer m_http_server; ///< Член класса — БЕЗ отдельной heap-аллокации!
-#endif
         public:
             /**
              * @brief Конструктор
@@ -149,13 +146,14 @@ namespace etl
 
         protected:
 
-#ifdef ESP8266
-            // Для ESP8266 start_http_server() не используется (begin() переопределён)
-            virtual void start_http_server() override {}
-#else
-            // Для ESP32 — полноценный запуск через shared_ptr
+            /**
+             * @brief Запуск HTTP сервера
+             */
             virtual void start_http_server() override;
-#endif
+
+            /**
+             * @brief Настройка HTTP роутинга
+             */
             virtual void setup_http_routes();
 
             /**
@@ -194,12 +192,42 @@ namespace etl
             virtual void handle_api_ui_settings();
 
             /**
-             * @brief Обработчик API конфигурации устройства (только чтение)
+             * @brief Обработчик API сканирования сетей
+             */
+            virtual void handle_api_scan();
+
+            /**
+             * @brief Обработчик API подключения
+             */
+            virtual void handle_api_connect();
+
+            /**
+             * @brief Обработчик API отключения
+             */
+            virtual void handle_api_disconnect();
+
+            /**
+             * @brief Обработчик API конфигурации устройства
              */
             virtual void handle_api_config();
 
             /**
-             * @brief Обработчик API настроек (кнопка Settings — переключение на server_setup)
+             * @brief Обработчик API сохранения настроек
+             */
+            virtual void handle_api_save();
+
+            /**
+             * @brief Обработчик API сброса настроек
+             */
+            virtual void handle_api_reset();
+
+            /**
+             * @brief Обработчик API настройки точки доступа
+             */
+            virtual void handle_api_ap_settings();
+
+            /**
+             * @brief Обработчик API настроек (кнопка Settings)
              */
             virtual void handle_api_settings();
 
@@ -210,30 +238,8 @@ namespace etl
              */
             void send_state_to_serial(bool power, float brightness);
 
-#ifdef ESP8266
-            // Вспомогательные методы — работают с m_http_server
-            void _send(int c, const char* ct, const char* b) { m_http_server.send(c, ct, b); }
-            void _send(int c, const char* ct, const String& b) { m_http_server.send(c, ct, b); }
-            void _send_P(int c, const char* ct, PGM_P b) { m_http_server.send_P(c, ct, b); }
-            void _sendHeader(const String& n, const String& v) { m_http_server.sendHeader(n, v); }
-            bool _hasArg(const char* n) const { return m_http_server.hasArg(n); }
-            String _arg(const char* n) const { return m_http_server.arg(n); }
-            friend void _cb_dispatch(MinimalHttpServer&, const char*, bool, const char*, size_t);
-#else
-            void _send(int c, const char* ct, const char* b) { m_server->send(c, ct, b); }
-            void _send(int c, const char* ct, const String& b) { m_server->send(c, ct, b); }
-            void _send_P(int c, const char* ct, PGM_P b) { m_server->send_P(c, ct, b); }
-            void _sendHeader(const String& n, const String& v) { m_server->sendHeader(n, v); }
-            bool _hasArg(const char* n) const { return m_server->hasArg(n); }
-            String _arg(const char* n) const { return m_server->arg(n); }
-#endif
-
         private:
             kitchen_light_t m_light_settings;  ///< Настройки лампы
-#ifdef ESP8266
-            uint32_t m_last_control_time = 0;  ///< Debounce для API control
-            static const uint32_t CONTROL_DEBOUNCE_MS = 50; ///< Мин. интервал между запросами
-#endif
         };
 
     } // namespace webui
