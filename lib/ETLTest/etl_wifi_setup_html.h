@@ -522,75 +522,6 @@ namespace etl
         }
         function updateStatusUI() { statusIndicator.className = 'status-indicator disconnected'; statusText.textContent = translations[currentLang].status_disconnected; statusDetails.textContent = ''; if (boldValuesToggle && boldValuesToggle.checked) { statusText.classList.add('bold-value'); statusDetails.classList.add('bold-value'); } else { statusText.classList.remove('bold-value'); statusDetails.classList.remove('bold-value'); } }
         function setStatus(status, details = '') { statusIndicator.className = `status-indicator ${status}`; statusText.textContent = translations[currentLang][`status_${status}`] || status; statusDetails.textContent = details; if (boldValuesToggle && boldValuesToggle.checked) { statusText.classList.add('bold-value'); statusDetails.classList.add('bold-value'); } else { statusText.classList.remove('bold-value'); statusDetails.classList.remove('bold-value'); } }
-        async function scanNetworks() {
-            refreshBtn.disabled = true;
-            refreshSpinner.classList.remove('hidden');
-            sectionTitleSpinner.classList.remove('hidden');
-            networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>';
-            try {
-                const response = await fetch('/api/scan');
-                const data = await response.json();
-                networks = data.networks || [];
-                renderNetworks();
-                if (networks.length === 0 && emptyScanRetryCount < MAX_EMPTY_SCAN_RETRIES) {
-                    emptyScanRetryCount++;
-                    console.log(`[WiFiSetup] Empty scan result, retry ${emptyScanRetryCount}/${MAX_EMPTY_SCAN_RETRIES}`);
-                    await new Promise(resolve => setTimeout(resolve, EMPTY_SCAN_RETRY_DELAY));
-                    await scanNetworks();
-                    return;
-                }
-            } catch (error) {
-                networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`;
-            }
-            refreshBtn.disabled = false;
-            refreshSpinner.classList.add('hidden');
-            sectionTitleSpinner.classList.add('hidden');
-            emptyScanRetryCount = 0;
-        }
-        function renderNetworks() {
-            if (networks.length === 0) { networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #8E8E93;">${translations[currentLang].no_networks}</div>`; return; }
-            networksList.innerHTML = networks.map((network, index) => {
-                const signalStrength = getSignalStrength(network.rssi);
-                const signalText = translations[currentLang][`signal_${signalStrength}`] || signalStrength;
-                const lockIcon = network.encryption === 'none' ? '🔓' : '🔒';
-                const checkmark = network.connected ? '✅' : '';
-                const isSelected = selectedNetwork === index;
-                return `
-                    <div class="network-item ${isSelected ? 'selected' : ''}" data-index="${index}">
-                        <span class="network-icon">📶</span>
-                        <div class="network-info">
-                            <div class="network-name">${escapeHtml(network.ssid)}</div>
-                            <div class="network-signal">${signalText} • ${network.encryption === 'none' ? 'Open' : network.encryption}</div>
-                        </div>
-                        <div class="network-lock-wrapper">
-                            ${checkmark ? `<span class="network-checkmark">${checkmark}</span>` : ''}
-                            <span class="network-lock">${lockIcon}</span>
-                        </div>
-                    </div>
-                    ${isSelected && !network.connected ? `
-                        <div class="inline-password-section" data-index="${index}">
-                            <div class="inline-error hidden" id="inlineError_${index}">
-                                <span class="inline-error-text">${translations[currentLang].connection_failed}</span>
-                                <button class="inline-retry-btn" onclick="retryInlineConnection(${index})">${translations[currentLang].retry_btn}</button>
-                            </div>
-                            <div class="inline-password-row">
-                                <div class="inline-password-input-wrapper">
-                                    <input type="password" class="inline-password-input" id="inlinePassword_${index}" placeholder="${translations[currentLang].inline_password_placeholder}" value="">
-                                    <button type="button" class="inline-show-password-btn" onclick="toggleInlinePassword(${index})">${translations[currentLang].show_password}</button>
-                                </div>
-                                <button class="inline-join-btn" onclick="inlineJoinNetwork(${index})">${translations[currentLang].inline_join_btn}</button>
-                            </div>
-                        </div>
-                    ` : ''}
-                    ${isSelected && network.connected ? `
-                        <div class="inline-password-section" data-index="${index}">
-                            <button class="inline-disconnect-btn" onclick="inlineDisconnectNetwork(${index})">${translations[currentLang].inline_disconnect_btn}</button>
-                        </div>
-                    ` : ''}
-                `;
-            }).join('');
-            networksList.querySelectorAll('.network-item').forEach(item => { item.addEventListener('click', () => selectNetwork(parseInt(item.dataset.index))); });
-        }
         function getSignalStrength(rssi) { if (rssi >= -50) return 'excellent'; if (rssi >= -60) return 'good'; if (rssi >= -70) return 'weak'; return 'very_weak'; }
         function selectNetwork(index) {
             // Не сбрасываем connected у предыдущей сети — сохраняем состояние
@@ -611,7 +542,7 @@ namespace etl
         function inlineDisconnectNetwork(index) {
             if (selectedNetwork === null) return;
             const network = networks[selectedNetwork];
-            
+
             // Вызов API отключения
             fetch('/api/disconnect', { method: 'POST' })
                 .then(response => response.json())
@@ -620,7 +551,10 @@ namespace etl
                         network.connected = false;
                         isConnected = false;
                         setStatus('disconnected');
-                        renderNetworks();
+                        // После disconnect сервер перезапускается в AP режиме
+                        // и меняет IP. Нужно перезагрузить страницу чтобы
+                        // браузер переподключился к новому AP IP (192.168.4.1)
+                        setTimeout(() => { window.location.reload(); }, 1500);
                     } else {
                         alert('Error: ' + data.message);
                     }
@@ -650,8 +584,10 @@ namespace etl
             const passwordInput = document.getElementById(`inlinePassword_${selectedNetwork}`);
             const password = passwordInput ? passwordInput.value : '';
             if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
-            const joinBtn = passwordInput.nextElementSibling;
-            const originalBtnText = joinBtn.textContent;
+            // inline-join-btn — это следующий элемент после div.inline-password-input-wrapper,
+            // который является следующим sibling после div.inline-password-input-wrapper
+            const joinBtn = document.querySelector(`.inline-join-btn`);
+            const originalBtnText = joinBtn ? joinBtn.textContent : 'Join';
 
             // Блокировка UI и показ спиннера
             joinBtn.disabled = true;
@@ -809,6 +745,128 @@ namespace etl
 
         function showModal(message, onConfirm) { modalMessage.textContent = message; modalOverlay.classList.add('active'); modalConfirmBtn.onclick = () => { modalOverlay.classList.remove('active'); onConfirm(); }; modalCancelBtn.onclick = () => { modalOverlay.classList.remove('active'); }; }
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        // === Диагностика корректной загрузки конфигурации ===
+        function isDeviceConfigLoaded() {
+            // Проверяем, что deviceName НЕ содержит placeholder
+            const deviceNameEl = document.getElementById('deviceName');
+            if (!deviceNameEl) return false;
+            const hasPlaceholder = deviceNameEl.textContent.includes('DEVICE_NAME_PLACEHOLDER');
+            const hasConfig = window.deviceConfig && window.deviceConfig.version;
+            const loaded = !hasPlaceholder && hasConfig;
+            console.log('[WiFiSetup] Config loaded check:', {
+                hasPlaceholder,
+                hasConfig: !!hasConfig,
+                deviceName: deviceNameEl.textContent,
+                result: loaded
+            });
+            return loaded;
+        }
+
+        async function reinitDeviceConfig() {
+            console.log('[WiFiSetup] Re-initializing device config...');
+            try {
+                await loadDeviceConfig();
+                applyDeviceConfig();
+                applyUISettings();
+                console.log('[WiFiSetup] Re-initialization complete');
+                return true;
+            } catch (error) {
+                console.error('[WiFiSetup] Re-initialization failed:', error);
+                return false;
+            }
+        }
+
+        async function scanNetworks() {
+            // ПРОВЕРКА: При нажатии Refresh проверяем, загрузилась ли конфигурация
+            // Если placeholder НЕ заменен — данные не были корректно установлены
+            if (!isDeviceConfigLoaded()) {
+                console.warn('[WiFiSetup] Device config not loaded! Placeholder detected. Re-initializing...');
+                const success = await reinitDeviceConfig();
+                if (!success) {
+                    console.error('[WiFiSetup] Failed to re-initialize device config');
+                }
+                // Проверяем еще раз после повторной инициализации
+                if (!isDeviceConfigLoaded()) {
+                    console.error('[WiFiSetup] Still not loaded after re-init. Will retry...');
+                    // Пробуем еще раз через 1 секунду
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await reinitDeviceConfig();
+                }
+            }
+
+            refreshBtn.disabled = true;
+            refreshSpinner.classList.remove('hidden');
+            sectionTitleSpinner.classList.remove('hidden');
+            networksList.innerHTML = '<div class="network-item" style="justify-content: center;"><span class="spinner"></span></div>';
+            try {
+                const response = await fetch('/api/scan');
+                const data = await response.json();
+                networks = data.networks || [];
+                renderNetworks();
+                if (networks.length === 0 && emptyScanRetryCount < MAX_EMPTY_SCAN_RETRIES) {
+                    emptyScanRetryCount++;
+                    console.log(`[WiFiSetup] Empty scan result, retry ${emptyScanRetryCount}/${MAX_EMPTY_SCAN_RETRIES}`);
+                    await new Promise(resolve => setTimeout(resolve, EMPTY_SCAN_RETRY_DELAY));
+                    await scanNetworks();
+                    return;
+                }
+            } catch (error) {
+                networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #FF3B30;">Error: ${error.message}</div>`;
+            }
+            refreshBtn.disabled = false;
+            refreshSpinner.classList.add('hidden');
+            sectionTitleSpinner.classList.add('hidden');
+            emptyScanRetryCount = 0;
+        }
+        function renderNetworks() {
+            if (networks.length === 0) { networksList.innerHTML = `<div class="network-item" style="justify-content: center; color: #8E8E93;">${translations[currentLang].no_networks}</div>`; return; }
+            networksList.innerHTML = networks.map((network, index) => {
+                const signalStrength = getSignalStrength(network.rssi);
+                const signalText = translations[currentLang][`signal_${signalStrength}`] || signalStrength;
+                const lockIcon = network.encryption === 'none' ? '🔓' : '🔒';
+                const checkmark = network.connected ? '✅' : '';
+                const isSelected = selectedNetwork === index;
+                return `
+                    <div class="network-item ${isSelected ? 'selected' : ''}" data-index="${index}">
+                        <span class="network-icon">📶</span>
+                        <div class="network-info">
+                            <div class="network-name">${escapeHtml(network.ssid)}</div>
+                            <div class="network-signal">${signalText} • ${network.encryption === 'none' ? 'Open' : network.encryption}</div>
+                        </div>
+                        <div class="network-lock-wrapper">
+                            ${checkmark ? `<span class="network-checkmark">${checkmark}</span>` : ''}
+                            <span class="network-lock">${lockIcon}</span>
+                        </div>
+                    </div>
+                    ${isSelected && !network.connected ? `
+                        <div class="inline-password-section" data-index="${index}">
+                            <div class="inline-error hidden" id="inlineError_${index}">
+                                <span class="inline-error-text">${translations[currentLang].connection_failed}</span>
+                                <button class="inline-retry-btn" onclick="retryInlineConnection(${index})">${translations[currentLang].retry_btn}</button>
+                            </div>
+                            <div class="inline-password-row">
+                                <div class="inline-password-input-wrapper">
+                                    <input type="password" class="inline-password-input" id="inlinePassword_${index}" placeholder="${translations[currentLang].inline_password_placeholder}" value="">
+                                    <button type="button" class="inline-show-password-btn" onclick="toggleInlinePassword(${index})">${translations[currentLang].show_password}</button>
+                                </div>
+                                <button class="inline-join-btn" onclick="inlineJoinNetwork(${index})">${translations[currentLang].inline_join_btn}</button>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${isSelected && network.connected ? `
+                        <div class="inline-password-section" data-index="${index}">
+                            <button class="inline-disconnect-btn" onclick="inlineDisconnectNetwork(${index})">${translations[currentLang].inline_disconnect_btn}</button>
+                        </div>
+                    ` : ''}
+                `;
+            }).join('');
+            // Добавляем обработчики кликов на элементы списка
+            networksList.querySelectorAll('.network-item').forEach(item => {
+                item.addEventListener('click', () => selectNetwork(parseInt(item.dataset.index)));
+            });
+        }
+
         refreshBtn.addEventListener('click', scanNetworks);
         langToggleBtn.addEventListener('click', () => {
             // Переключение языка по кругу

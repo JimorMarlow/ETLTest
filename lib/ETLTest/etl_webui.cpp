@@ -324,9 +324,33 @@ namespace etl
                 doc["use_bold_values"] = m_ui_config->is_use_bold_values();
             }
 
-            String response;
-            serializeJson(doc, response);
-            m_server->send(200, "application/json", response);
+            // ВАЖНО: На ESP8266 serializeJson(doc, String) обрезает большие JSON (~5.7KB)
+            // потому что String не может аллоцировать непрерывный блок памяти при ~16KB free heap
+            // Решение: отправляем HTTP заголовки вручную + serializeJson напрямую в WiFiClient
+            // Это требует меньше памяти и не обрезает данные
+            
+            size_t jsonLen = measureJson(doc);
+            
+            // Формируем HTTP заголовки вручную
+            String headers = "HTTP/1.1 200 OK\r\n";
+            headers += "Content-Type: application/json\r\n";
+            headers += "Content-Length: " + String(jsonLen) + "\r\n";
+            headers += "Access-Control-Allow-Origin: *\r\n";
+            headers += "Connection: close\r\n";
+            headers += "\r\n";
+            
+            // Отправляем заголовки и JSON напрямую через WiFiClient
+#ifdef ESP32
+            // ESP32: client() возвращает по значению — сохраняем в переменную
+            auto client = m_server->client();
+#else
+            // ESP8266: client() возвращает по ссылке
+            auto& client = m_server->client();
+#endif
+            client.write(headers.c_str(), headers.length());
+            
+            // Отправляем JSON напрямую через serializeJson в Print (WiFiClient)
+            serializeJson(doc, client);
         }
 
         void server_setup::handle_api_save()
