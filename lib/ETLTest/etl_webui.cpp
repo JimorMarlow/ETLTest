@@ -147,6 +147,14 @@ namespace etl
                 // Сохранение текущего режима для восстановления
                 WiFiMode_t previous_mode = WiFi.getMode();
 
+                // Если уже подключены к другой сети — разрываем соединение
+                if (WiFi.status() == WL_CONNECTED) {
+                    Serial.println(F("[WiFiSetup] Already connected, disconnecting from current network..."));
+                    WiFi.disconnect(false);  // false = не стирать настройки из NVS
+                    delay(100);
+                    yield();
+                }
+
                 // Установка режима AP+STA для подключения
                 // Это позволит точке доступа продолжать работу во время подключения к STA
                 WiFi.mode(WIFI_AP_STA);
@@ -237,13 +245,21 @@ namespace etl
         {
             Serial.println(F("[WiFiSetup] API: /api/disconnect"));
 
-            // Сброс настроек WiFi
+            // Сброс настроек WiFi — только очищаем config, не разрывая соединение
             if (m_config.has_value()) {
                 m_config->set_wifi_ssid("");
                 m_config->set_wifi_password("");
             }
+            m_connection_status = connection_status_t::disconnected;
 
-            // Сначала отправляем успешный ответ клиенту
+            // ВАЖНО: WiFi.disconnect() НЕ выполняется — текущее соединение сохраняется
+            // HTTP сервер продолжает работать, пользователь может:
+            // - Нажать [Save & Reboot] → ESP перезагрузится в AP режиме
+            // - Подключиться к другой сети через [Join]
+            // Это позволяет пользователю сохранить настройки и продолжить работу
+            Serial.println(F("[WiFiSetup] WiFi.disconnect() skipped — connection kept, only config cleared"));
+
+            // Отправляем успешный ответ
             JsonDocument response_doc;
             response_doc["success"] = true;
             response_doc["message"] = "Disconnected";
@@ -251,32 +267,6 @@ namespace etl
             String response;
             serializeJson(response_doc, response);
             m_server->send(200, "application/json", response);
-
-            // Задержка для отправки ответа клиенту
-            delay(100);
-            yield();
-
-            // Отключение от сети
-            WiFi.disconnect(true);
-            m_connection_status = connection_status_t::disconnected;
-
-#ifdef ESP32
-            // На ESP32 остаёмся в режиме AP+STA для стабильности
-            // Точка доступа уже работает в этом режиме
-            WiFi.mode(WIFI_AP_STA);
-            WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
-                        m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
-
-            Serial.println(F("[WiFiSetup] Switched to AP+STA mode"));
-#else
-            // На ESP8266 просто переключаемся в режим AP
-            // HTTP сервер продолжает работать
-            WiFi.mode(WIFI_AP);
-            WiFi.softAP(m_config.has_value() ? m_config->get_ap_ssid().c_str() : "ESP_Device_AP",
-                        m_config.has_value() ? m_config->get_ap_password().c_str() : "password123");
-#endif
-
-            Serial.println(F("[WiFiSetup] Disconnected from WiFi, AP restarted"));
         }
 
         void server_setup::handle_api_status()

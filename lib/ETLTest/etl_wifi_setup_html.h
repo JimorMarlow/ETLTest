@@ -676,24 +676,25 @@ namespace etl
             const passwordInput = document.getElementById(`inlinePassword_${selectedNetwork}`);
             const password = passwordInput ? passwordInput.value : '';
             if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
-            const joinBtn = passwordInput.nextElementSibling;
-            const originalBtnText = joinBtn.textContent;
+            // Ищем кнопку Join через querySelector, так как nextElementSibling может указывать на кнопку Show
+            const joinBtn = document.querySelector('.inline-join-btn');
+            const originalBtnText = joinBtn ? joinBtn.textContent : 'Join';
 
             // Блокировка UI и показ спиннера
-            joinBtn.disabled = true;
-            joinBtn.innerHTML = '<span class="spinner"></span>';
-            joinBtn.classList.add('btn-with-spinner', 'connecting');
-            passwordInput.disabled = true;
+            if (joinBtn) {
+                joinBtn.disabled = true;
+                joinBtn.innerHTML = '<span class="spinner"></span>';
+                joinBtn.classList.add('btn-with-spinner', 'connecting');
+            }
+            if (passwordInput) passwordInput.disabled = true;
             setStatus('connecting');
             hideConnectionError();
-            
-            console.log('[WiFiSetup] Join button set to spinner, disabled=', joinBtn.disabled, 'classList=', joinBtn.classList);
 
             try {
                 // Таймаут 25 секунд на подключение
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 25000);
-                
+
                 console.log('[WiFiSetup] Starting fetch to /api/connect...');
 
                 const response = await fetch('/api/connect', {
@@ -703,7 +704,7 @@ namespace etl
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
-                
+
                 console.log('[WiFiSetup] Response received:', response.status);
 
                 const data = await response.json();
@@ -712,10 +713,10 @@ namespace etl
                     network.connected = true;
                     isConnected = true;
                     setStatus('connected', `${network.ssid} • ${data.ip}`);
-                    
+
                     // Небольшая задержка, чтобы пользователь увидел спиннер
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    
+
                     // Перерисовка покажет кнопку Disconnect вместо Join
                     renderNetworks();
                 } else {
@@ -724,11 +725,15 @@ namespace etl
                     showConnectionError();
                     setStatus('error', translations[currentLang].error_connection);
                     // Восстановление UI
-                    joinBtn.disabled = false;
-                    joinBtn.textContent = originalBtnText;
-                    joinBtn.classList.remove('btn-with-spinner', 'connecting');
-                    passwordInput.disabled = false;
-                    passwordInput.focus();
+                    if (joinBtn) {
+                        joinBtn.disabled = false;
+                        joinBtn.textContent = originalBtnText;
+                        joinBtn.classList.remove('btn-with-spinner', 'connecting');
+                    }
+                    if (passwordInput) {
+                        passwordInput.disabled = false;
+                        passwordInput.focus();
+                    }
                 }
             } catch (error) {
                 // Таймаут или обрыв соединения (ESP перезапускает HTTP сервер)
@@ -744,10 +749,10 @@ namespace etl
                             network.connected = true;
                             isConnected = true;
                             setStatus('connected', `${network.ssid} • ${status.ip}`);
-                            
+
                             // Небольшая задержка, чтобы пользователь увидел спиннер
                             await new Promise(resolve => setTimeout(resolve, 500));
-                            
+
                             renderNetworks();
                             return;
                         }
@@ -760,11 +765,15 @@ namespace etl
                 showConnectionError();
                 setStatus('error', translations[currentLang].error_timeout);
                 // Восстановление UI
-                joinBtn.disabled = false;
-                joinBtn.textContent = originalBtnText;
-                joinBtn.classList.remove('btn-with-spinner', 'connecting');
-                passwordInput.disabled = false;
-                passwordInput.focus();
+                if (joinBtn) {
+                    joinBtn.disabled = false;
+                    joinBtn.textContent = originalBtnText;
+                    joinBtn.classList.remove('btn-with-spinner', 'connecting');
+                }
+                if (passwordInput) {
+                    passwordInput.disabled = false;
+                    passwordInput.focus();
+                }
             }
         }
         function togglePassword(input, btn) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; btn.textContent = isPassword ? translations[currentLang].hide_password : translations[currentLang].show_password; }
