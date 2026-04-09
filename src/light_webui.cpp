@@ -27,8 +27,7 @@ namespace etl
         {
             device_info_t info;
             info.name = "Рабочая зона";
-            info.description = "Кухня, v";
-            info.description += APP_VERSION_STRING;
+            info.description = String("v") + APP_VERSION_STRING;
             info.icon_svg = LIGHT_DEVICE_ICON_SVG;
             return info;
         }
