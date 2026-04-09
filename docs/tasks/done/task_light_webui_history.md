@@ -1,52 +1,63 @@
-# История задач - Light WebUI
+# История изменений по задаче task_light_webui.md
 
-## Сессия 1 - 03.04.2026
+## Сессия - 06.04.2026
 
 ### Выполненные задачи:
 
-1. **Создан src/light_webui_html.h**
-   - Оптимизированная HTML-страница из docs\web-wifi\qwen-webui.002.html
-   - Убран код симуляции движения ползунка
-   - Минимизированы CSS (убраны лишние пробелы)
-   - Добавлена поддержка i18n (en/ru) через translations объект
-   - Добавлена интеграция с API для загрузки/сохранения состояния
-   - SVG иконка устройства оптимизирована (убраны комментарии и отступы)
-   - Создана константа `LIGHT_DEVICE_ICON_SVG` для иконки устройства
-   - Создана константа `LIGHT_WEBUI_HTML` для основного HTML
+#### Обновление Wi-Fi иконки и поддержка цветовых режимов
 
-2. **Создан src/light_webui.h**
-   - Определена структура `kitchen_light_t` с полями:
-     - `bool power` - состояние питания
-     - `float brightness` - яркость [1..100], по умолчанию 100
-     - `bool restore_power_on_start` - восстановление при старте
-   - Определён класс `light_control_server : public web_server_base_t`
-   - Добавлены методы:
-     - `get_light_control_device_info()` - статический, возвращает device_info_t
-     - `set_light_settings()` / `get_light_settings()` - для настроек лампы
-     - `set_power()` / `get_power()` - управление питанием
-     - `set_brightness()` / `get_brightness()` - управление яркостью
-   - Переопределены виртуальные методы для HTTP обработки
+**Файл:** `src\light_webui_html.h`
 
-3. **Создан src/light_webui.cpp**
-   - Реализация всех методов класса `light_control_server`
-   - API endpoints:
-     - `GET /` - главная страница с HTML макетом
-     - `GET /api/status` - статус WiFi/MQTT/Telegram
-     - `GET /api/device_info` - информация об устройстве
-     - `GET /api/ui_config` - настройки интерфейса
-     - `GET /api/state` - текущее состояние лампы (power, brightness)
-     - `POST /api/control` - управление power и brightness
-     - `POST /api/ui_settings` - сохранение настроек интерфейса
-     - `GET /api/scan`, `POST /api/connect`, `POST /api/disconnect` - WiFi настройки
-     - `POST /api/save`, `POST /api/reset`, `POST /api/ap_settings` - системные API
-   - Обработчик `send_state_to_serial()` - выводит текущее состояние в Serial при изменении
-   - Поддержка всех режимов из `ui_config_t` (язык, тема, шрифт, bold values)
-   - Заглушка для кнопки settings (окно "Запуск настроек [OK]")
+**Изменения:**
 
-### Замечания:
-- Файлы созданы, но требуется тестирование компиляции
-- Структура `kitchen_light_t` создана только для хранения в памяти, сохранение будет сделано позже пользователем
+1. **Заменена SVG иконка Wi-Fi**
+   - Источник: `docs\images\icon_wi-fi_blue.svg`
+   - Оптимизирована: убраны комментарии, metadata, Inkscape атрибуты
+   - viewBox изменён с `0 0 24 24` на `0 0 32 32`
+   - Элементы: эллипс (точка) + 2 дуги с правильными `stroke` атрибутами
 
-### Следующие шаги:
-- Протестировать компиляцию всех конфигураций
-- Исправить возможные ошибки компиляции
+2. **Обновлены CSS классы для Wi-Fi статусов**
+   - `.status-icon.wifi` — базовый стиль (серый `#8E8E93`)
+   - `.status-icon.wifi.sta` — STA режим (синий `#44a6f3`)
+   - `.status-icon.wifi.ap` — AP режим (зеленый `rgb(31,177,65)`)
+   - `.status-icon.wifi.error` — ошибка (серый `#8E8E93`)
+
+3. **Обновлена JavaScript функция `loadStatus()`**
+   - Вместо inline `style.fill` теперь использует CSS классы
+   - STA: добавляет класс `sta`, убирает `ap`, `error`
+   - AP: добавляет класс `ap`, убирает `sta`, `error`
+   - Error: добавляет класс `error`, убирает `sta`, `ap`
+   - Если статус неизвестен: убирает все классы
+
+4. **Device Icon в status-bar**
+   - `.device-icon-small` слева в status-bar
+   - Загружается через `/api/device_info`
+
+5. **Убраны MQTT и Telegram иконки** (пока не нужны)
+   - Удалены SVG элементы из HTML
+   - Удалены CSS классы для mqtt и telegram
+   - Удалены JavaScript переменные `statusMqtt`, `statusTelegram`
+
+6. **Исправлено выравнивание status-bar**
+   - Новая структура: `.status-right` содержит `.status-icons` + `.settings-button`
+   - Device Icon слева, иконки + settings справа
+   - Wi-Fi иконка теперь рядом с кнопкой settings
+
+#### Исправление ошибок (06.04.2026)
+
+**Проблемы:**
+- Wi-Fi иконка выглядела как одна точка (не было `stroke` у дуг)
+- Telegram и MQTT иконки отображались на экране
+- Контейнер иконок не был рядом с кнопкой settings
+
+**Исправления:**
+- Добавлены `stroke="#44a6f6"` к SVG элементам Wi-Fi
+- Убраны MQTT и Telegram SVG элементы из HTML
+- Реструктурирован status-bar: `.status-right` содержит иконки + кнопку settings
+
+### Тестирование компиляции:
+
+- [x] d1_mini_lite (ESP8266) — **SUCCESS** (RAM: 79.5%, Flash: 51.4%, 6.01s)
+- [ ] nodemcuv3 (ESP8266) — ожидается
+- [ ] esp32c3 — ожидается
+- [ ] esp32-wroom-32u — ожидается
