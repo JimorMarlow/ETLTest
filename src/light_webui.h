@@ -17,6 +17,7 @@
 
 #include "etl_webui_base.h"
 #include "version.h"
+#include "etl/etl_settings.h"
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
 #if defined(ESP8266)
@@ -29,7 +30,7 @@
 
 namespace light_control
 {
-    namespace webui
+    namespace data
     {
         /**
          * @brief Настройки устройства (светодиодная лампа)
@@ -77,6 +78,43 @@ namespace light_control
             }
         };
 
+        // Глобальные данные для управления светом с сохранением настроек в постоянной памяти
+
+        /**
+         * @brief Установить значения управлением светом по умолчанию и считать данные
+         * @param default_info Настройки данных по умолчанию
+         * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+         */
+        bool init(const kitchen_light_t& default_info, bool reset_to_default = false);
+
+        /**
+         * @brief Установить новые значения значения
+         * @param info Изменит настройки с рассылкой нотификаций для подписчиков
+         * @param sender Указывает, кто изменил настройки, чтобы остальные подписчики получили извещение
+         */
+        bool set(const kitchen_light_t& info, etl::settings::sender_id sender);
+
+        /**
+         * @brief Считать текущие значения управления светом
+         * @return etl::optional с информацией, если он был инициализирован, или пустой optional
+         */
+        etl::optional<kitchen_light_t> get();
+
+        /**
+         * @brief Получить экземпляр настроек для вызова subscribe / unsubscribe
+         * @return если он не был инициализирован вернется пустой умный указатель
+         */
+        etl::shared_ptr<etl::settings::data<kitchen_light_t>> instace();
+
+        /**
+         * @brief Вызывать в loop() для отложенного сохранения в постоянную память (для экономии ресурса памяти)
+         */
+        void tick();
+
+    } // namespace data
+
+    namespace webui
+    {
         /**
          * @brief Получить настройки устройства по умолчанию
          * @return device_info_t с информацией об устройстве
@@ -123,13 +161,13 @@ namespace light_control
              * @brief Установить настройки лампы
              * @param settings Настройки лампы
              */
-            void set_light_settings(const kitchen_light_t& settings);
+            void set_light_settings(const data::kitchen_light_t& settings);
 
             /**
              * @brief Получить настройки лампы
              * @return Текущие настройки лампы
              */
-            kitchen_light_t get_light_settings() const;
+            data::kitchen_light_t get_light_settings() const;
 
             /**
              * @brief Установить состояние питания
@@ -220,7 +258,7 @@ namespace light_control
             void send_state_to_serial(bool power, float brightness);
 
         private:
-            kitchen_light_t m_light_settings;  ///< Настройки лампы
+            data::kitchen_light_t m_light_settings;  ///< Настройки лампы
         };
 
     } // namespace webui

@@ -86,6 +86,9 @@ void setup() {
     Serial.println("=================================");
     Serial.println();
 
+    // Инициализация глобальных настроек тестового проекта
+    light_control::data::init(light_control::data::kitchen_light_t{});
+        
 #ifdef USE_WIFI_UI_SERVER
     if(etl::little_fs::begin()) {
         Serial.println("[LittleFS] etl::little_fs::begin(): OK");

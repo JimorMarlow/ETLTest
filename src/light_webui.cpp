@@ -17,6 +17,119 @@
 
 namespace light_control
 {
+    namespace data
+    {
+        // настройки управленя светом
+        const String    _path = "/settings/light_control.cfg";
+        const uint16_t  _update_delay = 30000;  // 0ms - Immediately update, 30s - данные обновятся, если не было изменений в течении 30с
+        etl::shared_ptr<etl::settings::data<kitchen_light_t>> _data; // Глобальный объект настроек управления светом
+
+        /**
+         * @brief Установить значения управлением светом по умолчанию и считать данные
+         * @param default_info Настройки данных по умолчанию
+         * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
+         */
+        bool init(const kitchen_light_t& default_info, bool reset_to_default /*= false*/)
+        {
+            Serial.println(F("[light_control::data] init() ..."));
+
+            if(etl::little_fs::begin())
+            {
+                // Создание директории для файла настроек
+                etl::little_fs::create_dir(_path);
+            }
+
+            // Сохранение настроек в постоянной памяти
+            if(!_data)
+            {
+                _data = etl::make_shared<etl::settings::data<kitchen_light_t>>(_path, _update_delay, default_info);
+                bool result = _data->init();
+                Serial.print(F("[light_control::data] init() result: "));
+                Serial.println(result ? F("OK") : F("FAILED"));
+
+                if(result && reset_to_default)
+                {
+                    Serial.println(F("[light_control::data] resetting to default ..."));
+                    auto loaded_info = _data->get();
+                    Serial.println(F("[light_control::data] loaded from memory:"));
+                    loaded_info.trace();
+
+                    // Выполняем сброс: устанавливаем значения по умолчанию и сохраняем
+                    _data->set(default_info);
+                    bool reset_result = _data->save();
+
+                    Serial.print(F("[light_control::data] reset to default: "));
+                    Serial.println(reset_result ? F("OK") : F("FAILED"));
+                    if(reset_result)
+                    {
+                        default_info.trace();
+                    }
+                }
+
+                return result;
+            }
+
+            Serial.print(F("[light_control::data] init() result: ALREADY INITED"));
+            return true;
+        }
+
+        /**
+         * @brief Установить новые значения значения
+         * @param info Изменит настройки с рассылкой нотификаций для подписчиков
+         * @param sender Указывает, кто изменил настройки, чтобы остальные подписчики получили извещение
+         */
+        bool set(const kitchen_light_t& info, etl::settings::sender_id sender)
+        {
+            Serial.printf("[light_control::data] set(), sender_id = %d\n", sender);
+
+            if(_data)
+            {
+                bool result = _data->set(info, sender);
+                return result;
+            }
+
+            Serial.print(F("[light_control::data] set() error: _data not inited"));
+            return false;
+        }
+
+        /**
+         * @brief Считать текущие значения управления светом
+         * @return etl::optional с информацией, если он был инициализирован, или пустой optional
+         */
+        etl::optional<kitchen_light_t> get()
+        {
+            Serial.println(F("[light_control::data] get()"));
+
+            if(_data)
+            {
+                return _data->get();
+            }
+            else
+            {
+                Serial.println(F("[light_control::data] get(): _data not inited, returning empty optional"));
+                return etl::nullopt;
+            }
+        }
+
+        /**
+         * @brief Получить экземпляр настроек для вызова subscribe / unsubscribe
+         * @return если он не был инициализирован вернется пустой умный указатель
+         */
+        etl::shared_ptr<etl::settings::data<kitchen_light_t>> instace(){
+            return _data;
+        }
+
+        /**
+         * @brief Вызывать в loop() для отложенного сохранения в постоянную память (для экономии ресурса памяти)
+         */
+        void tick()
+        {
+            if(_data) {
+                _data->tick();
+            }
+        }
+    } // namespace data
+
     namespace webui
     {
         // ============================================================================
@@ -37,12 +150,12 @@ namespace light_control
         {
         }
 
-        void light_control_server::set_light_settings(const kitchen_light_t& settings)
+        void light_control_server::set_light_settings(const data::kitchen_light_t& settings)
         {
             m_light_settings = settings;
         }
 
-        kitchen_light_t light_control_server::get_light_settings() const
+        data::kitchen_light_t light_control_server::get_light_settings() const
         {
             return m_light_settings;
         }
