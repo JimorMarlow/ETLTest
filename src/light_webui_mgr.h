@@ -54,7 +54,7 @@ protected:
         auto web_config = etl::webui::settings::load_wifi_config();
 
         // Создаём сервер контента
-        auto server = etl::make_shared<etl::webui::light_control_server>(
+        auto server = etl::make_shared<light_control::webui::light_control_server>(
             web_config.has_value() ? web_config.value() : etl::webui::server_config_t()
         );
 

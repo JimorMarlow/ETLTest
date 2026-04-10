@@ -44,7 +44,7 @@ bool start_wifi_server() {
     }
 
     // Настройка информации об устройстве
-    etl::webui::device_info_t device_info = etl::webui::get_light_control_device_info();
+    etl::webui::device_info_t device_info = light_control::webui::get_light_control_device_info();
     Serial.print("[DeviceInfo] name: "); Serial.println(device_info.name);
 
     // Создание менеджера управления серверами

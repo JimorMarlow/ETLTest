@@ -27,7 +27,7 @@
 
 #if defined(ESP8266) || defined(ESP32)
 
-namespace etl
+namespace light_control
 {
     namespace webui
     {
@@ -81,7 +81,7 @@ namespace etl
          * @brief Получить настройки устройства по умолчанию
          * @return device_info_t с информацией об устройстве
          */
-        device_info_t get_light_control_device_info();
+        etl::webui::device_info_t get_light_control_device_info();
 
         /**
          * @brief Класс сервера управления лампой
@@ -91,14 +91,14 @@ namespace etl
          *
          * Наследуется от web_server_base_t для поддержки полиморфизма.
          */
-        class light_control_server : public web_server_base_t
+        class light_control_server : public etl::webui::web_server_base_t
         {
         public:
             /**
              * @brief Конструктор
              * @param cfg Конфигурация WiFi сервера (опционально, используется как fallback)
              */
-            explicit light_control_server(const etl::optional<server_config_t>& cfg = {});
+            explicit light_control_server(const etl::optional<etl::webui::server_config_t>& cfg = {});
 
             /**
              * @brief Деструктор
@@ -117,7 +117,7 @@ namespace etl
              * @param device_info Информация об устройстве
              * @return true при успешной инициализации
              */
-            virtual bool begin(const device_info_t& device_info) override;
+            virtual bool begin(const etl::webui::device_info_t& device_info) override;
 
             /**
              * @brief Установить настройки лампы
@@ -224,7 +224,7 @@ namespace etl
         };
 
     } // namespace webui
-} // namespace etl
+} // namespace light_control
 
 #else
     #pragma message("light_webui: no implementation for this platform")

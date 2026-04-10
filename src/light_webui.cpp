@@ -15,7 +15,7 @@
 #include "etl/etl_littlefs.h"
 #include "etl/etl_settings.h"
 
-namespace etl
+namespace light_control
 {
     namespace webui
     {
@@ -23,17 +23,17 @@ namespace etl
         // Реализация light_control_server
         // ============================================================================
 
-        device_info_t get_light_control_device_info()
+        etl::webui::device_info_t get_light_control_device_info()
         {
-            device_info_t info;
+            etl::webui::device_info_t info;
             info.name = "Рабочая зона";
             info.description = String("v") + APP_VERSION_STRING;
             info.icon_svg = LIGHT_DEVICE_ICON_SVG;
             return info;
         }
 
-        light_control_server::light_control_server(const etl::optional<server_config_t>& cfg)
-            : web_server_base_t(cfg)
+        light_control_server::light_control_server(const etl::optional<etl::webui::server_config_t>& cfg)
+            : etl::webui::web_server_base_t(cfg)
         {
         }
 
@@ -82,7 +82,7 @@ namespace etl
         // Инициализация сервера контента
         // ============================================================================
 
-        bool light_control_server::begin(const device_info_t& device_info)
+        bool light_control_server::begin(const etl::webui::device_info_t& device_info)
         {
             Serial.println(F("[LightControl] begin()..."));
 
@@ -90,14 +90,14 @@ namespace etl
             m_device_info = device_info;
 
             // Загружаем настройки WiFi из FS (только чтение)
-            auto saved_wifi = settings::load_wifi_config();
+            auto saved_wifi = etl::webui::settings::load_wifi_config();
             if (saved_wifi.has_value()) {
                 m_config = saved_wifi;
                 Serial.println(F("[LightControl] WiFi settings loaded"));
             }
 
             // Загружаем настройки UI из FS (только чтение)
-            auto saved_ui = settings::load_ui_config();
+            auto saved_ui = etl::webui::settings::load_ui_config();
             if (saved_ui.has_value()) {
                 m_ui_config = saved_ui;
                 Serial.println(F("[LightControl] UI settings loaded"));
@@ -122,7 +122,7 @@ namespace etl
             Serial.println(F("[LightControl] Loading WiFi config from settings..."));
 
             // Считываем сохранённые настройки
-            auto saved_cfg = settings::load_wifi_config();
+            auto saved_cfg = etl::webui::settings::load_wifi_config();
             if (saved_cfg.has_value() && saved_cfg->wifi_ssid[0] != '\0') {
                 m_config = saved_cfg;
                 Serial.print(F("[LightControl] Found saved WiFi config, SSID: "));
@@ -153,10 +153,10 @@ namespace etl
                     Serial.println(F(" OK"));
                     Serial.print(F("[LightControl] IP: "));
                     Serial.println(WiFi.localIP());
-                    m_connection_status = connection_status_t::connected;
+                    m_connection_status = etl::webui::connection_status_t::connected;
                 } else {
                     Serial.println(F(" FAILED"));
-                    m_connection_status = connection_status_t::error;
+                    m_connection_status = etl::webui::connection_status_t::error;
                 }
 
 #ifdef ESP8266
@@ -473,7 +473,7 @@ namespace etl
         }
 
     } // namespace webui
-} // namespace etl
+} // namespace light_control
 
 #else
     #pragma message("light_webui: no implementation for this platform")
