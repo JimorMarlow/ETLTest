@@ -79,37 +79,8 @@ namespace light_control
         };
 
         // Глобальные данные для управления светом с сохранением настроек в постоянной памяти
-
-        /**
-         * @brief Установить значения управлением светом по умолчанию и считать данные
-         * @param default_info Настройки данных по умолчанию
-         * @param reset_to_default Установить значения по умолчанию и перезаписать данные при старте
-         */
-        bool init(const kitchen_light_t& default_info, bool reset_to_default = false);
-
-        /**
-         * @brief Установить новые значения значения
-         * @param info Изменит настройки с рассылкой нотификаций для подписчиков
-         * @param sender Указывает, кто изменил настройки, чтобы остальные подписчики получили извещение
-         */
-        bool set(const kitchen_light_t& info, etl::settings::sender_id sender);
-
-        /**
-         * @brief Считать текущие значения управления светом
-         * @return etl::optional с информацией, если он был инициализирован, или пустой optional
-         */
-        etl::optional<kitchen_light_t> get();
-
-        /**
-         * @brief Получить экземпляр настроек для вызова subscribe / unsubscribe
-         * @return если он не был инициализирован вернется пустой умный указатель
-         */
-        etl::shared_ptr<etl::settings::data<kitchen_light_t>> instace();
-
-        /**
-         * @brief Вызывать в loop() для отложенного сохранения в постоянную память (для экономии ресурса памяти)
-         */
-        void tick();
+        // записывается через 30 секунд для сохранения ресурса памяти
+        etl::settings::app_data<kitchen_light_t>& app(); 
 
     } // namespace data
 

@@ -87,7 +87,7 @@ void setup() {
     Serial.println();
 
     // Инициализация глобальных настроек тестового проекта
-    light_control::data::init(light_control::data::kitchen_light_t{});
+    light_control::data::app().init(light_control::data::kitchen_light_t{});
         
 #ifdef USE_WIFI_UI_SERVER
     if(etl::little_fs::begin()) {
@@ -103,6 +103,9 @@ void setup() {
 void loop() {
     // Основной цикл пустой - тесты выполняются один раз в setup()
     // TODO ...
+
+
+    light_control::data::app().tick();  // Обработчик отложенной записи данных управления светом
 
     // Обработка клиентских запросов и WiFi событий через менеджер
 #ifdef USE_WIFI_UI_SERVER
