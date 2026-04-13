@@ -55,35 +55,53 @@ namespace light_control
 
         void light_control_server::set_light_settings(const data::kitchen_light_t& settings)
         {
-            m_light_settings = settings;
+            data::app().set(settings, etl::settings::sender_id::webui);
         }
 
         data::kitchen_light_t light_control_server::get_light_settings() const
         {
-            return m_light_settings;
+            if(auto settings = data::app().get(); settings) {
+                return *settings;
+            }
+            // Возвращаем значения по умолчанию, если данные не инициализированы
+            return data::kitchen_light_t{};
         }
 
         void light_control_server::set_power(bool power)
         {
-            m_light_settings.power = power;
-            send_state_to_serial(m_light_settings.power, m_light_settings.brightness);
+            if(auto current = data::app().get(); current) {
+                data::kitchen_light_t updated = *current;
+                updated.power = power;
+                data::app().set(updated, etl::settings::sender_id::webui);
+                send_state_to_serial(updated.power, updated.brightness);
+            }
         }
 
         bool light_control_server::get_power() const
         {
-            return m_light_settings.power;
+            if(auto current = data::app().get(); current) {
+                return current->power;
+            }
+            return false; // Значение по умолчанию
         }
 
         void light_control_server::set_brightness(float brightness)
         {
-            // Ограничение диапазона [1..100]
-            m_light_settings.brightness = constrain(brightness, 1.0f, 100.0f);
-            send_state_to_serial(m_light_settings.power, m_light_settings.brightness);
+            if(auto current = data::app().get(); current) {
+                data::kitchen_light_t updated = *current;
+                // Ограничение диапазона [1..100]
+                updated.brightness = constrain(brightness, 1.0f, 100.0f);
+                data::app().set(updated, etl::settings::sender_id::webui);
+                send_state_to_serial(updated.power, updated.brightness);
+            }
         }
 
         float light_control_server::get_brightness() const
         {
-            return m_light_settings.brightness;
+            if(auto current = data::app().get(); current) {
+                return current->brightness;
+            }
+            return 100.0f; // Значение по умолчанию
         }
 
         void light_control_server::send_state_to_serial(bool power, float brightness)
@@ -92,6 +110,21 @@ namespace light_control
             Serial.print(power ? "ON" : "OFF");
             Serial.print(F(", brightness="));
             Serial.println(brightness, 1);
+        }
+
+        void light_control_server::stop()
+        {
+            Serial.println(F("[LightControl] stop() - cleaning up subscriptions"));
+            
+            // Отписка от изменений настроек
+            if(m_subscribed) {
+                data::app().unsubscribe(etl::settings::sender_id::webui);
+                m_subscribed = false;
+                Serial.println(F("[LightControl] Unsubscribed from settings changes"));
+            }
+            
+            // Вызов базовой реализации
+            etl::webui::web_server_base_t::stop();
         }
 
         // ============================================================================
@@ -117,6 +150,23 @@ namespace light_control
             if (saved_ui.has_value()) {
                 m_ui_config = saved_ui;
                 Serial.println(F("[LightControl] UI settings loaded"));
+            }
+
+            // Подписка на изменения настроек от других источников (не webui)
+            // Если изменения пришли не от webui, обновляем данные в веб-интерфейсе
+            m_subscribed = data::app().subscribe(
+                etl::settings::sender_id::webui,
+                [this](etl::settings::sender_id source) {
+                    Serial.printf("[LightControl] Settings changed by source: %d (webui will be updated)\n", static_cast<uint8_t>(source));
+                    // Данные изменились, веб-интерфейс получит их при следующем запросе через handle_api_state()
+                    // Дополнительных действий не требуется, т.к. данные хранятся глобально
+                }
+            );
+
+            if(m_subscribed) {
+                Serial.println(F("[LightControl] Subscribed to settings changes"));
+            } else {
+                Serial.println(F("[LightControl] Failed to subscribe to settings changes"));
             }
 
             // Попытка подключения к WiFi
@@ -329,8 +379,15 @@ namespace light_control
         void light_control_server::handle_api_state()
         {
             JsonDocument doc;
-            doc["power"] = m_light_settings.power;
-            doc["brightness"] = m_light_settings.brightness;
+            
+            if(auto current = data::app().get(); current) {
+                doc["power"] = current->power;
+                doc["brightness"] = current->brightness;
+            } else {
+                // Значения по умолчанию
+                doc["power"] = false;
+                doc["brightness"] = 100.0f;
+            }
 
             String response;
             serializeJson(doc, response);
@@ -356,23 +413,32 @@ namespace light_control
                     return;
                 }
 
+                // Получаем текущие настройки
+                data::kitchen_light_t updated_settings;
+                if(auto current = data::app().get(); current) {
+                    updated_settings = *current;
+                }
+
                 // Обновление состояния питания
                 if (doc["power"].is<bool>()) {
-                    set_power(doc["power"].as<bool>());
+                    updated_settings.power = doc["power"].as<bool>();
                 }
 
                 // Обновление яркости
                 if (doc["brightness"].is<float>()) {
-                    set_brightness(doc["brightness"].as<float>());
+                    updated_settings.brightness = constrain(doc["brightness"].as<float>(), 1.0f, 100.0f);
                 } else if (doc["brightness"].is<int>()) {
-                    set_brightness(static_cast<float>(doc["brightness"].as<int>()));
+                    updated_settings.brightness = constrain(static_cast<float>(doc["brightness"].as<int>()), 1.0f, 100.0f);
                 }
+
+                // Сохраняем обновлённые настройки с идентификатором webui
+                data::app().set(updated_settings, etl::settings::sender_id::webui);
 
                 // Отправка подтверждения
                 JsonDocument resp;
                 resp["success"] = true;
-                resp["power"] = m_light_settings.power;
-                resp["brightness"] = m_light_settings.brightness;
+                resp["power"] = updated_settings.power;
+                resp["brightness"] = updated_settings.brightness;
 
                 String response;
                 serializeJson(resp, response);

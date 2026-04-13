@@ -228,8 +228,13 @@ namespace light_control
              */
             void send_state_to_serial(bool power, float brightness);
 
+            /**
+             * @brief Остановка сервера с очисткой подписок
+             */
+            virtual void stop() override;
+
         private:
-            data::kitchen_light_t m_light_settings;  ///< Настройки лампы
+            bool m_subscribed = false;  ///< Флаг подписки на изменения настроек
         };
 
     } // namespace webui

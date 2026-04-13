@@ -63,6 +63,8 @@ bool start_wifi_server() {
 #endif//USE_WIFI_UI_SERVER
 //////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////
+
 void setup() {
     Serial.begin(115200);
     if(SERIAL_INIT_DELAY > 0) delay(SERIAL_INIT_DELAY);  // Задержка для ESP32 C3 Super Mini для корректного вывода в терминал
@@ -88,6 +90,17 @@ void setup() {
 
     // Инициализация глобальных настроек тестового проекта
     light_control::data::app().init(light_control::data::kitchen_light_t{});
+    // Подписка из модуля сенсоров, при изменении из webui будет устанавливать значения в подключенное оборудование
+    light_control::data::app().subscribe(etl::settings::sender_id::system, [](etl::settings::sender_id source) {
+        Serial.printf("[system] light_control data changed by source: %d\n", static_cast<uint8_t>(source));
+        if(auto data = light_control::data::app().get(); data)
+        {
+            // Serial.println("=================================");
+            // Serial.println("\tTODO: set current data to sensors...");
+            // data->trace();        
+            // Serial.println("=================================");
+        }
+    });
         
 #ifdef USE_WIFI_UI_SERVER
     if(etl::little_fs::begin()) {
