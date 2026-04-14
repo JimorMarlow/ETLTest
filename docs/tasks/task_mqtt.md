@@ -25,6 +25,8 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
 
 ## Этапы работ
 
+ВНИМАНИЕ: предыдущий сеанс работы был прерван, какие-то задачи уже начали выполняться, в каких-то изменились требования. Проверяй реализацию в lib\ETLTest\etl_mqtt.*, возможно, она неполная или устаревшая.
+
 - [ ] **Этап 1: Выбор и подключение MQTT библиотеки**
   - Добавить `knolleary/PubSubClient@^2.8` в `platformio.ini` (lib_deps)
   - Проверить совместимость с ESP8266 и ESP32
@@ -56,7 +58,8 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
   - Файлы: `lib/ETLTest/etl_mqtt.h`
 
 - [ ] **Этап 3: Реализация подключения к брокеру**
-  - Создать экземпляр `PubSubClient` с `WiFiClient`
+  - Создать экземпляр `PubSubClient` 
+  - Для wi-fi подключения использовать существующий etl::shared_ptr<etl::wifi::manager> wifi_mgr из lib\ETLTest\etl_wifi.*
   - Асинхронное подключение с таймаутами (не блокировать `tick()`)
   - Настройка LWT (Last Will Testament):
     - Топик статуса (например, `<client_id>/status`)
@@ -89,7 +92,7 @@ C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфи
 
 - [ ] **Этап 6: Интеграция с WiFi менеджером**
   - Подписка на события WiFi менеджера (connected/disconnected)
-  - Метод `set_wifi_manager(etl::wifi::manager*)` - ссылка на WiFi менеджер
+  - Метод `set_wifi_manager(etl::shared_ptr<etl::wifi::manager> wifi_mgr)` - ссылка на WiFi менеджер
   - При получении события WiFi connected - попытка MQTT подключения
   - При получении события WiFi disconnected - остановка MQTT
   - В `tick()` проверять статус WiFi перед попытками MQTT
