@@ -28,8 +28,11 @@
 
 #include <Arduino.h>
 #include <functional>
+#include <new>
 #include "etl/etl_vector.h"
+#include "etl/etl_settings.h"
 #include "etl_webui_settings.h"
+#include "etl/etl_memory.h"
 
 #if defined(ESP8266) || defined(ESP32)
 
@@ -77,7 +80,7 @@ namespace etl
          * @brief Callback тип для уведомлений о смене статуса
          * @param new_status Новый статус подключения
          */
-        using status_callback_t = void(*)(status_t new_status);
+        using status_callback_t = std::function<void(status_t new_status)>;
 
         /**
          * @brief Менеджер WiFi подключений
@@ -85,17 +88,21 @@ namespace etl
          * Отвечает за управление WiFi подключениями в различных режимах,
          * обработку разрывов соединения и уведомление подписчиков.
          *
+         * Наследуется от etl::settings::notify для использования механизма подписок.
+         * Подписчики (mqtt, webui) получают уведомления об изменении статуса WiFi.
+         *
          * Пример использования:
          * @code
-         * etl::wifi::manager wifi_mgr;
-         * wifi_mgr.begin();
+         * auto wifi_mgr = etl::make_shared<etl::wifi::manager>(config);
+         * wifi_mgr->begin();
+         * wifi_mgr->subscribe(status_observer);
          *
          * void loop() {
-         *     wifi_mgr.tick();
+         *     wifi_mgr->tick();
          * }
          * @endcode
          */
-        class manager
+        class manager : public etl::settings::notify
         {
         public:
             /**
@@ -208,18 +215,21 @@ namespace etl
             virtual int32_t scan_networks(etl::vector<scan_result_t>& results);
 
             /**
-             * @brief Добавить callback на смену статуса
+             * @brief Подписаться на уведомления о смене статуса
              *
+             * @param id Идентификатор подписчика
              * @param cb Функция обратного вызова
+             * @return true при успешной подписке
              */
-            virtual void add_status_callback(status_callback_t cb);
+            virtual bool subscribe_status(etl::settings::sender_id id, status_callback_t cb);
 
             /**
-             * @brief Удалить callback статуса
+             * @brief Отписаться от уведомлений о статусе
              *
-             * @param cb Функция обратного вызова для удаления
+             * @param id Идентификатор подписчика
+             * @return true если подписка была найдена и удалена
              */
-            virtual void remove_status_callback(status_callback_t cb);
+            virtual bool unsubscribe_status(etl::settings::sender_id id);
 
             /**
              * @brief Обновить конфигурацию WiFi
@@ -323,13 +333,13 @@ namespace etl
             etl::vector<scan_result_t> m_scan_cache;                ///< Кэш результатов сканирования
             uint32_t m_scan_timestamp = 0;                          ///< Время последнего сканирования
 
-            // Callback'и
-            etl::vector<status_callback_t> m_status_callbacks;      ///< Список подписчиков на статус
+            // Callback'и для статуса WiFi (используем наследуемый механизм etl::settings::notify)
+            // + собственные callback'и для статуса WiFi
+            std::function<void(status_t)> m_status_callbacks[static_cast<uint8_t>(etl::settings::sender_id::count)]; ///< Подписчики на статус
 
             // mDNS
             bool m_mdns_initialized = false;                        ///< Флаг инициализации mDNS
         };
-
     } // namespace wifi
 } // namespace etl
 

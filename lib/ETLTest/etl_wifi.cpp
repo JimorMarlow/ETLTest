@@ -417,40 +417,29 @@ namespace etl
         // Callback'и
         // ============================================================================
 
-        void manager::add_status_callback(status_callback_t cb)
+        bool manager::subscribe_status(etl::settings::sender_id id, status_callback_t cb)
         {
-            if (cb)
-            {
-                // Проверяем дубликаты
-                for (const auto& existing_cb : m_status_callbacks)
-                {
-                    if (existing_cb == cb) return;
-                }
-                m_status_callbacks.push_back(cb);
-                Serial.println(F("[etl::wifi::manager] Status callback added"));
-            }
+            uint8_t idx = static_cast<uint8_t>(id);
+            if (idx >= static_cast<uint8_t>(etl::settings::sender_id::count)) return false;
+            if (id == etl::settings::sender_id::broadcast) return false;
+
+            m_status_callbacks[idx] = std::move(cb);
+            Serial.printf("[etl::wifi::manager] Status subscribed for id: %d\n", idx);
+            return true;
         }
 
-        void manager::remove_status_callback(status_callback_t cb)
+        bool manager::unsubscribe_status(etl::settings::sender_id id)
         {
-            if (cb)
+            uint8_t idx = static_cast<uint8_t>(id);
+            if (idx >= static_cast<uint8_t>(etl::settings::sender_id::count)) return false;
+
+            if (m_status_callbacks[idx])
             {
-                // etl::vector не имеет std::remove, удаляем вручную
-                size_t write_idx = 0;
-                for (size_t read_idx = 0; read_idx < m_status_callbacks.size(); ++read_idx)
-                {
-                    if (m_status_callbacks[read_idx] != cb)
-                    {
-                        if (write_idx != read_idx)
-                        {
-                            m_status_callbacks[write_idx] = m_status_callbacks[read_idx];
-                        }
-                        write_idx++;
-                    }
-                }
-                m_status_callbacks.resize(write_idx);
-                Serial.println(F("[etl::wifi::manager] Status callback removed"));
+                m_status_callbacks[idx] = nullptr;
+                Serial.printf("[etl::wifi::manager] Status unsubscribed for id: %d\n", idx);
+                return true;
             }
+            return false;
         }
 
         // ============================================================================
@@ -591,11 +580,11 @@ namespace etl
 
         void manager::notify_status_change(status_t new_status)
         {
-            for (const auto& cb : m_status_callbacks)
+            for (uint8_t i = 0; i < static_cast<uint8_t>(etl::settings::sender_id::count); ++i)
             {
-                if (cb)
+                if (m_status_callbacks[i])
                 {
-                    cb(new_status);
+                    m_status_callbacks[i](new_status);
                 }
             }
         }

@@ -135,6 +135,33 @@ namespace etl
             // Сохранение информации об устройстве
             m_device_info = device_info;
 
+            // Создание локального менеджера если не установлен внешний
+            ensure_wifi_manager();
+
+            // Если установлен WiFi менеджер - используем его
+            if (m_wifi_manager)
+            {
+                Serial.println(F("[WiFiSetup] Using WiFi manager"));
+
+                // Загрузка настроек из FS
+                if (load_settings()) {
+                    Serial.println(F("[WiFiSetup] Loaded saved settings"));
+                    m_wifi_manager->update_config(m_config.has_value() ? m_config.value() : server_config_t());
+                }
+
+                // Инициализация WiFi менеджера (он сам решит подключаться или запускать AP)
+                if (m_wifi_manager->begin())
+                {
+                    m_initialized = true;
+                    start_http_server();
+                    return true;
+                }
+
+                Serial.println(F("[WiFiSetup] WiFi manager begin() failed"));
+                return false;
+            }
+
+            // Старая логика без WiFi менеджера (обратная совместимость)
             // Попытка загрузки сохранённых настроек
             if (load_settings()) {
                 Serial.println(F("[WiFiSetup] Loaded saved settings"));
@@ -175,6 +202,14 @@ namespace etl
             }
 
             Serial.println(F("[WiFiSetup] Stopping..."));
+
+            // Отписка от WiFi менеджера
+            if (m_wifi_manager && m_subscribed_to_wifi_status)
+            {
+                m_wifi_manager->unsubscribe_status(m_wifi_subscriber_id);
+                m_subscribed_to_wifi_status = false;
+                Serial.println(F("[WiFiSetup] Unsubscribed from WiFi manager"));
+            }
 
             // Остановка mDNS
             MDNS.end();
@@ -430,7 +465,87 @@ namespace etl
             m_config = cfg;
         }
 
-        int32_t web_server_base_t::scan_networks(std::vector<scan_result_t>& results)
+        // ============================================================================
+        // WiFi менеджер интеграция
+        // ============================================================================
+
+        void web_server_base_t::set_wifi_manager(etl::shared_ptr<etl::wifi::manager> wifi_mgr)
+        {
+            // Отписка от предыдущего менеджера
+            if (m_wifi_manager && m_subscribed_to_wifi_status)
+            {
+                m_wifi_manager->unsubscribe_status(m_wifi_subscriber_id);
+                m_subscribed_to_wifi_status = false;
+            }
+
+            m_wifi_manager = wifi_mgr;
+
+            // Подписка на уведомления от нового менеджера
+            if (m_wifi_manager)
+            {
+                m_wifi_subscriber_id = static_cast<etl::settings::sender_id>(
+                    static_cast<uint8_t>(etl::settings::sender_id::user1) + (s_instance_counter++ % 3)
+                );
+
+                auto cb = [this](etl::wifi::status_t status) {
+                    this->on_wifi_status_changed(status);
+                };
+
+                if (m_wifi_manager->subscribe_status(m_wifi_subscriber_id, cb))
+                {
+                    m_subscribed_to_wifi_status = true;
+                    Serial.println(F("[WebUI] Subscribed to WiFi manager status changes"));
+                }
+            }
+        }
+
+        etl::shared_ptr<etl::wifi::manager> web_server_base_t::get_wifi_manager() const
+        {
+            return m_wifi_manager;
+        }
+
+        void web_server_base_t::ensure_wifi_manager()
+        {
+            if (!m_wifi_manager)
+            {
+                Serial.println(F("[WebUI] Creating local WiFi manager"));
+                server_config_t config;
+                if (m_config.has_value()) {
+                    config = m_config.value();
+                }
+                m_wifi_manager = etl::make_shared<etl::wifi::manager>(config);
+            }
+        }
+
+        void web_server_base_t::on_wifi_status_changed(etl::wifi::status_t status)
+        {
+            // Обновление статуса подключения на основе статуса WiFi менеджера
+            switch (status)
+            {
+                case etl::wifi::status_t::connected_sta:
+                case etl::wifi::status_t::ap_sta_mode:
+                    m_connection_status = connection_status_t::connected;
+                    break;
+
+                case etl::wifi::status_t::ap_mode:
+                    m_connection_status = connection_status_t::disconnected;
+                    break;
+
+                case etl::wifi::status_t::connecting:
+                    m_connection_status = connection_status_t::disconnected;
+                    break;
+
+                case etl::wifi::status_t::disconnected:
+                case etl::wifi::status_t::error:
+                    m_connection_status = connection_status_t::error;
+                    break;
+            }
+
+            Serial.printf("[WebUI] WiFi status changed to: %d, connection_status: %d\n",
+                          static_cast<int>(status), static_cast<int>(m_connection_status));
+        }
+
+        int32_t web_server_base_t::scan_networks(etl::vector<scan_result_t>& results)
         {
             Serial.println(F("[WiFiSetup] Scanning networks..."));
 
@@ -474,11 +589,19 @@ namespace etl
                               i + 1, result.ssid.c_str(), result.rssi, result.encryption.c_str());
             }
 
-            // Сортировка по уровню сигнала (убывание)
-            std::sort(results.begin(), results.end(),
-                      [](const scan_result_t& a, const scan_result_t& b) {
-                          return a.rssi > b.rssi;
-                      });
+            // Сортировка по уровню сигнала (убывание) - bubble sort для etl::vector
+            for (size_t i = 0; i < results.size(); ++i)
+            {
+                for (size_t j = i + 1; j < results.size(); ++j)
+                {
+                    if (results[j].rssi > results[i].rssi)
+                    {
+                        scan_result_t temp = results[i];
+                        results[i] = results[j];
+                        results[j] = temp;
+                    }
+                }
+            }
 
             WiFi.scanDelete();
             return count;

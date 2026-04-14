@@ -26,7 +26,9 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "etl/etl_vector.h"
 #include "etl_webui_settings.h"
+#include "etl_wifi.h"
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
 #if defined(ESP8266)
@@ -94,6 +96,22 @@ namespace etl
              * @param cb Функция обратного вызова
              */
             void set_on_factory_reset_callback(on_factory_reset_t cb);
+
+            /**
+             * @brief Установить ссылку на WiFi менеджер
+             *
+             * При использовании внешнего WiFi менеджера, сервер делегирует
+             * ему WiFi операции и подписывается на уведомления о статусе.
+             *
+             * @param wifi_mgr Указатель на WiFi менеджер
+             */
+            void set_wifi_manager(etl::shared_ptr<etl::wifi::manager> wifi_mgr);
+
+            /**
+             * @brief Получить указатель на WiFi менеджер
+             * @return Указатель или nullptr если не установлен
+             */
+            etl::shared_ptr<etl::wifi::manager> get_wifi_manager() const;
 
             /**
              * @brief Инициализация WiFi сервера
@@ -242,7 +260,7 @@ namespace etl
              * @param results Вектор для результатов сканирования
              * @return Количество найденных сетей
              */
-            virtual int32_t scan_networks(std::vector<scan_result_t>& results);
+            virtual int32_t scan_networks(etl::vector<scan_result_t>& results);
 
             /**
              * @brief Подключение к WiFi сети
@@ -309,6 +327,14 @@ namespace etl
             virtual void update_connection_status();
 
             /**
+             * @brief Обработчик уведомления о смене статуса WiFi
+             *
+             * Вызывается при изменении статуса WiFi менеджера.
+             * @param status Новый статус WiFi
+             */
+            virtual void on_wifi_status_changed(etl::wifi::status_t status);
+
+            /**
              * @brief Получить тип шифрования из WiFi.encryptionType()
              * @param type Тип шифрования
              * @return Строковое представление типа шифрования
@@ -340,7 +366,7 @@ namespace etl
              */
             virtual void send_error_response(const String& message);
 
-        protected:  
+        protected:
             // Data section
             etl::optional<server_config_t> m_config;                ///< Конфигурация WiFi (опционально)
             etl::optional<ui_config_t> m_ui_config;                 ///< Конфигурация интерфейса (опционально)
@@ -348,7 +374,7 @@ namespace etl
             bool m_initialized = false;                             ///< Флаг инициализации
             connection_status_t m_connection_status = connection_status_t::disconnected;  ///< Статус подключения
             etl::shared_ptr<etl_web_server_t> m_server;             ///< HTTP сервер
-            std::vector<scan_result_t> m_scan_cache;                ///< Кэш результатов сканирования
+            etl::vector<scan_result_t> m_scan_cache;                ///< Кэш результатов сканирования
             uint32_t m_scan_timestamp = 0;                          ///< Время последнего сканирования
 
             // Константы для хранения настроек
@@ -360,12 +386,26 @@ namespace etl
             on_content_callback_t  m_on_content_cb = nullptr;       ///< Callback для сервера контента
             on_factory_reset_t     m_on_factory_reset_cb = nullptr; ///< Callback для сброса настроек
 
+            // WiFi менеджер (опционально)
+            etl::shared_ptr<etl::wifi::manager> m_wifi_manager;     ///< Указатель на внешний WiFi менеджер
+            etl::settings::sender_id m_wifi_subscriber_id;          ///< Идентификатор подписчика на статус WiFi
+            bool m_subscribed_to_wifi_status = false;               ///< Флаг подписки на статус WiFi
+
             // Флаги отложенных callback'ов (выполняются в tick() после завершения обработки запроса)
             volatile bool m_pending_settings_cb = false;    ///< Ожидание callback настроек
             volatile bool m_pending_content_cb = false;     ///< Ожидание callback контента
             volatile bool m_pending_factory_reset_cb = false; ///< Ожидание callback сброса
             volatile uint8_t m_pending_cb_counter = 0;      ///< Счётчик тиков до выполнения callback
             static const uint8_t PENDING_CB_TICKS = 10;     ///< Сколько тиков ждать перед callback (достаточно для отправки ответа)
+
+        private:
+            // Статические члены для callback
+            inline static uint8_t s_instance_counter = 0;                   ///< Счётчик экземпляров для генерации subscriber_id
+
+            /**
+             * @brief Создать локальный экземпляр WiFi менеджера если не установлен внешний
+             */
+            void ensure_wifi_manager();
 
         };
 
