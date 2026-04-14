@@ -12,7 +12,8 @@
       "Bash(\"c:\\users\\jimor\\.platformio\\penv\\scripts\\platformio.exe\" *)",
       "Bash(platformio *)",
       "Bash(powershell *)",
-      "Bash(del *)"
+      "Bash(del *)",
+      "WebFetch(kotyara12.ru)"
     ]
   },
   "$version": 3
