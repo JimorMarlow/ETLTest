@@ -27,3 +27,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Secrets (passwords, API keys, etc.) - stored in private ETLSecrets repo
+src/secret.h
