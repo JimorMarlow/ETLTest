@@ -37,6 +37,42 @@ public:
     {
     }
 
+    /**
+     * @brief Проверка наличия WiFi соединения
+     * @return true если WiFi подключён
+     *
+     * Проверяет напрямую через WiFi.status(), т.к. light_control_server
+     * подключается напрямую через WiFi.begin(), а не через etl::wifi::manager
+     */
+    bool is_wifi_connected() const
+    {
+        return (WiFi.status() == WL_CONNECTED);
+    }
+
+    /**
+     * @brief Получить WiFi менеджер для MQTT
+     * @return Указатель на WiFi менеджер или nullptr
+     *
+     * Создаёт etl::wifi::manager при первом вызове.
+     * begin() обнаружит существующее WiFi подключение и не перезапустит его.
+     */
+    etl::shared_ptr<etl::wifi::manager> get_wifi_manager() const
+    {
+        if (!m_wifi_manager) {
+            Serial.println(F("[LightWebUIMgr] Creating WiFi manager for MQTT..."));
+            m_wifi_manager = etl::make_shared<etl::wifi::manager>(
+                etl::webui::server_config_t{}
+            );
+            // begin() обнаружит существующее WiFi подключение
+            if (m_wifi_manager) {
+                m_wifi_manager->begin();
+                Serial.printf("[LightWebUIMgr] WiFi manager created, status: %d\n",
+                              static_cast<int>(m_wifi_manager->get_status()));
+            }
+        }
+        return m_wifi_manager;
+    }
+
 protected:
     /**
      * @brief Создать сервер контента
@@ -98,6 +134,9 @@ private:
     // Статические указатели для callback'ов (т.к. лямбды не могут быть преобразованы в указатели на функции)
     inline static light_webui_mgr* s_content_server_ptr = nullptr;
     inline static light_webui_mgr* s_settings_server_ptr = nullptr;
+
+    // WiFi менеджер для MQTT (создаётся по требованию)
+    mutable etl::shared_ptr<etl::wifi::manager> m_wifi_manager;
 
     /**
      * @brief Статическая обёртка для callback настроек

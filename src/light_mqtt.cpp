@@ -9,10 +9,7 @@
 
 #include "light_mqtt.h"
 #include "secret.h"
-
-// Подключение light_control
-// Замените на актуальный путь к вашему модулю управления светом
-// #include "light_control_data.h"
+#include "light_webui.h"
 
 namespace etl
 {
@@ -35,8 +32,7 @@ namespace etl
             Serial.println(F("[light_mqtt] Destructor"));
         }
 
-        bool light_manager::begin(etl::shared_ptr<etl::wifi::manager> wifi_mgr,
-                                   light_control::data::app* light_app)
+        bool light_manager::begin(etl::shared_ptr<etl::wifi::manager> wifi_mgr)
         {
             Serial.println(F("[light_mqtt] begin()"));
 
@@ -50,14 +46,6 @@ namespace etl
                 Serial.println(F("[light_mqtt] ERROR: wifi_mgr is null"));
                 return false;
             }
-
-            if (!light_app)
-            {
-                Serial.println(F("[light_mqtt] ERROR: light_app is null"));
-                return false;
-            }
-
-            m_light_app = light_app;
 
             // Создание конфигурации MQTT
             mqtt::config_t config;
@@ -98,7 +86,30 @@ namespace etl
                 return false;
             }
 
-            // Настройка подписок
+            // Подписка на изменения light_control::data::app()
+            // При изменении данных из webui - публикуем состояние в MQTT
+            m_light_subscribed = light_control::data::app().subscribe(
+                etl::settings::sender_id::mqtt,
+                [this](etl::settings::sender_id source) {
+                    // Если изменения пришли НЕ от mqtt (например из webui), публикуем в MQTT
+                    if (source != etl::settings::sender_id::mqtt)
+                    {
+                        Serial.println(F("[light_mqtt] light_control data changed (not from MQTT), publishing state"));
+                        publish_current_state();
+                    }
+                }
+            );
+
+            if (m_light_subscribed)
+            {
+                Serial.println(F("[light_mqtt] Subscribed to light_control::data::app()"));
+            }
+            else
+            {
+                Serial.println(F("[light_mqtt] WARNING: Failed to subscribe to light_control data"));
+            }
+
+            // Настройка подписок на MQTT топики
             setup_subscriptions();
 
             Serial.println(F("[light_mqtt] Initialized successfully"));
@@ -109,13 +120,19 @@ namespace etl
         {
             Serial.println(F("[light_mqtt] stop()"));
 
+            // Отписка от light_control::data::app()
+            if (m_light_subscribed)
+            {
+                light_control::data::app().unsubscribe(etl::settings::sender_id::mqtt);
+                m_light_subscribed = false;
+                Serial.println(F("[light_mqtt] Unsubscribed from light_control data"));
+            }
+
             if (m_mqtt_mgr)
             {
                 m_mqtt_mgr->stop();
                 m_mqtt_mgr = nullptr;
             }
-
-            m_light_app = nullptr;
         }
 
         void light_manager::tick()
@@ -124,25 +141,6 @@ namespace etl
             {
                 m_mqtt_mgr->tick();
             }
-        }
-
-        void light_manager::publish_light_state(bool power, uint8_t brightness)
-        {
-            if (!m_mqtt_mgr || !m_mqtt_mgr->is_connected())
-            {
-                return;
-            }
-
-            // Публикация состояния питания
-            String power_payload = power ? "1" : "0";
-            m_mqtt_mgr->publish(String(TOPIC_POWER_STATE), power_payload, true);
-
-            // Публикация яркости
-            String brightness_payload = String(brightness);
-            m_mqtt_mgr->publish(String(TOPIC_BRIGHTNESS_STATE), brightness_payload, true);
-
-            Serial.printf("[light_mqtt] Published state: power=%s, brightness=%d\n",
-                          power ? "ON" : "OFF", brightness);
         }
 
         bool light_manager::is_connected() const
@@ -173,12 +171,16 @@ namespace etl
             // Обработка топика питания
             if (topic == String(TOPIC_POWER_SET))
             {
-                if (m_light_app)
+                bool power = (payload == "1" || payload.equalsIgnoreCase("on") || payload.equalsIgnoreCase("true"));
+                Serial.printf("[light_mqtt] Setting power: %s\n", power ? "ON" : "OFF");
+
+                // Применяем изменение к устройству
+                if (auto current = light_control::data::app().get(); current)
                 {
-                    bool power = (payload == "1" || payload.equalsIgnoreCase("on") || payload.equalsIgnoreCase("true"));
-                    Serial.printf("[light_mqtt] Setting power: %s\n", power ? "ON" : "OFF");
-                    // m_light_app->set_power(power);
-                    // Раскомментируйте при наличии реализации
+                    light_control::data::kitchen_light_t updated = *current;
+                    updated.power = power;
+                    // Устанавливаем данные с идентификатором mqtt, чтобы webui обновился
+                    light_control::data::app().set(updated, etl::settings::sender_id::mqtt);
                 }
                 return;
             }
@@ -186,13 +188,17 @@ namespace etl
             // Обработка топика яркости
             if (topic == String(TOPIC_BRIGHTNESS_SET))
             {
-                if (m_light_app)
+                float brightness = payload.toFloat();
+                brightness = constrain(brightness, 0.0f, 100.0f);
+                Serial.printf("[light_mqtt] Setting brightness: %.1f\n", brightness);
+
+                // Применяем изменение к устройству
+                if (auto current = light_control::data::app().get(); current)
                 {
-                    int brightness = payload.toInt();
-                    brightness = constrain(brightness, 0, 100);
-                    Serial.printf("[light_mqtt] Setting brightness: %d\n", brightness);
-                    // m_light_app->set_brightness(brightness);
-                    // Раскомментируйте при наличии реализации
+                    light_control::data::kitchen_light_t updated = *current;
+                    updated.brightness = brightness;
+                    // Устанавливаем данные с идентификатором mqtt, чтобы webui обновился
+                    light_control::data::app().set(updated, etl::settings::sender_id::mqtt);
                 }
                 return;
             }
@@ -207,11 +213,7 @@ namespace etl
             case mqtt::status_t::connected:
                 Serial.println(F("[light_mqtt] Connected to MQTT broker"));
                 // Публикация начального состояния при подключении
-                if (m_light_app)
-                {
-                    // publish_light_state(m_light_app->get_power(), m_light_app->get_brightness());
-                    // Раскомментируйте при наличии реализации
-                }
+                publish_current_state();
                 break;
 
             case mqtt::status_t::disconnected:
@@ -224,6 +226,29 @@ namespace etl
 
             default:
                 break;
+            }
+        }
+
+        void light_manager::publish_current_state()
+        {
+            if (!m_mqtt_mgr || !m_mqtt_mgr->is_connected())
+            {
+                return;
+            }
+
+            // Чтение текущего состояния
+            if (auto current = light_control::data::app().get(); current)
+            {
+                // Публикация состояния питания
+                String power_payload = current->power ? "1" : "0";
+                m_mqtt_mgr->publish(String(TOPIC_POWER_STATE), power_payload, true);
+
+                // Публикация яркости
+                String brightness_payload = String(static_cast<int>(current->brightness));
+                m_mqtt_mgr->publish(String(TOPIC_BRIGHTNESS_STATE), brightness_payload, true);
+
+                Serial.printf("[light_mqtt] Published state: power=%s, brightness=%.1f\n",
+                              current->power ? "ON" : "OFF", current->brightness);
             }
         }
 

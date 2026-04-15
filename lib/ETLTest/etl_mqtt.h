@@ -18,6 +18,14 @@
 
 #if defined(ESP8266) || defined(ESP32)
 
+#if defined(ESP8266)
+  #include <WiFiClientSecureBearSSL.h>
+  using mqtt_secure_client_t = WiFiClient;
+#elif defined(ESP32)
+  #include <WiFiClientSecure.h>
+  using mqtt_secure_client_t = WiFiClientSecure;
+#endif
+
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <WiFiClient.h>

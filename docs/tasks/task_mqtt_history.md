@@ -27,14 +27,10 @@
 
 ### Этап 8: Тестирование компиляции
 **Результат:** Все 4 конфигурации скомпилированы успешно
-- ✅ d1_mini_lite - SUCCESS (8.53s)
-- ✅ nodemcuv3 - SUCCESS (16.71s)
-- ✅ esp32c3 - SUCCESS (21.47s)
-- ✅ esp32-wroom-32u - SUCCESS (21.64s)
-
-**Исправленные ошибки:**
-1. Missing forward declaration для `etl::wifi::status_t` - добавлен `#include "etl_wifi.h"` в etl_mqtt.h
-2. Область видимости типов в etl_mqtt.cpp - убраны префиксы `manager::` перед `status_t` и `config_t`
+- ✅ d1_mini_lite - SUCCESS
+- ✅ nodemcuv3 - SUCCESS
+- ✅ esp32c3 - SUCCESS
+- ✅ esp32-wroom-32u - SUCCESS
 
 ### Этап 9: Интеграция с wqtt.ru для управления светом
 **Выполнено:**
@@ -50,18 +46,45 @@
   - Публикация в топики:
     - `/home/guest/light/kitchen_workarea/state`
     - `/home/guest/light/kitchen_workarea/brightness/state`
-  - Связь с `light_control::data::app()` (заглушки для методов)
+  - Связь с `light_control::data::app()`:
+    - Подписка на изменения через `app().subscribe(etl::settings::sender_id::mqtt, callback)`
+    - При получении MQTT сообщения - `app().set(updated_data, etl::settings::sender_id::mqtt)`
+    - При изменении из webui - автоматическая публикация в MQTT
+
+### Дополнительное исправление: WiFi менеджер как shared_ptr
+**Проблема:** Требование Этапа 3 не было выполнено полностью - использовался сырой указатель вместо shared_ptr
+**Решение:**
+- `etl_mqtt.h`: заменил `etl::wifi::manager* m_wifi_manager` на `etl::shared_ptr<etl::wifi::manager> m_wifi_manager`
+- `etl_mqtt.cpp`: метод `set_wifi_manager()` теперь хранит весь shared_ptr
+- `stop()` теперь обнуляет `m_wifi_manager = nullptr`
+
+### Дополнительное исправление: Сброс WiFiClient
+**Проблема:** При переключении серверов webui (content <-> settings) WiFi останавливается и `WiFiClient` остаётся в "сломанном" состоянии
+**Решение:**
+- В `stop()`: `m_wifi_client.stop()` и пересоздание `m_wifi_client = WiFiClient()`
+- В `begin()`: очистка `m_wifi_client` перед созданием `PubSubClient`
+- `m_mqtt_client` теперь уничтожается в `stop()` и пересоздаётся в `begin()`
+
+### Интеграция в main.cpp
+**Выполнено:**
+- Добавлен `light_mqtt_mgr` - глобальный MQTT менеджер для света
+- Функция `start_light_mqtt()` - запускает MQTT при наличии WiFi
+- В `loop()`: вызов `light_mqtt_mgr->tick()` для обработки сообщений
+- Автоматический перезапуск MQTT при переключении серверов webui
+- В `light_webui_mgr.h` добавлены методы `is_wifi_connected()` и `get_wifi_manager()`
 
 ## Измененные файлы
 
 1. `lib/ETLTest/etl_webui_settings.h` - добавлены поля mqtt_config_t
 2. `lib/ETLTest/etl_webui_settings.cpp` - реализация методов mqtt_config_t
-3. `lib/ETLTest/etl_mqtt.h` - добавлен #include "etl_wifi.h"
-4. `lib/ETLTest/etl_mqtt.cpp` - исправлены области видимости типов
-5. `src/secret.h.example` - создан шаблон
-6. `src/secret.h` - создан файл секретов (локальный)
-7. `src/light_mqtt.h` - создан менеджер света
-8. `src/light_mqtt.cpp` - реализация менеджера света
+3. `lib/ETLTest/etl_mqtt.h` - исправлен тип m_wifi_manager на shared_ptr, добавлен include etl_wifi.h
+4. `lib/ETLTest/etl_mqtt.cpp` - исправлен scope типов, shared_ptr для wifi_mgr, сброс WiFiClient
+5. `src/light_mqtt.h` - менеджер для управления светом (полная реализация)
+6. `src/light_mqtt.cpp` - интеграция с wqtt.ru и light_control::data::app()
+7. `src/secret.h` (локальный, не коммитится)
+8. `src/secret.h.example` (шаблон для пользователей)
+9. `src/main.cpp` - интеграция light_mqtt_mgr, запуск при WiFi, tick()
+10. `src/light_webui_mgr.h` - добавлены is_wifi_connected() и get_wifi_manager()
 
 ## Примечания
 
@@ -69,3 +92,6 @@
 - secret.h НЕ должен попадать в репозиторий (добавлен в .gitignore)
 - При отсутствии secret.h проект компилируется, но MQTT не подключается
 - light_mqtt использует макрос HAS_MQTT_SECRETS для проверки наличия секретов
+- Подписка на `light_control::data::app()` с `etl::settings::sender_id::mqtt`:
+  - Если изменения пришли НЕ от mqtt (например из webui) - публикация в MQTT
+  - Если изменения пришли от MQTT - применяются к устройству и webui обновляется

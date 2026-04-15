@@ -27,9 +27,14 @@ simulation_t simulation_data;
 #include "etl_webui.h"
 #include "light_webui.h"
 #include "light_webui_mgr.h"
+#include "light_mqtt.h"
 #include "etl/etl_littlefs.h"
 
 etl::shared_ptr<light_control::light_webui_mgr> webui_manager;   // Менеджер управления серверами
+etl::shared_ptr<etl::mqtt::light_manager> light_mqtt_mgr;        // MQTT менеджер для управления светом
+
+// Forward declaration
+bool start_light_mqtt();
 
 bool start_wifi_server() {
     // setup available wi-fi points
@@ -58,7 +63,51 @@ bool start_wifi_server() {
         webui_manager->start_content();
     }
 
+    // Создание MQTT менеджера для управления светом
+    // Запускается при наличии WiFi соединения
+    start_light_mqtt();
+
     return webui_manager->trace_connection();
+}
+
+/**
+ * @brief Запуск MQTT менеджера для управления светом
+ * 
+ * Вызывается при старте WiFi. Если MQTT не запущен и WiFi активен - запускает.
+ * Если менеджер уже создан - ничего не делает (он сам переподключается через tick()).
+ */
+bool start_light_mqtt() {
+    // Если MQTT менеджер уже создан - не пересоздаём
+    // Он сам пытается переподключиться через tick()
+    if (light_mqtt_mgr) {
+        return true;
+    }
+
+    // Проверяем наличие WiFi соединения через webui_manager
+    if (!webui_manager || !webui_manager->is_wifi_connected()) {
+        Serial.println(F("[MQTT] WiFi not connected, skipping MQTT start"));
+        return false;
+    }
+
+    Serial.println(F("[MQTT] WiFi connected, starting MQTT light manager..."));
+
+    // Получаем WiFi менеджер из webui_manager
+    auto wifi_mgr = webui_manager->get_wifi_manager();
+    if (!wifi_mgr) {
+        Serial.println(F("[MQTT] ERROR: WiFi manager not available"));
+        return false;
+    }
+
+    // Создание и запуск MQTT менеджера
+    light_mqtt_mgr = etl::make_shared<etl::mqtt::light_manager>();
+    if (light_mqtt_mgr) {
+        bool result = light_mqtt_mgr->begin(wifi_mgr);
+        Serial.printf("[MQTT] light_manager begin: %s\n", result ? "OK" : "FAILED");
+        return result;
+    }
+
+    Serial.println(F("[MQTT] ERROR: Failed to create light_manager"));
+    return false;
 }
 #endif//USE_WIFI_UI_SERVER
 //////////////////////////////////////////////////////////////
@@ -124,6 +173,16 @@ void loop() {
 #ifdef USE_WIFI_UI_SERVER
     if(webui_manager) {
         webui_manager->tick();        // Обновление статуса WiFi и обработка HTTP запросов
+
+        // Запуск MQTT при наличии WiFi (создаёт менеджер один раз, дальше он работает сам)
+        if (webui_manager->is_wifi_connected()) {
+            start_light_mqtt();
+        }
+    }
+
+    // Обработка MQTT сообщений (менеджер сам занимается переподключением через tick())
+    if (light_mqtt_mgr) {
+        light_mqtt_mgr->tick();
     }
 #endif// USE_WIFI_UI_SERVER
 }

@@ -18,14 +18,8 @@
 
 #include <Arduino.h>
 #include "etl_mqtt.h"
+#include "light_webui.h"
 #include "etl/etl_memory.h"
-
-// Forward declaration
-namespace light_control {
-    namespace data {
-        class app;
-    }
-}
 
 namespace etl
 {
@@ -56,11 +50,9 @@ namespace etl
              * Настраивает подключение к wqtt.ru и подписку на топики.
              *
              * @param wifi_mgr Указатель на WiFi менеджер
-             * @param light_app Указатель на приложение управления светом
              * @return true при успешной инициализации
              */
-            bool begin(etl::shared_ptr<etl::wifi::manager> wifi_mgr,
-                       light_control::data::app* light_app);
+            bool begin(etl::shared_ptr<etl::wifi::manager> wifi_mgr);
 
             /**
              * @brief Остановка менеджера
@@ -74,17 +66,6 @@ namespace etl
              * и обработки входящих сообщений.
              */
             void tick();
-
-            /**
-             * @brief Публикация состояния света
-             *
-             * Вызывать при изменении состояния света для отправки
-             * актуальных данных в MQTT.
-             *
-             * @param power Состояние питания (true/false)
-             * @param brightness Яркость (0-100)
-             */
-            void publish_light_state(bool power, uint8_t brightness);
 
             /**
              * @brief Проверка подключения к MQTT
@@ -112,12 +93,19 @@ namespace etl
              */
             void on_mqtt_status_changed(mqtt::status_t status);
 
+            /**
+             * @brief Публикация текущего состояния света
+             *
+             * Считывает данные из light_control::data::app() и публикует в MQTT
+             */
+            void publish_current_state();
+
         protected:
             // MQTT менеджер
             etl::shared_ptr<etl::mqtt::manager> m_mqtt_mgr;
 
-            // Ссылка на приложение управления светом
-            light_control::data::app* m_light_app = nullptr;
+            // Флаг подписки на изменения light_control::data::app()
+            bool m_light_subscribed = false;
 
             // Топики
             static const char* TOPIC_POWER_SET;          ///< Топик установки питания
