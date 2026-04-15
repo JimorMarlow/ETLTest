@@ -52,7 +52,12 @@ namespace etl
                 return false;
             }
 
-            // Создание MQTT клиента
+            // Убедимся, что WiFi клиент в чистом состоянии
+            // (важно после stop() и переключения серверов webui)
+            m_wifi_client.stop();
+            m_wifi_client = WiFiClient();
+
+            // Создание MQTT клиента с обновлённым WiFi клиентом
             m_mqtt_client = etl::make_shared<PubSubClient>(m_wifi_client);
             if (!m_mqtt_client)
             {
@@ -78,6 +83,20 @@ namespace etl
         {
             Serial.println(F("[etl::mqtt::manager] stop()"));
 
+            // Отключение от брокера
+            if (m_mqtt_client && m_mqtt_client->connected())
+            {
+                m_mqtt_client->disconnect();
+            }
+
+            // Уничтожение MQTT клиента (он использует m_wifi_client, который теперь "сломан")
+            m_mqtt_client = nullptr;
+
+            // Сброс WiFi клиента - при следующем begin() будет создан новый
+            // Это важно при переключении серверов webui, когда WiFi останавливается
+            m_wifi_client.stop();
+            m_wifi_client = WiFiClient();
+
             // Отписка от WiFi менеджера
             if (m_wifi_manager && m_wifi_subscribed)
             {
@@ -85,14 +104,11 @@ namespace etl
                 m_wifi_subscribed = false;
             }
 
-            // Отключение от брокера
-            if (m_mqtt_client && m_mqtt_client->connected())
-            {
-                m_mqtt_client->disconnect();
-            }
-
             // Очистка подписок
             m_subscription_count = 0;
+
+            // Очистка WiFi менеджера
+            m_wifi_manager = nullptr;
 
             m_status = status_t::disconnected;
             m_wifi_connected = false;
@@ -324,7 +340,7 @@ namespace etl
                 m_wifi_subscribed = false;
             }
 
-            m_wifi_manager = wifi_mgr.get();
+            m_wifi_manager = wifi_mgr;
 
             // Подписка на уведомления от нового менеджера
             if (m_wifi_manager)

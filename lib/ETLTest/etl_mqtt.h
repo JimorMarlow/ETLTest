@@ -309,7 +309,7 @@ namespace etl
             status_t m_status = status_t::disconnected;             ///< Текущий статус подключения
 
             // WiFi менеджер
-            etl::wifi::manager* m_wifi_manager = nullptr;           ///< Ссылка на WiFi менеджер
+            etl::shared_ptr<etl::wifi::manager> m_wifi_manager;     ///< Указатель на WiFi менеджер
             bool m_wifi_subscribed = false;                         ///< Флаг подписки на статус WiFi
 
             // PubSubClient
