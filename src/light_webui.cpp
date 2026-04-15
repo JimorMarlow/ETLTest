@@ -160,6 +160,10 @@ namespace light_control
                     Serial.printf("[LightControl] Settings changed by source: %d (webui will be updated)\n", static_cast<uint8_t>(source));
                     // Данные изменились, веб-интерфейс получит их при следующем запросе через handle_api_state()
                     // Дополнительных действий не требуется, т.к. данные хранятся глобально
+                    if(auto value = data::app().get(); value)
+                    {
+                        Serial.printf("[LightControl] will set to webui: power=%s, brightness=%d\n", value->power ? "ON" : "OFF", int(value->brightness));
+                    }
                 }
             );
 
@@ -378,11 +382,16 @@ namespace light_control
 
         void light_control_server::handle_api_state()
         {
+            m_server->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            m_server->sendHeader("Pragma", "no-cache");
+            m_server->sendHeader("Expires", "0");
+
             JsonDocument doc;
-            
             if(auto current = data::app().get(); current) {
                 doc["power"] = current->power;
                 doc["brightness"] = current->brightness;
+                // Отладка: лог в Serial
+                Serial.printf("[LightControl] /api/state: power=%d, brightness=%.1f\n", current->power, current->brightness);
             } else {
                 // Значения по умолчанию
                 doc["power"] = false;

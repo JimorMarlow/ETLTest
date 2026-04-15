@@ -162,6 +162,52 @@ async function loadStatus(){try{const r=await fetch('/api/status');if(r.ok){cons
 async function loadState(){try{const r=await fetch('/api/state');if(r.ok){const d=await r.json();deviceState={power:d.power||false,brightness:d.brightness||100};updateUI()}}catch(e){console.log('State load error:',e)}}
 function init(){applyUIConfig();updateUI();setupEventListeners();loadDeviceInfo();loadUIConfig();loadStatus();loadState()}
 init();
+// ============================================================================
+// Автообновление состояния (поллинг)
+// ============================================================================
+let statePollInterval = null;
+function startStatePolling(intervalMs = 2000) {
+    if (statePollInterval) clearInterval(statePollInterval);
+    statePollInterval = setInterval(async () => {
+        try {
+            const r = await fetch('/api/state', { cache: 'no-store' });
+            if (r.ok) {
+                const d = await r.json();
+                // Обновляем только если данные реально изменились
+                if (d.power !== deviceState.power || d.brightness !== deviceState.brightness) {
+                    console.log('[UI] State updated from server:', d);
+                    deviceState = {
+                        power: d.power || false,
+                        brightness: d.brightness || 100
+                    };
+                    updateUI();
+                }
+            }
+        } catch (e) {
+            // Тихо игнорируем ошибки сети (устройство может быть временно недоступно)
+            // console.log('[UI] Poll error:', e);
+        }
+    }, intervalMs);
+    console.log('[UI] State polling started:', intervalMs + 'ms');
+}
+function stopStatePolling() {
+    if (statePollInterval) {
+        clearInterval(statePollInterval);
+        statePollInterval = null;
+        console.log('[UI] State polling stopped');
+    }
+}
+// Запускаем поллинг после инициализации
+document.addEventListener('visibilitychange', () => {
+    // Паузим поллинг, когда вкладка неактивна — экономия трафика и ресурсов ESP
+    if (document.hidden) {
+        stopStatePolling();
+    } else {
+        startStatePolling(2000);
+    }
+});
+// Старт при загрузке
+startStatePolling(2000);
 </script>
 </body>
 </html>)rawliteral";
