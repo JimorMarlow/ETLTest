@@ -204,19 +204,15 @@ namespace etl
          *
          * Содержит параметры для подключения к MQTT брокеру.
          * Сохраняется в энергонезависимой памяти через FileData.
-         *
-         * @note TODO: Реализовать функционал MQTT клиента
          */
         struct mqtt_config_t
         {
-            // TODO: Добавить поля для конфигурации MQTT
-            // Например:
-            // char broker_host[64] = "";
-            // uint16_t broker_port = 1883;
-            // char username[32] = "";
-            // char password[64] = "";
-            // char client_id[32] = "";
-            // bool enabled = false;
+            char broker_host[64] = "";                ///< Адрес брокера
+            uint16_t broker_port = 1883;              ///< Порт брокера
+            char username[32] = "";                   ///< Имя пользователя
+            char password[64] = "";                   ///< Пароль
+            char client_id[32] = "esp_mqtt";          ///< Идентификатор клиента
+            bool enabled = false;                     ///< Флаг включения MQTT
 
             /**
              * @brief Очистка конфигурации к значениям по умолчанию
@@ -227,6 +223,22 @@ namespace etl
              * @brief Вывод конфигурации в Serial
              */
             void trace() const;
+
+            // Setters
+            void set_broker_host(const String& value);
+            void set_broker_port(uint16_t value);
+            void set_username(const String& value);
+            void set_password(const String& value);
+            void set_client_id(const String& value);
+            void set_enabled(bool value);
+
+            // Getters
+            String get_broker_host() const;
+            uint16_t get_broker_port() const;
+            String get_username() const;
+            String get_password() const;
+            String get_client_id() const;
+            bool is_enabled() const;
         };
 
         /**

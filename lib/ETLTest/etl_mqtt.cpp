@@ -266,12 +266,12 @@ namespace etl
             return m_mqtt_client && m_mqtt_client->connected();
         }
 
-        manager::status_t manager::get_status() const
+        status_t manager::get_status() const
         {
             return m_status;
         }
 
-        const manager::config_t& manager::get_config() const
+        const config_t& manager::get_config() const
         {
             return m_config;
         }

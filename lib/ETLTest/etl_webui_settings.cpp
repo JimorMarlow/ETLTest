@@ -593,14 +593,96 @@ namespace etl
 
         void mqtt_config_t::clear()
         {
-            // TODO: Реализовать очистку полей при добавлении
+            memset(broker_host, 0, sizeof(broker_host));
+            memset(username, 0, sizeof(username));
+            memset(password, 0, sizeof(password));
+            memset(client_id, 0, sizeof(client_id));
+            
+            strncpy(client_id, "esp_mqtt", sizeof(client_id) - 1);
+            broker_port = 1883;
+            enabled = false;
         }
 
         void mqtt_config_t::trace() const
         {
             Serial.println(F("=== mqtt_config_t settings ==="));
-            Serial.println(F("TODO: Not implemented yet"));
+            Serial.printf("broker_host = %s\n", broker_host);
+            Serial.printf("broker_port = %u\n", broker_port);
+            Serial.printf("username    = %s\n", username);
+            Serial.println(F("password    = ***"));
+            Serial.printf("client_id   = %s\n", client_id);
+            Serial.printf("enabled     = %s\n", enabled ? "YES" : "NO");
             Serial.println(F("========================"));
+        }
+
+        // Setters
+        void mqtt_config_t::set_broker_host(const String& value)
+        {
+            memset(broker_host, 0, sizeof(broker_host));
+            strncpy(broker_host, value.c_str(), sizeof(broker_host) - 1);
+            broker_host[sizeof(broker_host) - 1] = '\0';
+        }
+
+        void mqtt_config_t::set_broker_port(uint16_t value)
+        {
+            broker_port = value;
+        }
+
+        void mqtt_config_t::set_username(const String& value)
+        {
+            memset(username, 0, sizeof(username));
+            strncpy(username, value.c_str(), sizeof(username) - 1);
+            username[sizeof(username) - 1] = '\0';
+        }
+
+        void mqtt_config_t::set_password(const String& value)
+        {
+            memset(password, 0, sizeof(password));
+            strncpy(password, value.c_str(), sizeof(password) - 1);
+            password[sizeof(password) - 1] = '\0';
+        }
+
+        void mqtt_config_t::set_client_id(const String& value)
+        {
+            memset(client_id, 0, sizeof(client_id));
+            strncpy(client_id, value.c_str(), sizeof(client_id) - 1);
+            client_id[sizeof(client_id) - 1] = '\0';
+        }
+
+        void mqtt_config_t::set_enabled(bool value)
+        {
+            enabled = value;
+        }
+
+        // Getters
+        String mqtt_config_t::get_broker_host() const
+        {
+            return String(broker_host);
+        }
+
+        uint16_t mqtt_config_t::get_broker_port() const
+        {
+            return broker_port;
+        }
+
+        String mqtt_config_t::get_username() const
+        {
+            return String(username);
+        }
+
+        String mqtt_config_t::get_password() const
+        {
+            return String(password);
+        }
+
+        String mqtt_config_t::get_client_id() const
+        {
+            return String(client_id);
+        }
+
+        bool mqtt_config_t::is_enabled() const
+        {
+            return enabled;
         }
 
     } // namespace webui

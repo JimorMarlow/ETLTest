@@ -25,6 +25,7 @@
 #include "etl/etl_settings.h"
 #include "etl/etl_memory.h"
 #include "etl_webui_settings.h"
+#include "etl_wifi.h"
 
 // Forward declaration
 namespace etl { namespace wifi { class manager; } }
