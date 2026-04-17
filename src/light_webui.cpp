@@ -14,6 +14,7 @@
 #include "light_webui_html.h"
 #include "etl/etl_littlefs.h"
 #include "etl/etl_settings.h"
+#include "light_mqtt.h"
 
 namespace light_control
 {
@@ -341,6 +342,11 @@ namespace light_control
                 doc["wifi"] = "sta";
             } else {
                 doc["wifi"] = "error";
+            }
+
+            // MQTT менеджер для управления светом
+            if (auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr(); light_mqtt_mgr) {
+                doc["mqtt"] = light_mqtt_mgr->is_connected() ? "connected" : "error";
             }
 
             String response;

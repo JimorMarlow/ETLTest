@@ -252,6 +252,15 @@ namespace etl
             }
         }
 
+        // MQTT менеджер для управления светом
+        etl::shared_ptr<etl::mqtt::light_manager> g_light_mqtt_mgr;
+        etl::shared_ptr<etl::mqtt::light_manager> get_light_mqtt_mgr() {
+            return g_light_mqtt_mgr;        
+        }
+        void set_light_mqtt_mgr(etl::shared_ptr<etl::mqtt::light_manager> mgr) {
+            g_light_mqtt_mgr = mgr;
+        }
+
     } // namespace mqtt
 } // namespace etl
 

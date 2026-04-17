@@ -42,7 +42,7 @@ namespace light_control
         {
             bool power = false;                   // Состояние питания (вкл/выкл)
             float brightness = 100.0f;           // Яркость [1..100], по умолчанию 100
-            bool restore_power_on_start = false;  // Восстановление питания при старте
+            bool restore_power_on_start = true;  // Восстановление питания при старте
 
             /**
              * @brief Очистка настроек к значениям по умолчанию
@@ -50,7 +50,7 @@ namespace light_control
             void clear() {
                 power = false;
                 brightness = 100.0f;
-                restore_power_on_start = false;
+                restore_power_on_start = true;
             }
 
             /**
@@ -61,6 +61,10 @@ namespace light_control
                 Serial.printf("power               = %s\n", power ? "ON" : "OFF");
                 Serial.printf("brightness          = %.1f\n", brightness);
                 Serial.printf("restore_power_start = %s\n", restore_power_on_start ? "YES" : "NO");
+            }
+
+            void trace(const String& name) const {
+                Serial.printf("[%s] power: %s; brightness: 🔆 %.1f;\n", name.c_str(), power ? "✅" : "🔳", brightness);
             }
 
             /**

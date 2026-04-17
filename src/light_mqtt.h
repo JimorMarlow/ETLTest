@@ -114,6 +114,9 @@ namespace etl
             static const char* TOPIC_BRIGHTNESS_STATE;   ///< Топик состояния яркости
         };
 
+        // MQTT менеджер для управления светом
+        etl::shared_ptr<etl::mqtt::light_manager> get_light_mqtt_mgr();        
+        void set_light_mqtt_mgr(etl::shared_ptr<etl::mqtt::light_manager> mgr);        
     } // namespace mqtt
 } // namespace etl
 

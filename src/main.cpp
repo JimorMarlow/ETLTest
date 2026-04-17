@@ -31,7 +31,6 @@ simulation_t simulation_data;
 #include "etl/etl_littlefs.h"
 
 etl::shared_ptr<light_control::light_webui_mgr> webui_manager;   // Менеджер управления серверами
-etl::shared_ptr<etl::mqtt::light_manager> light_mqtt_mgr;        // MQTT менеджер для управления светом
 
 // Forward declaration
 bool start_light_mqtt();
@@ -79,6 +78,7 @@ bool start_wifi_server() {
 bool start_light_mqtt() {
     // Если MQTT менеджер уже создан - не пересоздаём
     // Он сам пытается переподключиться через tick()
+    auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr();
     if (light_mqtt_mgr) {
         return true;
     }
@@ -103,6 +103,7 @@ bool start_light_mqtt() {
     if (light_mqtt_mgr) {
         bool result = light_mqtt_mgr->begin(wifi_mgr);
         Serial.printf("[MQTT] light_manager begin: %s\n", result ? "OK" : "FAILED");
+        etl::mqtt::set_light_mqtt_mgr(light_mqtt_mgr);
         return result;
     }
 
@@ -181,7 +182,7 @@ void loop() {
     }
 
     // Обработка MQTT сообщений (менеджер сам занимается переподключением через tick())
-    if (light_mqtt_mgr) {
+    if (auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr(); light_mqtt_mgr) {
         light_mqtt_mgr->tick();
     }
 #endif// USE_WIFI_UI_SERVER
