@@ -306,7 +306,7 @@ namespace etl
             virtual bool can_connect() const;
 
             // Константы
-            static const uint32_t RECONNECT_DELAY_MS = 5000;        ///< Задержка между попытками переподключения
+            static const uint32_t RECONNECT_DELAY_MS = 10000;       ///< Задержка между попытками переподключения
             static const uint32_t MQTT_LOOP_INTERVAL = 50;          ///< Минимальный интервал вызова loop()
 
         protected:
