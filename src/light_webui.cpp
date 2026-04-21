@@ -164,7 +164,10 @@ namespace light_control
                     if(auto value = data::app().get(); value)
                     {
                         Serial.printf("[LightControl] will set to webui: power=%s, brightness,🔆=%d\n", value->power ? "✅" : "🔳", int(value->brightness));
-                        m_update_UI = true; // обновить интерфейс и не слать обратно в сервер изменения до таймаута, чтобы избежать кольца
+                        // Если изменение пришло НЕ от webui — запоминаем время для блокировки "эха"
+                        if (source != etl::settings::sender_id::webui) {
+                            m_update_UI = true; // обновить интерфейс и не слать обратно в сервер изменения до таймаута, чтобы избежать кольца
+                        }                        
                     }
                 }
             );
