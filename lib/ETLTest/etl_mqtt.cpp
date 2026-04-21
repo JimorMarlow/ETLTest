@@ -100,7 +100,7 @@ namespace etl
             // Отписка от WiFi менеджера
             if (m_wifi_manager && m_wifi_subscribed)
             {
-                m_wifi_manager->unsubscribe_status(etl::settings::sender_id::user2);
+                m_wifi_manager->unsubscribe_status(etl::settings::sender_id::mqtt);
                 m_wifi_subscribed = false;
             }
 
@@ -336,7 +336,7 @@ namespace etl
             // Отписка от предыдущего менеджера
             if (m_wifi_manager && m_wifi_subscribed)
             {
-                m_wifi_manager->unsubscribe_status(etl::settings::sender_id::user2);
+                m_wifi_manager->unsubscribe_status(etl::settings::sender_id::mqtt);
                 m_wifi_subscribed = false;
             }
 
@@ -349,7 +349,7 @@ namespace etl
                     this->on_wifi_status_changed(status);
                 };
 
-                if (m_wifi_manager->subscribe_status(etl::settings::sender_id::user2, cb))
+                if (m_wifi_manager->subscribe_status(etl::settings::sender_id::mqtt, cb))
                 {
                     m_wifi_subscribed = true;
                     Serial.println(F("[etl::mqtt::manager] Subscribed to WiFi manager status"));

@@ -239,6 +239,7 @@ namespace light_control
 
         private:
             bool m_subscribed = false;  ///< Флаг подписки на изменения настроек
+            volatile bool m_update_UI = false; ///< Флаг указывающий, что нужно обновить UI по внешним данным
         };
 
     } // namespace webui

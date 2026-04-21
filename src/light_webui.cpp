@@ -163,7 +163,8 @@ namespace light_control
                     // Дополнительных действий не требуется, т.к. данные хранятся глобально
                     if(auto value = data::app().get(); value)
                     {
-                        Serial.printf("[LightControl] will set to webui: power=%s, brightness=%d\n", value->power ? "ON" : "OFF", int(value->brightness));
+                        Serial.printf("[LightControl] will set to webui: power=%s, brightness,🔆=%d\n", value->power ? "✅" : "🔳", int(value->brightness));
+                        m_update_UI = true; // обновить интерфейс и не слать обратно в сервер изменения до таймаута, чтобы избежать кольца
                     }
                 }
             );
@@ -394,14 +395,17 @@ namespace light_control
 
             JsonDocument doc;
             if(auto current = data::app().get(); current) {
+                bool update = m_update_UI; m_update_UI = false;    // reset after sending                
                 doc["power"] = current->power;
                 doc["brightness"] = current->brightness;
+                doc["update"] = update;
                 // Отладка: лог в Serial
-                Serial.printf("[LightControl] /api/state: power=%d, brightness=%.1f\n", current->power, current->brightness);
+                Serial.printf("[LightControl] /api/state: power=%d, brightness=%.1f, update=%s\n", current->power, current->brightness, update ? "true" : "false");
             } else {
                 // Значения по умолчанию
                 doc["power"] = false;
                 doc["brightness"] = 100.0f;
+                doc["update"] = false;
             }
 
             String response;
