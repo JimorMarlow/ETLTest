@@ -146,8 +146,7 @@ body.large-font .brightness-value.bold-val{font-weight:700}
 const translations={en:{brightness:'Brightness',powerOn:'Power ON',powerOff:'Power OFF',settings:'Settings'},ru:{brightness:'Яркость',powerOn:'Включено',powerOff:'Выключено',settings:'Настройки'}};
 let deviceState={power:false,brightness:100};
 let uiConfig={lang:'en',darkTheme:false,largeFont:false,useBoldValues:false};
-let lastExternalUpdate = 0;
-const EXTERNAL_LOCK_MS = 300; // echo-loop protection
+let statePollInterval=null,lastExternalUpdate=0;const EXTERNAL_LOCK_MS=300;
 const $=id=>document.getElementById(id);
 const deviceIconSmall=$('deviceIconSmall'),deviceName=$('deviceName'),deviceDescription=$('deviceDescription'),settingsBtn=$('settingsBtn'),powerBtn=$('powerBtn'),brightnessSlider=$('brightnessSlider'),brightnessValue=$('brightnessValue'),brightnessDown=$('brightnessDown'),brightnessUp=$('brightnessUp'),brightnessFill=$('brightnessFill'),connectionStates=$('connectionStates'),wifiIcon=$('wifiIcon');
 function applyUIConfig(){if(uiConfig.darkTheme)document.body.classList.add('dark-theme');else document.body.classList.remove('dark-theme');if(uiConfig.largeFont)document.body.classList.add('large-font');else document.body.classList.remove('large-font');if(uiConfig.useBoldValues)brightnessValue.classList.add('bold-val');else brightnessValue.classList.remove('bold-val');const t=translations[uiConfig.lang]||translations.en;document.querySelector('[data-i18n="brightness"]').textContent=t.brightness;settingsBtn.title=t.settings}
@@ -162,54 +161,11 @@ async function loadUIConfig(){try{const r=await fetch('/api/ui_config');if(r.ok)
 async function loadDeviceInfo(){try{const r=await fetch('/api/device_info');if(r.ok){const d=await r.json();deviceName.textContent=d.name;deviceDescription.textContent=d.description;if(d.icon_svg)deviceIconSmall.innerHTML=d.icon_svg}}catch(e){console.log('Device info load error:',e)}}
 async function loadStatus(){try{const r=await fetch('/api/status');if(r.ok){const s=await r.json();if(s.wifi==='ap'){wifiIcon.textContent='\u{1F4E1}';wifiIcon.classList.add('ap');wifiIcon.classList.remove('sta')}else if(s.wifi==='sta'){wifiIcon.textContent='\u{1F4F6}';wifiIcon.classList.add('sta');wifiIcon.classList.remove('ap')}else{wifiIcon.classList.remove('sta','ap')}}}catch(e){console.log('Status load error:',e)}}
 async function loadState(){try{const r=await fetch('/api/state');if(r.ok){const d=await r.json();deviceState={power:d.power||false,brightness:d.brightness||100};if(d.update)lastExternalUpdate=Date.now();updateUI()}}catch(e){console.log('State load error:',e)}}
-function init(){applyUIConfig();updateUI();setupEventListeners();loadDeviceInfo();loadUIConfig();loadStatus();loadState()}
+function startStatePolling(t=2000){if(statePollInterval)clearInterval(statePollInterval);statePollInterval=setInterval(async()=>{try{const r=await fetch('/api/state',{cache:'no-store'});if(r.ok){const d=await r.json();if(d.power!==deviceState.power||d.brightness!==deviceState.brightness){deviceState={power:d.power||false,brightness:d.brightness||100};updateUI();lastExternalUpdate=Date.now();}}}catch(e){}},t)}
+function stopStatePolling(){if(statePollInterval){clearInterval(statePollInterval);statePollInterval=null}}
+document.addEventListener('visibilitychange',()=>{document.hidden?stopStatePolling():startStatePolling(2000)});
+function init(){applyUIConfig();updateUI();setupEventListeners();loadDeviceInfo();loadUIConfig();loadStatus();loadState();startStatePolling(2000)}
 init();
-// ============================================================================
-// Автообновление состояния (поллинг)
-// ============================================================================
-let statePollInterval = null;
-function startStatePolling(intervalMs = 2000) {
-    if (statePollInterval) clearInterval(statePollInterval);
-    statePollInterval = setInterval(async () => {
-        try {
-            const r = await fetch('/api/state', { cache: 'no-store' });
-            if (r.ok) {
-                const d = await r.json();
-                // Обновляем только если данные реально изменились
-                if (d.power !== deviceState.power || d.brightness !== deviceState.brightness) {
-                    console.log('[UI] State updated from server:', d);
-                    deviceState = {
-                        power: d.power || false,
-                        brightness: d.brightness || 100
-                    };
-                    updateUI();
-                }
-            }
-        } catch (e) {
-            // Тихо игнорируем ошибки сети (устройство может быть временно недоступно)
-            // console.log('[UI] Poll error:', e);
-        }
-    }, intervalMs);
-    console.log('[UI] State polling started:', intervalMs + 'ms');
-}
-function stopStatePolling() {
-    if (statePollInterval) {
-        clearInterval(statePollInterval);
-        statePollInterval = null;
-        console.log('[UI] State polling stopped');
-    }
-}
-// Запускаем поллинг после инициализации
-document.addEventListener('visibilitychange', () => {
-    // Паузим поллинг, когда вкладка неактивна — экономия трафика и ресурсов ESP
-    if (document.hidden) {
-        stopStatePolling();
-    } else {
-        startStatePolling(2000);
-    }
-});
-// Старт при загрузке
-startStatePolling(2000);
 </script>
 </body>
 </html>)rawliteral";
