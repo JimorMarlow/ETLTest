@@ -349,9 +349,14 @@ namespace light_control
             }
 
             // MQTT менеджер для управления светом
-            if (auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr(); light_mqtt_mgr) {
-                doc["mqtt"] = light_mqtt_mgr->is_connected() ? "connected" : "error";
+            if (auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr(); light_mqtt_mgr && light_mqtt_mgr->is_connected()) {
+                doc["mqtt"] = "connected";
             }
+            else {
+                doc["mqtt"] = "error";
+            }
+            Serial.print(F("[light_control_server::handle_api_status] "));
+            Serial.println(doc["mqtt"].as<const char*>());
 
             String response;
             serializeJson(doc, response);
