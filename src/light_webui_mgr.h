@@ -12,7 +12,7 @@
  * - Устанавливает callback'и для переключения между серверами
  */
 
-#include "etl_webui_base.h"
+#include "etl/etl_webui_base.h"
 #include "light_webui.h"
 
 #if defined(ESP8266) || defined(ESP32)

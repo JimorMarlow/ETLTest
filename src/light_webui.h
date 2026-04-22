@@ -15,8 +15,8 @@
  *       Для хранения настроек устройства используется kitchen_light_t.
  */
 
-#include "etl_webui_base.h"
 #include "version.h"
+#include "etl/etl_webui_base.h"
 #include "etl/etl_settings.h"
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32

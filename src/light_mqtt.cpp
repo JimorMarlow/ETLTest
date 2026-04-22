@@ -7,8 +7,8 @@
 
 #if defined(ESP8266) || defined(ESP32)
 
-#include "light_mqtt.h"
 #include "secret.h"
+#include "light_mqtt.h"
 #include "light_webui.h"
 
 namespace etl

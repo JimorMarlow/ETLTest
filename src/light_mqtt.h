@@ -17,8 +17,8 @@
 #if defined(ESP8266) || defined(ESP32)
 
 #include <Arduino.h>
-#include "etl_mqtt.h"
 #include "light_webui.h"
+#include "etl/etl_mqtt.h"
 #include "etl/etl_memory.h"
 
 namespace etl
