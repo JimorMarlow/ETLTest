@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "rules/README.md"
+  ],
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://[fe80::7c90:2c3e:421:e0e2]:11434/v1"
+      },
+      "models": {
+        "batiai/qwen3.6-35b:iq4": {
+          "name": "Qwen 3.6 MoE (Coder)"
+        },
+        "batiai/qwen3.6-35b:q6": {
+          "name": "Qwen 3.6 35B Q6 (Thinker)"
+        }
+      }
+    }
+  }
+}
