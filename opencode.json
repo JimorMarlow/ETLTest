@@ -3,17 +3,19 @@
   "instructions": [
     "rules/README.md"
   ],
-  "model": "lmstudio/qwen/qwen3.6-27b",
   "provider": {
-    "lmstudio": {
+    "ollama": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "LM Studio (local)",
+      "name": "Ollama (local)",
       "options": {
-        "baseURL": "http://127.0.0.1:1234/v1"
+        "baseURL": "http://[fe80::7c90:2c3e:421:e0e2]:11434/v1"
       },
-      "models": {        
-        "qwen/qwen3.6-27b": {
-          "name": "Qwen 3.6 27B"
+      "models": {
+        "batiai/qwen3.6-35b:iq4": {
+          "name": "Qwen 3.6 MoE (Coder)"
+        },
+        "batiai/qwen3.6-35b:q6": {
+          "name": "Qwen 3.6 35B Q6 (Thinker)"
         }
       }
     }
