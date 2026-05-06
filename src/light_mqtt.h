@@ -21,104 +21,102 @@
 #include "etl/etl_mqtt.h"
 #include "etl/etl_memory.h"
 
-namespace etl
+namespace light_mqtt
 {
-    namespace mqtt
+    /**
+     * @brief Менеджер MQTT для управления светом
+     *
+     * Специализированная реализация для интеграции с wqtt.ru
+     * и управления освещением через light_control::data::app()
+     */
+    class light_manager
     {
+    public:
         /**
-         * @brief Менеджер MQTT для управления светом
-         *
-         * Специализированная реализация для интеграции с wqtt.ru
-         * и управления освещением через light_control::data::app()
+         * @brief Конструктор
          */
-        class light_manager
-        {
-        public:
-            /**
-             * @brief Конструктор
-             */
-            light_manager();
+        light_manager();
 
-            /**
-             * @brief Деструктор
-             */
-            ~light_manager();
+        /**
+         * @brief Деструктор
+         */
+        ~light_manager();
 
-            /**
-             * @brief Инициализация менеджера
-             *
-             * Настраивает подключение к wqtt.ru и подписку на топики.
-             *
-             * @param wifi_mgr Указатель на WiFi менеджер
-             * @return true при успешной инициализации
-             */
-            bool begin(etl::shared_ptr<etl::wifi::manager> wifi_mgr);
+        /**
+         * @brief Инициализация менеджера
+         *
+         * Настраивает подключение к wqtt.ru и подписку на топики.
+         *
+         * @param wifi_mgr Указатель на WiFi менеджер
+         * @return true при успешной инициализации
+         */
+        bool begin(etl::shared_ptr<etl::wifi::manager> wifi_mgr);
 
-            /**
-             * @brief Остановка менеджера
-             */
-            void stop();
+        /**
+         * @brief Остановка менеджера
+         */
+        void stop();
 
-            /**
-             * @brief Неблокирующий цикл обработки
-             *
-             * Вызывать регулярно из loop() для поддержания соединения
-             * и обработки входящих сообщений.
-             */
-            void tick();
+        /**
+         * @brief Неблокирующий цикл обработки
+         *
+         * Вызывать регулярно из loop() для поддержания соединения
+         * и обработки входящих сообщений.
+         */
+        void tick();
 
-            /**
-             * @brief Проверка подключения к MQTT
-             * @return true если подключено к брокеру
-             */
-            bool is_connected() const;
+        /**
+         * @brief Проверка подключения к MQTT
+         * @return true если подключено к брокеру
+         */
+        bool is_connected() const;
 
-        protected:
-            /**
-             * @brief Настройка подписки на топики управления
-             */
-            void setup_subscriptions();
+    protected:
+        /**
+         * @brief Настройка подписки на топики управления
+         */
+        void setup_subscriptions();
 
-            /**
-             * @brief Обработчик входящих MQTT сообщений
-             * @param topic Топик
-             * @param payload Данные
-             * @param length Длина
-             */
-            void on_mqtt_message(const String& topic, const String& payload, size_t length);
+        /**
+         * @brief Обработчик входящих MQTT сообщений
+         * @param topic Топик
+         * @param payload Данные
+         * @param length Длина
+         */
+        void on_mqtt_message(const String& topic, const String& payload, size_t length);
 
-            /**
-             * @brief Обработчик изменения статуса MQTT
-             * @param status Новый статус
-             */
-            void on_mqtt_status_changed(mqtt::status_t status);
+        /**
+         * @brief Обработчик изменения статуса MQTT
+         * @param status Новый статус
+         */
+        void on_mqtt_status_changed(etl::mqtt::status_t status);
 
-            /**
-             * @brief Публикация текущего состояния света
-             *
-             * Считывает данные из light_control::data::app() и публикует в MQTT
-             */
-            void publish_current_state();
+        /**
+         * @brief Публикация текущего состояния света
+         *
+         * Считывает данные из light_control::data::app() и публикует в MQTT
+         */
+        void publish_current_state();
 
-        protected:
-            // MQTT менеджер
-            etl::shared_ptr<etl::mqtt::manager> m_mqtt_mgr;
+    protected:
+        // MQTT менеджер
+        etl::shared_ptr<etl::mqtt::manager> m_mqtt_mgr;
 
-            // Флаг подписки на изменения light_control::data::app()
-            bool m_light_subscribed = false;
+        // Флаг подписки на изменения light_control::data::app()
+        bool m_light_subscribed = false;
 
-            // Топики
-            static const char* TOPIC_POWER_SET;          ///< Топик установки питания
-            static const char* TOPIC_BRIGHTNESS_SET;     ///< Топик установки яркости
-            static const char* TOPIC_POWER_STATE;        ///< Топик состояния питания
-            static const char* TOPIC_BRIGHTNESS_STATE;   ///< Топик состояния яркости
-        };
+        // Топики
+        static const char* TOPIC_POWER_SET;          ///< Топик установки питания
+        static const char* TOPIC_BRIGHTNESS_SET;     ///< Топик установки яркости
+        static const char* TOPIC_POWER_STATE;        ///< Топик состояния питания
+        static const char* TOPIC_BRIGHTNESS_STATE;   ///< Топик состояния яркости
+    };
 
-        // MQTT менеджер для управления светом
-        etl::shared_ptr<etl::mqtt::light_manager> get_light_mqtt_mgr();        
-        void set_light_mqtt_mgr(etl::shared_ptr<etl::mqtt::light_manager> mgr);        
-    } // namespace mqtt
-} // namespace etl
+    // MQTT менеджер для управления светом
+    etl::shared_ptr<light_mqtt::light_manager> get_light_mqtt_mgr();        
+    void set_light_mqtt_mgr(etl::shared_ptr<light_mqtt::light_manager> mgr);        
+
+} // namespace light_mqtt
 
 #else
     #pragma message("light_mqtt: no implementation for this platform")

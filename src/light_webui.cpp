@@ -349,7 +349,7 @@ namespace light_control
             }
 
             // MQTT менеджер для управления светом
-            if (auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr(); light_mqtt_mgr && light_mqtt_mgr->is_connected()) {
+            if (auto light_mqtt_mgr = light_mqtt::get_light_mqtt_mgr(); light_mqtt_mgr && light_mqtt_mgr->is_connected()) {
                 doc["mqtt"] = "connected";
             }
             else {

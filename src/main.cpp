@@ -78,7 +78,7 @@ bool start_wifi_server() {
 bool start_light_mqtt() {
     // Если MQTT менеджер уже создан - не пересоздаём
     // Он сам пытается переподключиться через tick()
-    auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr();
+    auto light_mqtt_mgr = light_mqtt::get_light_mqtt_mgr();
     if (light_mqtt_mgr) {
         return true;
     }
@@ -99,11 +99,11 @@ bool start_light_mqtt() {
     }
 
     // Создание и запуск MQTT менеджера
-    light_mqtt_mgr = etl::make_shared<etl::mqtt::light_manager>();
+    light_mqtt_mgr = etl::make_shared<light_mqtt::light_manager>();
     if (light_mqtt_mgr) {
         bool result = light_mqtt_mgr->begin(wifi_mgr);
         Serial.printf("[MQTT] light_manager begin: %s\n", result ? "OK" : "FAILED");
-        etl::mqtt::set_light_mqtt_mgr(light_mqtt_mgr);
+        light_mqtt::set_light_mqtt_mgr(light_mqtt_mgr);
         return result;
     }
 
@@ -182,7 +182,7 @@ void loop() {
     }
 
     // Обработка MQTT сообщений (менеджер сам занимается переподключением через tick())
-    if (auto light_mqtt_mgr = etl::mqtt::get_light_mqtt_mgr(); light_mqtt_mgr) {
+    if (auto light_mqtt_mgr = light_mqtt::get_light_mqtt_mgr(); light_mqtt_mgr) {
         light_mqtt_mgr->tick();
     }
 #endif// USE_WIFI_UI_SERVER
