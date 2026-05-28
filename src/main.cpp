@@ -20,7 +20,7 @@ struct simulation_t {
 simulation_t simulation_data;
 //////////////////////////////////////////////////////////////
 
-#define USE_WIFI_UI_SERVER
+//#define USE_WIFI_UI_SERVER
 //////////////////////////////////////////////////////////////
 // WEB-UI
 #ifdef USE_WIFI_UI_SERVER
@@ -138,6 +138,7 @@ void setup() {
     Serial.println("=================================");
     Serial.println();
 
+#ifdef USE_WIFI_UI_SERVER
     // Инициализация глобальных настроек тестового проекта
     light_control::data::app().init(light_control::data::kitchen_light_t{});
     // Подписка из модуля сенсоров, при изменении из webui будет устанавливать значения в подключенное оборудование
@@ -152,7 +153,6 @@ void setup() {
         }
     });
         
-#ifdef USE_WIFI_UI_SERVER
     if(etl::little_fs::begin()) {
         Serial.println("[LittleFS] etl::little_fs::begin(): OK");
         start_wifi_server();
@@ -166,12 +166,11 @@ void setup() {
 void loop() {
     // Основной цикл пустой - тесты выполняются один раз в setup()
     // TODO ...
-
-
-    light_control::data::app().tick();  // Обработчик отложенной записи данных управления светом
-
+ 
     // Обработка клиентских запросов и WiFi событий через менеджер
 #ifdef USE_WIFI_UI_SERVER
+    light_control::data::app().tick();  // Обработчик отложенной записи данных управления светом
+
     if(webui_manager) {
         webui_manager->tick();        // Обновление статуса WiFi и обработка HTTP запросов
 

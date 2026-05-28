@@ -40,6 +40,24 @@
   bool INVERSE_BUILTING_LED = false;
   const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
 
+#elif BOARD_ESP32_WROOM_30U // ESP32
+  // Код только для ESP32-WROOM-30U
+  #pragma message("Компилируется под ESP32-WROOM-30U")
+//  #undef LED_BUILTIN
+//  #define LED_BUILTIN 32 // Вообще-то должно быть 2, но при этом уходит в панику ядра
+  
+  bool INVERSE_BUILTING_LED = false;
+  const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
+
+#elif BOARD_ESP32_WROOM_38U // ESP32
+  // Код только для ESP32-WROOM-30U
+  #pragma message("Компилируется под ESP32-WROOM-38U")
+//  #undef LED_BUILTIN
+//  #define LED_BUILTIN 32 // Вообще-то должно быть 2, но при этом уходит в панику ядра
+  
+  bool INVERSE_BUILTING_LED = false;
+  const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
+
 #else
   // Код для других плат
   #pragma message("Компилируется под неизвестную плату. Добавьте BOARD_xxx в platformio.ini для нужной секции [env:xxx]")

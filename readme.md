@@ -145,3 +145,9 @@ JimorMarlow
 ### v0.1.2 
 - added NodeMCU v3 config
 - conditional build for etl_wifi_setup only for ESP8266 (ESP32 will be added later)
+
+### v1.1.3
+Added 2 new ESP32 boards [SAMIROB WROOM ESP32](https://ali.click/min4d1z)
+SAMIROB WROOM ESP32 Development Board 30Pin/38Pin Micro/Type-C USB WiFi+Bluetooth Ultra-Low Power Consumption Dual Core CPU
+-added [env:esp32-wroom-30u]
+-added [env:esp32-wroom-38u]
