@@ -24,6 +24,39 @@
 | ESP32 C3 Super Mini | ESP32-C3FH4 | `esp32c3` |
 | ESP32-WROOM-32U | ESP32 | `esp32-wroom-32u` |
 
+### Link: [ESP32 30 Pin vs 38 Pin Development Boards](https://zaitronics.com.au/blogs/guides/esp32-30-pin-vs-38-pin-development-boards?srsltid=AfmBOooAZg5WLt3bgtmTELwcuG8imrWg5joXwL56mScAKI5R04TmMIhI)
+
+### 30 Pin ESP32 – Pinout and Capabilities
+
+Below is the standard 30 pin ESP32 development board pinout.
+<br><img src="docs\images\ESP32-30PIN-DEVBOARD-PINOUT.webp" alt="ESP32 30 Pin Development Board Pinout Diagram" width="500">
+
+Although the ESP32 chip supports up to 48 GPIOs internally, the 30 pin board exposes a practical subset suitable for most beginner and intermediate projects.
+
+#### 30 Pin Key Capabilities
+- 15 ADC Channels – 12-bit SAR ADC with selectable ranges of 0–1V, 0–1.4V, 0–2V, or 0–4V.
+- 2 UART Interfaces – With flow control and IrDA support.
+- 25 PWM Outputs – Ideal for motor control, LED dimming, and servo projects.
+- 2 DAC Channels – Two 8-bit DACs for generating true analog voltages.
+- SPI, I2C, and I2S – Three SPI interfaces, one I2C interface, and two I2S interfaces for displays, sensors, and audio projects.
+- 9 Touch Pads – Capacitive touch capable GPIOs.
+For most hobbyist builds such as relay control, sensor reading, OLED displays, or small IoT devices, the 30 pin version provides more than enough functionality.
+
+### 38 Pin ESP32 – Pinout and Expanded GPIO Access
+
+The 38 pin board exposes additional GPIOs that are not available on many 30 pin variants.
+<br><img src="docs\images\ESP32-38_PIN-DEVBOARD-PINOUT.webp" alt="ESP32 38 Pin Development Board Pinout Diagram" width="500">
+
+#### Key Pinout Details – 38 Pin Module
+- Power – 3.3V, GND, and VIN 5V input.
+- ADC Inputs – GPIOs 32–39, 34–36, 0, 2, 4, 12–15, 25–27.
+- DAC Outputs – GPIO25 DAC1 and GPIO26 DAC2.
+- I2C – SDA GPIO21, SCL GPIO22.
+- SPI – SD2 GPIO9, SD3 GPIO10, CMD GPIO11, CLK GPIO6, SD0 GPIO7, SD1 GPIO8.
+- UART – TX0/RX0 GPIO1/GPIO3, TX2/RX2 GPIO17/GPIO16.
+- Touch Pins – T0–T9 on GPIO 4, 0, 2, 15, 13, 12, 14, 27, 33, 32.
+Functionally, both boards are extremely similar because they use the same ESP32 chip. The 38 pin version simply gives you access to more physical GPIO header pins, which can be important in larger projects involving multiple sensors, relays, displays, and communication modules.
+
 ---
 
 ## 🚀 Быстрый старт
@@ -151,3 +184,5 @@ Added 2 new ESP32 boards [SAMIROB WROOM ESP32](https://ali.click/min4d1z)
 SAMIROB WROOM ESP32 Development Board 30Pin/38Pin Micro/Type-C USB WiFi+Bluetooth Ultra-Low Power Consumption Dual Core CPU
 -added [env:esp32-wroom-30u]
 -added [env:esp32-wroom-38u]
+
+
