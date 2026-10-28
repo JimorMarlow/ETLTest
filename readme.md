@@ -175,6 +175,9 @@ JimorMarlow
 Если вы нашли ошибку или хотите предложить улучшения, создайте issue или pull request в репозитории.
 
 ## 📋 Hystory
+### v1.2.0
+- update to API code ESP32 3.x 
+
 ### v0.1.2 
 - added NodeMCU v3 config
 - conditional build for etl_wifi_setup only for ESP8266 (ESP32 will be added later)
