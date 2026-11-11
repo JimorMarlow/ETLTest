@@ -4,7 +4,7 @@
 код располжен в файлах lib\ETLTest\etl_wifi_setup*
 - После исправлений необходимо протестировать компиляцию всех конфигураций
 Например, для nodemcuv3 нужно выполнить:
-C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e nodemcuv3 -d c:\Projects\Arduino\ETLTest
+C:\Users\<user-name>\.platformio\penv\Scripts\platformio.exe run -e nodemcuv3 -d c:\Projects\Arduino\ETLTest
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
 - Все изменения записывай для себя в docs\tasks\history.md, чтобы потом можно было продолжить

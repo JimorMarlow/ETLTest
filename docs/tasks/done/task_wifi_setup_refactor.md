@@ -24,7 +24,7 @@ PS. Я на всякий случай сохранил коммит "feat: task_
 ```
 - После исправлений необходимо протестировать компиляцию всех конфигураций из platformio.ini
 Нужно выполнить:
-C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя_конфигурации> -d c:\Projects\Arduino\ETLTest
+C:\Users\<user-name>\.platformio\penv\Scripts\platformio.exe run -e <имя_конфигурации> -d c:\Projects\Arduino\ETLTest
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
 - Все изменения записывай для себя в docs\tasks\task_webui_darktheme_history.md, чтобы потом можно было продолжить

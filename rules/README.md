@@ -5,6 +5,6 @@
 - Все вопросы отвечай на русском языке
 - После исправлений необходимо протестировать компиляцию всех конфигураций из platformio.ini
 нужно выполнить:
-C:\Users\amber\.platformio\penv\Scripts\platformio.exe run -e <имя конфигурации> -d c:\Projects\Arduino\ETLTest
+C:\Users\<user-name>\.platformio\penv\Scripts\platformio.exe run -e <имя конфигурации> -d c:\Projects\Arduino\ETLTest
 - По запросу сделать текст для коммита, но самому в git не выкладывать
 - Для обновления контеста можешь посмотреть историю коммитов
