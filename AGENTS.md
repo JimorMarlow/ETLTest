@@ -26,8 +26,9 @@ The local ETL checkout lives next to this repository: `C:\Projects\Arduino\ETL`.
 
 - **All six** environments must build. Before saying "done", show the result for each env
   (RAM/Flash, errors).
-- Build commands need no approval. Uploading, monitoring and erasing a board need a connected
-  device — **ask the user first**:
+- Build commands need no approval. Uploading, monitoring and erasing a board touch hardware — do
+  them **only on the user's explicit request** and only for the board named in it (see
+  "Hardware check on request" below):
 
 ```powershell
 & "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run -e esp32c3 -t upload
@@ -43,6 +44,25 @@ The local ETL checkout lives next to this repository: `C:\Projects\Arduino\ETL`.
   and run on the device through `src/main.cpp`. The correctness criterion is a build of every env
   plus the `test_all()` output on hardware (when a board is connected).
 - Full clean: `... pio run -t clean`. Do not wipe `.pio` without a reason — rebuilds get slower.
+
+### Hardware check on request
+
+Three test boards cover all six environments:
+
+| Board | Platform | Envs checked on it |
+|---|---|---|
+| Wemos D1 mini | ESP8266 | `d1_mini_lite`, `nodemcuv3` |
+| ESP32-C3 mini | ESP32-C3 | `esp32c3` |
+| ESP32 WROOM-32 | ESP32 | `esp32-wroom-32u`, `esp32-wroom-30u`, `esp32-wroom-38u` |
+
+- Run a check on the device **only when the user asks for it**. The user says which board is
+  connected; never upload, monitor or erase on your own initiative.
+- Do not assume a board from an earlier request: ask which one is plugged in, and if the named
+  board does not match the env, say so before touching the port.
+- One board stands for a whole platform, so the env comes from the task, not from the board: the
+  D1 mini runs both ESP8266 envs, the WROOM-32 runs all three ESP32-WROOM envs.
+- Report what the board actually printed (`test_all()` output). All six builds plus that output are
+  the correctness criterion; a green build alone says nothing about device behaviour.
 
 ## Local ETL debugging
 
