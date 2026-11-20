@@ -15,6 +15,7 @@
 
 namespace light_amqtt
 {
+    // ВНИМАНИЕ: если при сборке ошибка в этом месте - обнови secret.h
     // Определение статических констант
     const char* light_manager::TOPIC_POWER_SET = ::mqtt::topic::kitchen::workarea::power::set;
     const char* light_manager::TOPIC_POWER_STATE = ::mqtt::topic::kitchen::workarea::power::state;
