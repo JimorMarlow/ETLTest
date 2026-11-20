@@ -95,12 +95,16 @@ Functionally, both boards are extremely similar because they use the same ESP32 
 ```
 ETLTest/
 ├── .vscode/                 # Настройки Visual Studio Code
+├── data/                    # Содержимое файловой системы (образ LittleFS)
+├── docs/                    # Документация, задачи и прототипы WEB-UI
 ├── include/                 # Заголовочные файлы проекта
+├── partitions/              # Схемы разбиения Flash (CSV)
 ├── src/
 │   ├── main.cpp             # Основной код с тестами ETL
 │   └── version.h            # Управление версией проекта
 ├── test/                    # Unit-тесты (опционально)
 ├── .gitignore               # Игнорируемые файлы Git
+├── AGENTS.md                # Правила для ИИ-агентов
 ├── package.json             # Метаданные проекта
 ├── platformio.ini           # Конфигурация PlatformIO
 ├── readme.md                # Документация
@@ -175,6 +179,12 @@ JimorMarlow
 Если вы нашли ошибку или хотите предложить улучшения, создайте issue или pull request в репозитории.
 
 ## 📋 Hystory
+### v1.2.1
+- переход на `platform = espressif32 @ ^8.0.0` во всех ESP32-окружениях (ядро Arduino 3.3.12)
+- `light_*` и `etl_amqtt`: платформенные ветки переведены с `ESP32`/`ESP8266` на `ETL_ESP32`/`ETL_ESP8266` из `etl/etl_defines.h` (на ядре 3.x `ESP32` не определён и код собирался в пустоту)
+- каталог `littlefs/` переименован в `partitions/` (схемы разбиения Flash)
+- добавлен `AGENTS.md` — правила для ИИ-агентов (заменил `rules/README.md` и `QWEN.md`)
+
 ### v1.2.0
 - update to API code ESP32 3.x 
 

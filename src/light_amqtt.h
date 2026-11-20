@@ -14,7 +14,9 @@
  * @note Требует наличия secret.h с настройками подключения
  */
 
-#if defined(ESP8266) || defined(ESP32)
+#include "etl/etl_defines.h"   // ETL_ESP32 / ETL_ESP8266
+
+#if defined(ETL_ESP8266) || defined(ETL_ESP32)
 
 #include <Arduino.h>
 #include "light_webui.h"

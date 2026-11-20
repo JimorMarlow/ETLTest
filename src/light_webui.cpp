@@ -8,7 +8,9 @@
  * Настройки WiFi меняются через server_setup.
  */
 
-#if defined(ESP8266) || defined(ESP32)
+#include "etl/etl_defines.h"   // ETL_ESP32 / ETL_ESP8266
+
+#if defined(ETL_ESP8266) || defined(ETL_ESP32)
 
 #include "etl/etl_littlefs.h"
 #include "etl/etl_settings.h"
@@ -203,7 +205,7 @@ namespace light_control
                 Serial.print(F("[LightControl] Found saved WiFi config, SSID: "));
                 Serial.println(m_config->get_wifi_ssid());
 
-#ifdef ESP8266
+#if defined(ETL_ESP8266)
                 Serial.print(F("[LightControl] Free heap before connect: "));
                 Serial.println(ESP.getFreeHeap());
 #endif
@@ -234,7 +236,7 @@ namespace light_control
                     m_connection_status = etl::webui::connection_status_t::error;
                 }
 
-#ifdef ESP8266
+#if defined(ETL_ESP8266)
                 Serial.print(F("[LightControl] Free heap after connect: "));
                 Serial.println(ESP.getFreeHeap());
 #endif
@@ -257,7 +259,7 @@ namespace light_control
 
         void light_control_server::start_http_server()
         {
-#ifdef ESP8266
+#if defined(ETL_ESP8266)
             Serial.println(F("[LightControl] Init (ESP8266)..."));
             Serial.print(F("[LightControl] Free heap before: "));
             Serial.println(ESP.getFreeHeap());
@@ -274,7 +276,7 @@ namespace light_control
             // Запуск сервера
             m_server->begin();
 
-#ifdef ESP8266
+#if defined(ETL_ESP8266)
             Serial.print(F("[LightControl] Free heap after server: "));
             Serial.println(ESP.getFreeHeap());
 #endif
@@ -307,7 +309,7 @@ namespace light_control
                 MDNS.addService("http", "tcp", m_config.has_value() ? m_config->port : 80);
                 mdns_service_added = true;
             }
-#ifdef ESP8266
+#if defined(ETL_ESP8266)
             MDNS.update();
 #endif
 
@@ -331,11 +333,7 @@ namespace light_control
             doc["connected"] = is_connected();
             doc["ssid"] = m_config.has_value() ? m_config->get_wifi_ssid() : "";
             doc["ip"] = get_ip_address();
-#ifdef ESP8266
             doc["rssi"] = WiFi.RSSI();
-#elif defined(ESP32)
-            doc["rssi"] = WiFi.RSSI();
-#endif
             doc["mode"] = get_mode();
 
             // WiFi статус текстом

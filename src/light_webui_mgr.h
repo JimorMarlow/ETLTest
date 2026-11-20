@@ -12,10 +12,11 @@
  * - Устанавливает callback'и для переключения между серверами
  */
 
+#include "etl/etl_defines.h"   // ETL_ESP32 / ETL_ESP8266
 #include "etl/etl_webui_base.h"
 #include "light_webui.h"
 
-#if defined(ESP8266) || defined(ESP32)
+#if defined(ETL_ESP8266) || defined(ETL_ESP32)
 
 namespace light_control {
 

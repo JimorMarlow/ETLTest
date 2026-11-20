@@ -16,17 +16,18 @@
  */
 
 #include "version.h"
+#include "etl/etl_defines.h"   // ETL_ESP32 / ETL_ESP8266
 #include "etl/etl_webui_base.h"
 #include "etl/etl_settings.h"
 
 // Алиас типа сервера для совместимости ESP8266 и ESP32
-#if defined(ESP8266)
+#if defined(ETL_ESP8266)
   using light_web_server_t = ESP8266WebServer;
-#elif defined(ESP32)
+#elif defined(ETL_ESP32)
   using light_web_server_t = WebServer;
 #endif
 
-#if defined(ESP8266) || defined(ESP32)
+#if defined(ETL_ESP8266) || defined(ETL_ESP32)
 
 namespace light_control
 {

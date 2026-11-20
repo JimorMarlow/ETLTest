@@ -16,12 +16,14 @@
  * @note Код будет перемещён в библиотеку ETL после отладки
  */
 
-#if defined(ESP8266) || defined(ESP32)
+#include "etl/etl_defines.h"   // ETL_ESP32 / ETL_ESP8266
 
-#if defined(ESP8266)
+#if defined(ETL_ESP8266) || defined(ETL_ESP32)
+
+#if defined(ETL_ESP8266)
   #include <WiFiClientSecureBearSSL.h>
   using mqtt_secure_client_t = WiFiClient;
-#elif defined(ESP32)
+#elif defined(ETL_ESP32)
   #include <WiFiClientSecure.h>
   using mqtt_secure_client_t = WiFiClientSecure;
 #endif

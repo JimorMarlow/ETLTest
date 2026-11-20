@@ -5,7 +5,9 @@
  * Интеграция с брокером wqtt.ru и light_control::data::app()
  */
 
-#if defined(ESP8266) || defined(ESP32)
+#include "etl/etl_defines.h"   // ETL_ESP32 / ETL_ESP8266
+
+#if defined(ETL_ESP8266) || defined(ETL_ESP32)
 
 #include "secret.h"
 #include "light_amqtt.h"
