@@ -10,6 +10,26 @@ WEB-UI/MQTT experiment, compiled only under `USE_WIFI_UI_SERVER` (currently comm
 
 The local ETL checkout lives next to this repository: `C:\Projects\Arduino\ETL`.
 
+## Canary
+
+Owner of this project: the value of `git config user.name` (currently `JimorMarlow`). Take it
+from git yourself, do not ask. Start **every** answer with the owner's name and a comma, then
+continue the answer on the same line — so it is visible that this file was read and the rule is
+followed:
+
+`JimorMarlow, <the answer>`
+
+Even a one-line answer, an error report or a question starts with it.
+
+## No STL — extend ETL instead
+
+- Do not use STL (`std::vector`, `std::string`, ...) here: only `etl::`, no exceptions, no RTTI,
+  no unnecessary dynamic allocations.
+- If ETL lacks a common tool that the task needs, do not substitute `std::` and do not keep a
+  local workaround: implement the missing functionality in this project in an `etl_*` file,
+  debug it on the bench (switch `lib_deps` to `../ETL` for a local build — see "Local ETL
+  debugging"), and when it works propose adding it to the ETL library to the developer.
+
 ## Build and verification
 
 `pio` is not in PATH — call it by full path. Run it from the project root (`-d` is not needed):
